@@ -1,0 +1,1728 @@
+blueprint:
+  name: Inteligentne podlewanie ogrodu - 1 do 8 sekcji
+  description: >
+    Uniwersalny blueprint podlewania od 1 do 8 sekcji. Wspolne sa encje
+    pogodowe i opcjonalne posiadane sensory. Dla kazdej sekcji osobno
+    ustawiasz nazwe, zawor, rodzaj gleby, co rosnie, typ zraszaczy
+    Rain Bird/Hunter, korekte czasu oraz opcjonalne sensory online/baterii.
+  domain: automation
+  author: Smart Service
+  homeassistant:
+    min_version: 2025.1.0
+  source_url: https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml
+  input:
+    weather_section:
+      name: Wspolne encje pogody i sensory
+      icon: mdi:weather-partly-rainy
+      input:
+        forecast_weather_entity:
+          name: Encja pogody do prognozy
+          description: Weather uzywany do pobrania prognozy dziennej. Z prognozy automatyzacja bierze opad, prawdopodobienstwo deszczu i temperature awaryjna.
+          selector:
+            entity:
+              filter:
+                - domain: weather
+        current_weather_entity:
+          name: Lokalna encja pogody
+          description: Lokalna pogoda z aktualnym stanem. Puste = uzyj encji prognozy. Stan rainy/pouring itp. blokuje podlewanie.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: weather
+        rain_binary_sensor:
+          name: Czujnik deszczu
+          description: Opcjonalny czujnik fizycznego deszczu. Gdy ma stan on, podlewanie nie wystartuje albo zostanie przerwane.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        rain_amount_sensor:
+          name: Sensor opadu
+          description: Sensor aktualnego lub ostatniego opadu w mm. Ta wartosc jest odejmowana od potrzebnej dawki wody.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+        temperature_source_entity:
+          name: Temperatura ogrodu
+          description: Sensor temperatury w ogrodzie albo encja weather. Niska temperatura blokuje podlewanie, upal zwieksza dawke.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+                - domain: weather
+        wind_source_entity:
+          name: Wiatr
+          description: Sensor wiatru albo encja weather. Zbyt mocny wiatr blokuje podlewanie, bo zraszacze tracilyby rownomiernosc.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+                - domain: weather
+        sunlight_source_entity:
+          name: UV / slonce
+          description: Sensor UV/slonca albo weather z uv_index. Wysokie UV lekko zwieksza dawke, niskie lekko zmniejsza.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+                - domain: weather
+        soil_moisture_sensor:
+          name: Wilgotnosc gleby
+          description: Opcjonalny wspolny sensor wilgotnosci gleby w procentach. Przy wysokiej wilgotnosci podlewanie jest ograniczane albo pomijane.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    general_section:
+      name: Ustawienia ogolne
+      icon: mdi:tune
+      input:
+        zone_count:
+          name: Liczba sekcji
+          description: Ile sekcji ma obslugiwac ta automatyzacja. Sekcje powyzej tej liczby zostaja w konfiguracji, ale sa ignorowane.
+          default: 1
+          selector:
+            number:
+              min: 1
+              max: 8
+              step: 1
+              mode: slider
+
+    zone_1_section:
+      name: Sekcja 1
+      icon: mdi:sprinkler-variant
+      input:
+        zone_1_valve:
+          name: Sekcja 1 - zawor
+          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_1_name:
+          name: Sekcja 1 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 1
+          selector:
+            text:
+        zone_1_soil_type:
+          name: Sekcja 1 - rodzaj gleby
+          description: Wplywa na dawke wody. Piasek potrzebuje wiecej, glina mniej i wolniej przyjmuje wode.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta
+                  value: sand
+                - label: Piaszczysto-gliniasta
+                  value: sandy_loam
+                - label: Prochnicza / gliniasta lekka
+                  value: loam
+                - label: Gliniasta
+                  value: clay_loam
+                - label: Ciezka glina
+                  value: clay
+        zone_1_plant_type:
+          name: Sekcja 1 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_1_sprinkler_profile:
+          name: Sekcja 1 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird - rotory
+                  value: rainbird_rotor
+                - label: Rain Bird - spray/statyczne
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_1_custom_rate_mm_h:
+          name: Sekcja 1 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_1_runtime_adjustment_percent:
+          name: Sekcja 1 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_1_online_sensor:
+          name: Sekcja 1 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_1_battery_sensor:
+          name: Sekcja 1 - bateria
+          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_2_section:
+      name: Sekcja 2
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_2_valve:
+          name: Sekcja 2 - zawor
+          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_2_name:
+          name: Sekcja 2 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 2
+          selector:
+            text:
+        zone_2_soil_type:
+          name: Sekcja 2 - rodzaj gleby
+          description: Wplywa na dawke wody. Piasek potrzebuje wiecej, glina mniej i wolniej przyjmuje wode.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta
+                  value: sand
+                - label: Piaszczysto-gliniasta
+                  value: sandy_loam
+                - label: Prochnicza / gliniasta lekka
+                  value: loam
+                - label: Gliniasta
+                  value: clay_loam
+                - label: Ciezka glina
+                  value: clay
+        zone_2_plant_type:
+          name: Sekcja 2 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_2_sprinkler_profile:
+          name: Sekcja 2 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird - rotory
+                  value: rainbird_rotor
+                - label: Rain Bird - spray/statyczne
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_2_custom_rate_mm_h:
+          name: Sekcja 2 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_2_runtime_adjustment_percent:
+          name: Sekcja 2 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_2_online_sensor:
+          name: Sekcja 2 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_2_battery_sensor:
+          name: Sekcja 2 - bateria
+          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_3_section:
+      name: Sekcja 3
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_3_valve:
+          name: Sekcja 3 - zawor
+          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_3_name:
+          name: Sekcja 3 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 3
+          selector:
+            text:
+        zone_3_soil_type:
+          name: Sekcja 3 - rodzaj gleby
+          description: Wplywa na dawke wody. Piasek potrzebuje wiecej, glina mniej i wolniej przyjmuje wode.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta
+                  value: sand
+                - label: Piaszczysto-gliniasta
+                  value: sandy_loam
+                - label: Prochnicza / gliniasta lekka
+                  value: loam
+                - label: Gliniasta
+                  value: clay_loam
+                - label: Ciezka glina
+                  value: clay
+        zone_3_plant_type:
+          name: Sekcja 3 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_3_sprinkler_profile:
+          name: Sekcja 3 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird - rotory
+                  value: rainbird_rotor
+                - label: Rain Bird - spray/statyczne
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_3_custom_rate_mm_h:
+          name: Sekcja 3 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_3_runtime_adjustment_percent:
+          name: Sekcja 3 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_3_online_sensor:
+          name: Sekcja 3 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_3_battery_sensor:
+          name: Sekcja 3 - bateria
+          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_4_section:
+      name: Sekcja 4
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_4_valve:
+          name: Sekcja 4 - zawor
+          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_4_name:
+          name: Sekcja 4 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 4
+          selector:
+            text:
+        zone_4_soil_type:
+          name: Sekcja 4 - rodzaj gleby
+          description: Wplywa na dawke wody. Piasek potrzebuje wiecej, glina mniej i wolniej przyjmuje wode.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta
+                  value: sand
+                - label: Piaszczysto-gliniasta
+                  value: sandy_loam
+                - label: Prochnicza / gliniasta lekka
+                  value: loam
+                - label: Gliniasta
+                  value: clay_loam
+                - label: Ciezka glina
+                  value: clay
+        zone_4_plant_type:
+          name: Sekcja 4 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_4_sprinkler_profile:
+          name: Sekcja 4 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird - rotory
+                  value: rainbird_rotor
+                - label: Rain Bird - spray/statyczne
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_4_custom_rate_mm_h:
+          name: Sekcja 4 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_4_runtime_adjustment_percent:
+          name: Sekcja 4 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_4_online_sensor:
+          name: Sekcja 4 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_4_battery_sensor:
+          name: Sekcja 4 - bateria
+          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_5_section:
+      name: Sekcja 5
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_5_valve:
+          name: Sekcja 5 - zawor
+          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_5_name:
+          name: Sekcja 5 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 5
+          selector:
+            text:
+        zone_5_soil_type:
+          name: Sekcja 5 - rodzaj gleby
+          description: Wplywa na dawke wody. Piasek potrzebuje wiecej, glina mniej i wolniej przyjmuje wode.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta
+                  value: sand
+                - label: Piaszczysto-gliniasta
+                  value: sandy_loam
+                - label: Prochnicza / gliniasta lekka
+                  value: loam
+                - label: Gliniasta
+                  value: clay_loam
+                - label: Ciezka glina
+                  value: clay
+        zone_5_plant_type:
+          name: Sekcja 5 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_5_sprinkler_profile:
+          name: Sekcja 5 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird - rotory
+                  value: rainbird_rotor
+                - label: Rain Bird - spray/statyczne
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_5_custom_rate_mm_h:
+          name: Sekcja 5 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_5_runtime_adjustment_percent:
+          name: Sekcja 5 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_5_online_sensor:
+          name: Sekcja 5 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_5_battery_sensor:
+          name: Sekcja 5 - bateria
+          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_6_section:
+      name: Sekcja 6
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_6_valve:
+          name: Sekcja 6 - zawor
+          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_6_name:
+          name: Sekcja 6 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 6
+          selector:
+            text:
+        zone_6_soil_type:
+          name: Sekcja 6 - rodzaj gleby
+          description: Wplywa na dawke wody. Piasek potrzebuje wiecej, glina mniej i wolniej przyjmuje wode.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta
+                  value: sand
+                - label: Piaszczysto-gliniasta
+                  value: sandy_loam
+                - label: Prochnicza / gliniasta lekka
+                  value: loam
+                - label: Gliniasta
+                  value: clay_loam
+                - label: Ciezka glina
+                  value: clay
+        zone_6_plant_type:
+          name: Sekcja 6 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_6_sprinkler_profile:
+          name: Sekcja 6 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird - rotory
+                  value: rainbird_rotor
+                - label: Rain Bird - spray/statyczne
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_6_custom_rate_mm_h:
+          name: Sekcja 6 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_6_runtime_adjustment_percent:
+          name: Sekcja 6 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_6_online_sensor:
+          name: Sekcja 6 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_6_battery_sensor:
+          name: Sekcja 6 - bateria
+          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_7_section:
+      name: Sekcja 7
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_7_valve:
+          name: Sekcja 7 - zawor
+          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_7_name:
+          name: Sekcja 7 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 7
+          selector:
+            text:
+        zone_7_soil_type:
+          name: Sekcja 7 - rodzaj gleby
+          description: Wplywa na dawke wody. Piasek potrzebuje wiecej, glina mniej i wolniej przyjmuje wode.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta
+                  value: sand
+                - label: Piaszczysto-gliniasta
+                  value: sandy_loam
+                - label: Prochnicza / gliniasta lekka
+                  value: loam
+                - label: Gliniasta
+                  value: clay_loam
+                - label: Ciezka glina
+                  value: clay
+        zone_7_plant_type:
+          name: Sekcja 7 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_7_sprinkler_profile:
+          name: Sekcja 7 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird - rotory
+                  value: rainbird_rotor
+                - label: Rain Bird - spray/statyczne
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_7_custom_rate_mm_h:
+          name: Sekcja 7 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_7_runtime_adjustment_percent:
+          name: Sekcja 7 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_7_online_sensor:
+          name: Sekcja 7 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_7_battery_sensor:
+          name: Sekcja 7 - bateria
+          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_8_section:
+      name: Sekcja 8
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_8_valve:
+          name: Sekcja 8 - zawor
+          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_8_name:
+          name: Sekcja 8 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 8
+          selector:
+            text:
+        zone_8_soil_type:
+          name: Sekcja 8 - rodzaj gleby
+          description: Wplywa na dawke wody. Piasek potrzebuje wiecej, glina mniej i wolniej przyjmuje wode.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta
+                  value: sand
+                - label: Piaszczysto-gliniasta
+                  value: sandy_loam
+                - label: Prochnicza / gliniasta lekka
+                  value: loam
+                - label: Gliniasta
+                  value: clay_loam
+                - label: Ciezka glina
+                  value: clay
+        zone_8_plant_type:
+          name: Sekcja 8 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_8_sprinkler_profile:
+          name: Sekcja 8 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird - rotory
+                  value: rainbird_rotor
+                - label: Rain Bird - spray/statyczne
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_8_custom_rate_mm_h:
+          name: Sekcja 8 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_8_runtime_adjustment_percent:
+          name: Sekcja 8 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_8_online_sensor:
+          name: Sekcja 8 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_8_battery_sensor:
+          name: Sekcja 8 - bateria
+          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    schedule_section:
+      name: Harmonogram, sezon i progi
+      icon: mdi:calendar-clock
+      input:
+        schedule_mode:
+          name: Start podlewania
+          description: Stala godzina uzywa godzin ponizej. Tryb slonca startuje podlewanie wzgledem wschodu albo zachodu.
+          default: fixed_time
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Stala godzina
+                  value: fixed_time
+                - label: Wzgledem wschodu slonca
+                  value: sunrise
+                - label: Wzgledem zachodu slonca
+                  value: sunset
+        sun_event_offset_minutes:
+          name: Przesuniecie wzgledem slonca
+          description: Minuty wzgledem wschodu/zachodu. Wartosc ujemna = przed, dodatnia = po.
+          default: -30
+          selector:
+            number:
+              min: -180
+              max: 180
+              step: 5
+              unit_of_measurement: min
+              mode: slider
+        primary_start_time:
+          name: Glowna godzina podlewania
+          description: Uzywana tylko przy trybie "Stala godzina".
+          default: "04:30:00"
+          selector:
+            time:
+        backup_start_time:
+          name: Druga proba podlewania
+          description: Uzywana tylko przy trybie "Stala godzina".
+          default: "05:30:00"
+          selector:
+            time:
+        enable_backup_time:
+          name: Wlacz druga probe
+          description: Dotyczy tylko trybu "Stala godzina".
+          default: true
+          selector:
+            boolean:
+        season_start_month:
+          name: Miesiac startu sezonu
+          description: Pierwszy miesiac, w ktorym automatyzacja moze podlewac. Poza sezonem zawory nie sa uruchamiane.
+          default: 4
+          selector:
+            number:
+              min: 1
+              max: 12
+              step: 1
+              mode: slider
+        season_end_month:
+          name: Miesiac konca sezonu
+          description: Ostatni miesiac sezonu podlewania. Przyklad 4-10 oznacza podlewanie od kwietnia do pazdziernika.
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 12
+              step: 1
+              mode: slider
+        waterings_per_week:
+          name: Podlewania tygodniowo
+          description: Ile razy w tygodniu ma byc dzielone zapotrzebowanie roslin na wode. Wieksza liczba = mniejsza dawka jednego podlewania.
+          default: 3
+          selector:
+            number:
+              min: 1
+              max: 7
+              step: 1
+              mode: slider
+        min_dose_mm:
+          name: Minimalna dawka do startu
+          description: Jesli wyliczona dawka dla sekcji jest mniejsza, sekcja zostanie pominieta. Chroni przed bezsensownymi, bardzo krotkimi cyklami.
+          default: 3
+          selector:
+            number:
+              min: 0.5
+              max: 15
+              step: 0.5
+              unit_of_measurement: mm
+              mode: slider
+        max_dose_mm:
+          name: Maksymalna dawka jednego podlewania
+          description: Gorny limit wody na jedno podlewanie sekcji. Chroni przed przelaniem i zbyt dluga praca po kilku suchych dniach.
+          default: 10
+          selector:
+            number:
+              min: 3
+              max: 30
+              step: 0.5
+              unit_of_measurement: mm
+              mode: slider
+        min_runtime_minutes:
+          name: Minimalny czas sekcji
+          description: Najkrotszy czas pracy sekcji, jesli podlewanie juz wystartuje. Pomaga utrzymac stabilna prace zaworow i instalacji.
+          default: 8
+          selector:
+            number:
+              min: 1
+              max: 30
+              step: 1
+              unit_of_measurement: min
+              mode: slider
+        max_runtime_minutes:
+          name: Maksymalny czas sekcji
+          description: Najdluzszy dopuszczalny czas pracy jednej sekcji w jednym cyklu. Ogranicza ryzyko zbyt dlugiego podlewania.
+          default: 45
+          selector:
+            number:
+              min: 5
+              max: 120
+              step: 5
+              unit_of_measurement: min
+              mode: slider
+        zone_pause_seconds:
+          name: Przerwa miedzy sekcjami
+          description: Odstep po zamknieciu jednej sekcji przed startem kolejnej. Daje instalacji czas na ustabilizowanie cisnienia.
+          default: 15
+          selector:
+            number:
+              min: 0
+              max: 120
+              step: 5
+              unit_of_measurement: s
+              mode: slider
+
+    safety_section:
+      name: Blokady pogodowe
+      icon: mdi:shield-check
+      collapsed: true
+      input:
+        max_forecast_rain_mm:
+          name: Prognozowany deszcz blokujacy
+          description: Jesli prognoza pokazuje co najmniej tyle mm deszczu, podlewanie zostanie pominiete.
+          default: 4
+          selector:
+            number:
+              min: 0
+              max: 30
+              step: 0.5
+              unit_of_measurement: mm
+              mode: slider
+        max_rain_probability_percent:
+          name: Prawdopodobienstwo deszczu blokujace
+          description: Podlewanie zostanie zablokowane, gdy szansa deszczu przekroczy ten prog i prognoza pokazuje co najmniej 1 mm opadu.
+          default: 80
+          selector:
+            number:
+              min: 30
+              max: 100
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        rain_credit_percent:
+          name: Ile deszczu odjac od dawki
+          description: Ile procent prognozowanego/zmierzonego deszczu odjac od wyliczonej dawki podlewania. 80% oznacza ostrozne uwzglednianie opadu.
+          default: 80
+          selector:
+            number:
+              min: 0
+              max: 120
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        min_temperature_c:
+          name: Minimalna temperatura
+          description: Ponizej tej temperatury podlewanie nie wystartuje. Chroni rosliny i instalacje przy zimnych porankach.
+          default: 8
+          selector:
+            number:
+              min: -5
+              max: 20
+              step: 0.5
+              unit_of_measurement: C
+              mode: slider
+        hot_temperature_c:
+          name: Temperatura upalu
+          description: Od tej temperatury automatyzacja lekko zwieksza dawke wody, bo parowanie jest wieksze.
+          default: 28
+          selector:
+            number:
+              min: 20
+              max: 40
+              step: 0.5
+              unit_of_measurement: C
+              mode: slider
+        max_wind:
+          name: Maksymalny wiatr
+          description: Przy wietrze powyzej tej wartosci podlewanie zostanie pominiete, zeby woda nie byla znoszona poza sekcje.
+          default: 35
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              mode: slider
+        min_battery_percent:
+          name: Minimalna bateria zaworu
+          description: Jesli sekcja ma sensor baterii i bateria jest ponizej tego progu, sekcja zostanie pominieta.
+          default: 20
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        irrigation_efficiency_percent:
+          name: Sprawnosc instalacji
+          description: Uwzglednia straty instalacji, nierowny opad i parowanie. Nizsza wartosc wydluza podlewanie; 70-85% jest typowe.
+          default: 75
+          selector:
+            number:
+              min: 40
+              max: 100
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: time
+    id: primary
+    at: !input primary_start_time
+  - trigger: time
+    id: backup
+    at: !input backup_start_time
+  - trigger: time_pattern
+    id: sun_check
+    minutes: "/1"
+
+variables:
+  forecast_weather_entity: !input forecast_weather_entity
+  current_weather_entity_input: !input current_weather_entity
+  rain_binary_sensor: !input rain_binary_sensor
+  rain_amount_sensor: !input rain_amount_sensor
+  temperature_source_entity: !input temperature_source_entity
+  wind_source_entity: !input wind_source_entity
+  sunlight_source_entity: !input sunlight_source_entity
+  soil_moisture_sensor: !input soil_moisture_sensor
+  zone_count: !input zone_count
+  zone_1_valve: !input zone_1_valve
+  zone_1_name: !input zone_1_name
+  zone_1_soil_type: !input zone_1_soil_type
+  zone_1_plant_type: !input zone_1_plant_type
+  zone_1_sprinkler_profile: !input zone_1_sprinkler_profile
+  zone_1_custom_rate_mm_h: !input zone_1_custom_rate_mm_h
+  zone_1_runtime_adjustment_percent: !input zone_1_runtime_adjustment_percent
+  zone_1_online_sensor: !input zone_1_online_sensor
+  zone_1_battery_sensor: !input zone_1_battery_sensor
+
+  zone_2_valve: !input zone_2_valve
+  zone_2_name: !input zone_2_name
+  zone_2_soil_type: !input zone_2_soil_type
+  zone_2_plant_type: !input zone_2_plant_type
+  zone_2_sprinkler_profile: !input zone_2_sprinkler_profile
+  zone_2_custom_rate_mm_h: !input zone_2_custom_rate_mm_h
+  zone_2_runtime_adjustment_percent: !input zone_2_runtime_adjustment_percent
+  zone_2_online_sensor: !input zone_2_online_sensor
+  zone_2_battery_sensor: !input zone_2_battery_sensor
+
+  zone_3_valve: !input zone_3_valve
+  zone_3_name: !input zone_3_name
+  zone_3_soil_type: !input zone_3_soil_type
+  zone_3_plant_type: !input zone_3_plant_type
+  zone_3_sprinkler_profile: !input zone_3_sprinkler_profile
+  zone_3_custom_rate_mm_h: !input zone_3_custom_rate_mm_h
+  zone_3_runtime_adjustment_percent: !input zone_3_runtime_adjustment_percent
+  zone_3_online_sensor: !input zone_3_online_sensor
+  zone_3_battery_sensor: !input zone_3_battery_sensor
+
+  zone_4_valve: !input zone_4_valve
+  zone_4_name: !input zone_4_name
+  zone_4_soil_type: !input zone_4_soil_type
+  zone_4_plant_type: !input zone_4_plant_type
+  zone_4_sprinkler_profile: !input zone_4_sprinkler_profile
+  zone_4_custom_rate_mm_h: !input zone_4_custom_rate_mm_h
+  zone_4_runtime_adjustment_percent: !input zone_4_runtime_adjustment_percent
+  zone_4_online_sensor: !input zone_4_online_sensor
+  zone_4_battery_sensor: !input zone_4_battery_sensor
+
+  zone_5_valve: !input zone_5_valve
+  zone_5_name: !input zone_5_name
+  zone_5_soil_type: !input zone_5_soil_type
+  zone_5_plant_type: !input zone_5_plant_type
+  zone_5_sprinkler_profile: !input zone_5_sprinkler_profile
+  zone_5_custom_rate_mm_h: !input zone_5_custom_rate_mm_h
+  zone_5_runtime_adjustment_percent: !input zone_5_runtime_adjustment_percent
+  zone_5_online_sensor: !input zone_5_online_sensor
+  zone_5_battery_sensor: !input zone_5_battery_sensor
+
+  zone_6_valve: !input zone_6_valve
+  zone_6_name: !input zone_6_name
+  zone_6_soil_type: !input zone_6_soil_type
+  zone_6_plant_type: !input zone_6_plant_type
+  zone_6_sprinkler_profile: !input zone_6_sprinkler_profile
+  zone_6_custom_rate_mm_h: !input zone_6_custom_rate_mm_h
+  zone_6_runtime_adjustment_percent: !input zone_6_runtime_adjustment_percent
+  zone_6_online_sensor: !input zone_6_online_sensor
+  zone_6_battery_sensor: !input zone_6_battery_sensor
+
+  zone_7_valve: !input zone_7_valve
+  zone_7_name: !input zone_7_name
+  zone_7_soil_type: !input zone_7_soil_type
+  zone_7_plant_type: !input zone_7_plant_type
+  zone_7_sprinkler_profile: !input zone_7_sprinkler_profile
+  zone_7_custom_rate_mm_h: !input zone_7_custom_rate_mm_h
+  zone_7_runtime_adjustment_percent: !input zone_7_runtime_adjustment_percent
+  zone_7_online_sensor: !input zone_7_online_sensor
+  zone_7_battery_sensor: !input zone_7_battery_sensor
+
+  zone_8_valve: !input zone_8_valve
+  zone_8_name: !input zone_8_name
+  zone_8_soil_type: !input zone_8_soil_type
+  zone_8_plant_type: !input zone_8_plant_type
+  zone_8_sprinkler_profile: !input zone_8_sprinkler_profile
+  zone_8_custom_rate_mm_h: !input zone_8_custom_rate_mm_h
+  zone_8_runtime_adjustment_percent: !input zone_8_runtime_adjustment_percent
+  zone_8_online_sensor: !input zone_8_online_sensor
+  zone_8_battery_sensor: !input zone_8_battery_sensor
+
+  schedule_mode: !input schedule_mode
+  sun_event_offset_minutes: !input sun_event_offset_minutes
+  enable_backup_time: !input enable_backup_time
+  season_start_month: !input season_start_month
+  season_end_month: !input season_end_month
+  waterings_per_week: !input waterings_per_week
+  min_dose_mm: !input min_dose_mm
+  max_dose_mm: !input max_dose_mm
+  min_runtime_minutes: !input min_runtime_minutes
+  max_runtime_minutes: !input max_runtime_minutes
+  zone_pause_seconds: !input zone_pause_seconds
+  max_forecast_rain_mm: !input max_forecast_rain_mm
+  max_rain_probability_percent: !input max_rain_probability_percent
+  rain_credit_percent: !input rain_credit_percent
+  min_temperature_c: !input min_temperature_c
+  hot_temperature_c: !input hot_temperature_c
+  max_wind: !input max_wind
+  min_battery_percent: !input min_battery_percent
+  irrigation_efficiency_percent: !input irrigation_efficiency_percent
+  bad_weather_states:
+    - rainy
+    - pouring
+    - lightning
+    - lightning-rainy
+    - hail
+    - snowy
+    - snowy-rainy
+  current_weather_entity: >-
+    {% set e = current_weather_entity_input | default('', true) %}
+    {{ forecast_weather_entity if e | length == 0 else e }}
+  schedule_trigger_ok: >-
+    {% if schedule_mode == 'fixed_time' %}
+      {{ trigger.id == 'primary' or (trigger.id == 'backup' and (enable_backup_time | bool)) }}
+    {% elif trigger.id == 'sun_check' and schedule_mode in ['sunrise', 'sunset'] %}
+      {% set attr = 'next_rising' if schedule_mode == 'sunrise' else 'next_setting' %}
+      {% set next_event = state_attr('sun.sun', attr) %}
+      {% set next_ts = as_timestamp(next_event) if next_event is not none else 0 %}
+      {% set now_ts = as_timestamp(now()) %}
+      {% set offset = (sun_event_offset_minutes | int(0)) * 60 %}
+      {% set window = 90 %}
+      {% set target_next = next_ts + offset %}
+      {% set target_previous = next_ts - 86400 + offset %}
+      {{ next_ts > 0
+         and ((now_ts >= target_next and now_ts < target_next + window)
+              or (now_ts >= target_previous and now_ts < target_previous + window)) }}
+    {% else %}
+      false
+    {% endif %}
+
+actions:
+  - alias: Harmonogram startu pasuje
+    condition: template
+    value_template: "{{ schedule_trigger_ok | bool }}"
+
+  - alias: Pobierz prognoze dzienna
+    action: weather.get_forecasts
+    target:
+      entity_id: !input forecast_weather_entity
+    data:
+      type: daily
+    response_variable: daily_forecast
+
+  - alias: Wylicz pogode i wspolne warunki
+    variables:
+      forecast_condition: >-
+        {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
+        {{ fc[0].condition | default(states(forecast_weather_entity), true) if fc | count > 0 else states(forecast_weather_entity) }}
+      forecast_temperature: >-
+        {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
+        {% set fallback = state_attr(forecast_weather_entity, 'temperature') | float(0) %}
+        {{ fc[0].temperature | default(fallback, true) | float(fallback) if fc | count > 0 else fallback }}
+      forecast_precipitation: >-
+        {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
+        {% set fallback = state_attr(forecast_weather_entity, 'precipitation') | float(0) %}
+        {{ fc[0].precipitation | default(fallback, true) | float(fallback) if fc | count > 0 else fallback }}
+      forecast_precipitation_probability: >-
+        {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
+        {{ fc[0].precipitation_probability | default(0, true) | int(0) if fc | count > 0 else 0 }}
+      current_rain_mm: >-
+        {% set e = rain_amount_sensor | default('', true) %}
+        {% if e | length > 0 and states(e) | is_number %}
+          {{ states(e) | float(0) }}
+        {% else %}
+          {{ state_attr(current_weather_entity, 'precipitation') | float(0) }}
+        {% endif %}
+      temp_c: >-
+        {% set e = temperature_source_entity | default('', true) %}
+        {% if e | length == 0 %}
+          {{ forecast_temperature | float(0) }}
+        {% elif e.split('.')[0] == 'weather' %}
+          {{ state_attr(e, 'temperature') | float(forecast_temperature | float(0)) }}
+        {% else %}
+          {{ states(e) | float(forecast_temperature | float(0)) }}
+        {% endif %}
+      wind_value: >-
+        {% set e = wind_source_entity | default('', true) %}
+        {% if e | length == 0 %}
+          {{ state_attr(current_weather_entity, 'wind_speed') | float(0) }}
+        {% elif e.split('.')[0] == 'weather' %}
+          {{ state_attr(e, 'wind_speed') | float(0) }}
+        {% else %}
+          {{ states(e) | float(0) }}
+        {% endif %}
+      sunlight_index: >-
+        {% set e = sunlight_source_entity | default('', true) %}
+        {% if e | length == 0 %}
+          {{ state_attr(current_weather_entity, 'uv_index') | float(5) }}
+        {% elif e.split('.')[0] == 'weather' %}
+          {{ state_attr(e, 'uv_index') | float(5) }}
+        {% else %}
+          {{ states(e) | float(5) }}
+        {% endif %}
+      soil_moisture_percent: >-
+        {% set e = soil_moisture_sensor | default('', true) %}
+        {% if e | length > 0 and states(e) | is_number %}
+          {{ states(e) | float(0) }}
+        {% else %}
+          -1
+        {% endif %}
+      soil_moisture_factor: >-
+        {% set m = soil_moisture_percent | float(-1) %}
+        {% if m < 0 %}1
+        {% elif m >= 70 %}0
+        {% elif m >= 60 %}0.55
+        {% elif m <= 25 %}1.2
+        {% else %}1
+        {% endif %}
+      season_ok: >-
+        {% set start = season_start_month | int(4) %}
+        {% set end = season_end_month | int(10) %}
+        {% set month = now().month %}
+        {% if start <= end %}
+          {{ month >= start and month <= end }}
+        {% else %}
+          {{ month >= start or month <= end }}
+        {% endif %}
+      weather_ok: >-
+        {{ states(current_weather_entity) not in bad_weather_states
+           and forecast_condition not in bad_weather_states }}
+      rain_sensor_ok: >-
+        {{ rain_binary_sensor | default('', true) | length == 0
+           or is_state(rain_binary_sensor, 'off') }}
+      forecast_rain_ok: >-
+        {{ (forecast_precipitation | float(0)) <= (max_forecast_rain_mm | float(4))
+           and not ((forecast_precipitation_probability | int(0)) >= (max_rain_probability_percent | int(80))
+                    and (forecast_precipitation | float(0)) >= 1) }}
+      temp_ok: "{{ (temp_c | float(0)) >= (min_temperature_c | float(8)) }}"
+      wind_ok: "{{ (wind_value | float(0)) <= (max_wind | float(35)) }}"
+      temp_factor: >-
+        {% set t = temp_c | float(0) %}
+        {% if t < 12 %}0.6
+        {% elif t < 20 %}0.85
+        {% elif t < (hot_temperature_c | float(28)) %}1
+        {% else %}1.25
+        {% endif %}
+      sun_factor: >-
+        {% set u = sunlight_index | float(5) %}
+        {% if u < 2 %}0.9{% elif u <= 7 %}1{% else %}1.1{% endif %}
+      rain_credit_mm: >-
+        {% set credit = rain_credit_percent | float(80) / 100 %}
+        {{ (((forecast_precipitation | float(0)) + (current_rain_mm | float(0))) * credit) | round(1) }}
+
+  - alias: Druga proba jest wlaczona
+    condition: template
+    value_template: "{{ trigger.id != 'backup' or (enable_backup_time | bool) }}"
+  - alias: Sezon podlewania
+    condition: template
+    value_template: "{{ season_ok | bool }}"
+  - alias: Pogoda pozwala podlewac
+    condition: template
+    value_template: "{{ weather_ok | bool }}"
+  - alias: Czujnik deszczu nieaktywny
+    condition: template
+    value_template: "{{ rain_sensor_ok | bool }}"
+  - alias: Prognoza deszczu nie blokuje
+    condition: template
+    value_template: "{{ forecast_rain_ok | bool }}"
+  - alias: Temperatura pozwala podlewac
+    condition: template
+    value_template: "{{ temp_ok | bool }}"
+  - alias: Wiatr pozwala podlewac
+    condition: template
+    value_template: "{{ wind_ok | bool }}"
+
+  - alias: Podlej aktywne sekcje
+    repeat:
+      for_each:
+      - number: 1
+        valve: !input zone_1_valve
+        name: !input zone_1_name
+        soil_type: !input zone_1_soil_type
+        plant_type: !input zone_1_plant_type
+        sprinkler_profile: !input zone_1_sprinkler_profile
+        custom_rate_mm_h: !input zone_1_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_1_runtime_adjustment_percent
+        online_sensor: !input zone_1_online_sensor
+        battery_sensor: !input zone_1_battery_sensor
+      - number: 2
+        valve: !input zone_2_valve
+        name: !input zone_2_name
+        soil_type: !input zone_2_soil_type
+        plant_type: !input zone_2_plant_type
+        sprinkler_profile: !input zone_2_sprinkler_profile
+        custom_rate_mm_h: !input zone_2_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_2_runtime_adjustment_percent
+        online_sensor: !input zone_2_online_sensor
+        battery_sensor: !input zone_2_battery_sensor
+      - number: 3
+        valve: !input zone_3_valve
+        name: !input zone_3_name
+        soil_type: !input zone_3_soil_type
+        plant_type: !input zone_3_plant_type
+        sprinkler_profile: !input zone_3_sprinkler_profile
+        custom_rate_mm_h: !input zone_3_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_3_runtime_adjustment_percent
+        online_sensor: !input zone_3_online_sensor
+        battery_sensor: !input zone_3_battery_sensor
+      - number: 4
+        valve: !input zone_4_valve
+        name: !input zone_4_name
+        soil_type: !input zone_4_soil_type
+        plant_type: !input zone_4_plant_type
+        sprinkler_profile: !input zone_4_sprinkler_profile
+        custom_rate_mm_h: !input zone_4_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_4_runtime_adjustment_percent
+        online_sensor: !input zone_4_online_sensor
+        battery_sensor: !input zone_4_battery_sensor
+      - number: 5
+        valve: !input zone_5_valve
+        name: !input zone_5_name
+        soil_type: !input zone_5_soil_type
+        plant_type: !input zone_5_plant_type
+        sprinkler_profile: !input zone_5_sprinkler_profile
+        custom_rate_mm_h: !input zone_5_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_5_runtime_adjustment_percent
+        online_sensor: !input zone_5_online_sensor
+        battery_sensor: !input zone_5_battery_sensor
+      - number: 6
+        valve: !input zone_6_valve
+        name: !input zone_6_name
+        soil_type: !input zone_6_soil_type
+        plant_type: !input zone_6_plant_type
+        sprinkler_profile: !input zone_6_sprinkler_profile
+        custom_rate_mm_h: !input zone_6_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_6_runtime_adjustment_percent
+        online_sensor: !input zone_6_online_sensor
+        battery_sensor: !input zone_6_battery_sensor
+      - number: 7
+        valve: !input zone_7_valve
+        name: !input zone_7_name
+        soil_type: !input zone_7_soil_type
+        plant_type: !input zone_7_plant_type
+        sprinkler_profile: !input zone_7_sprinkler_profile
+        custom_rate_mm_h: !input zone_7_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_7_runtime_adjustment_percent
+        online_sensor: !input zone_7_online_sensor
+        battery_sensor: !input zone_7_battery_sensor
+      - number: 8
+        valve: !input zone_8_valve
+        name: !input zone_8_name
+        soil_type: !input zone_8_soil_type
+        plant_type: !input zone_8_plant_type
+        sprinkler_profile: !input zone_8_sprinkler_profile
+        custom_rate_mm_h: !input zone_8_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_8_runtime_adjustment_percent
+        online_sensor: !input zone_8_online_sensor
+        battery_sensor: !input zone_8_battery_sensor
+      sequence:
+        - alias: Wylicz parametry tej sekcji
+          variables:
+            section_number: "{{ repeat.item.number | int }}"
+            section_enabled: "{{ (repeat.item.number | int) <= (zone_count | int(1)) }}"
+            section_valve: "{{ repeat.item.valve }}"
+            section_name: "{{ repeat.item.name }}"
+            section_soil_factor: >-
+              {% set soil = repeat.item.soil_type %}
+              {% if soil == 'sand' %}1.18
+              {% elif soil == 'sandy_loam' %}1.08
+              {% elif soil == 'clay_loam' %}0.92
+              {% elif soil == 'clay' %}0.85
+              {% else %}1
+              {% endif %}
+            section_weekly_mm: >-
+              {% set plant = repeat.item.plant_type %}
+              {% if plant == 'flowers' %}20
+              {% elif plant == 'vegetables' %}30
+              {% elif plant == 'shrubs' %}18
+              {% else %}25
+              {% endif %}
+            section_rate_mm_h: >-
+              {% set profile = repeat.item.sprinkler_profile %}
+              {% if profile == 'rainbird_rotor' %}12
+              {% elif profile == 'rainbird_spray' %}38
+              {% elif profile == 'rainbird_drip' %}8
+              {% elif profile == 'hunter_rotor' %}11
+              {% elif profile == 'hunter_mp_rotator' %}10
+              {% elif profile == 'hunter_spray' %}40
+              {% elif profile == 'hunter_drip' %}8
+              {% else %}{{ repeat.item.custom_rate_mm_h | float(12) }}
+              {% endif %}
+            section_depth_mm: >-
+              {% set runs = waterings_per_week | float(3) %}
+              {% set raw = (section_weekly_mm | float(25)) / (runs if runs > 0 else 1) * (section_soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) %}
+              {% if raw < 0 %}0{% elif raw > (max_dose_mm | float(10)) %}{{ max_dose_mm | float(10) }}{% else %}{{ raw | round(1) }}{% endif %}
+            section_minutes: >-
+              {% set depth = section_depth_mm | float(0) %}
+              {% set rate = (section_rate_mm_h | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 %}
+              {% set raw = (depth / (rate if rate > 0 else 1)) * 60 * (repeat.item.runtime_adjustment_percent | float(100)) / 100 %}
+              {% set rounded = raw | round(0) | int %}
+              {% if depth < (min_dose_mm | float(3)) %}0
+              {% elif rounded < (min_runtime_minutes | int(8)) %}{{ min_runtime_minutes | int(8) }}
+              {% elif rounded > (max_runtime_minutes | int(45)) %}{{ max_runtime_minutes | int(45) }}
+              {% else %}{{ rounded }}
+              {% endif %}
+            section_ready: >-
+              {{ section_enabled | bool
+                 and section_valve | default('', true) | length > 0
+                 and states(section_valve) in ['closed', 'off']
+                 and (repeat.item.online_sensor | default('', true) | length == 0 or is_state(repeat.item.online_sensor, 'on'))
+                 and (repeat.item.battery_sensor | default('', true) | length == 0 or (states(repeat.item.battery_sensor) | float(0)) >= (min_battery_percent | float(20))) }}
+        - choose:
+            - conditions:
+                - condition: template
+                  value_template: "{{ section_ready | bool and (section_minutes | int(0)) > 0 }}"
+              sequence:
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ section_valve.split('.')[0] == 'switch' }}"
+                      sequence:
+                        - action: switch.turn_on
+                          target:
+                            entity_id: "{{ section_valve }}"
+                  default:
+                    - action: valve.open_valve
+                      target:
+                        entity_id: "{{ section_valve }}"
+                - wait_template: >-
+                    {{ ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
+                       or states(current_weather_entity) in bad_weather_states }}
+                  timeout: >-
+                    {{ '%02d:%02d:00' | format((section_minutes | int(1)) // 60, (section_minutes | int(1)) % 60) }}
+                  continue_on_timeout: true
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ section_valve.split('.')[0] == 'switch' }}"
+                      sequence:
+                        - action: switch.turn_off
+                          target:
+                            entity_id: "{{ section_valve }}"
+                  default:
+                    - action: valve.close_valve
+                      target:
+                        entity_id: "{{ section_valve }}"
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: >-
+                            {{ ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
+                               or states(current_weather_entity) in bad_weather_states }}
+                      sequence:
+                        - stop: Podlewanie przerwane przez deszcz.
+                - delay:
+                    seconds: "{{ zone_pause_seconds | int(15) }}"
