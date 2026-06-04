@@ -19,6 +19,19 @@ For every active section it calculates a water dose and runtime from:
 
 If rain starts while a section is running, the automation closes the valve and stops the remaining sections.
 
+## Logs and notifications
+
+At the bottom of the blueprint you can enable **Wlacz logbook.log**. When enabled, Home Assistant Logbook receives entries for:
+
+- global watering skip reasons,
+- start of the watering check,
+- section start with calculated runtime and water dose,
+- section end,
+- skipped section with reason,
+- interruption by rain or bad weather.
+
+You can also enable **Tworz powiadomienie persistent_notification**. This keeps the latest irrigation result visible in Home Assistant notifications, for example a skipped watering reason or the last section that started/finished. The detailed history stays in Logbook.
+
 ## Recommended setup
 
 Use one automation instance per garden controller or area. Set **Liczba sekcji** to the real number of sections. Fill only those sections; later sections may stay with defaults.

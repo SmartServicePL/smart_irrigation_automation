@@ -1257,6 +1257,24 @@ blueprint:
               unit_of_measurement: "%"
               mode: slider
 
+    log_section:
+      name: Logi podlewania
+      icon: mdi:text-box-search
+      collapsed: true
+      input:
+        enable_irrigation_logs:
+          name: Wlacz logbook.log
+          description: Dodaje wpisy do Logbooka HA. Obejmuje start cyklu, pomijanie z powodem, start/koniec sekcji oraz przerwanie przez deszcz.
+          default: false
+          selector:
+            boolean:
+        create_persistent_notification:
+          name: Tworz powiadomienie persistent_notification
+          description: Dodatkowo do logbook.log pokazuje ostatni powod startu, pominiecia albo przerwania podlewania w powiadomieniach Home Assistant.
+          default: false
+          selector:
+            boolean:
+
 mode: single
 max_exceeded: silent
 
@@ -1380,6 +1398,8 @@ variables:
   max_wind: !input max_wind
   min_battery_percent: !input min_battery_percent
   irrigation_efficiency_percent: !input irrigation_efficiency_percent
+  enable_irrigation_logs: !input enable_irrigation_logs
+  create_persistent_notification: !input create_persistent_notification
   bad_weather_states:
     - rainy
     - pouring
@@ -1523,27 +1543,82 @@ actions:
         {% set credit = rain_credit_percent | float(80) / 100 %}
         {{ (((forecast_precipitation | float(0)) + (current_rain_mm | float(0))) * credit) | round(1) }}
 
-  - alias: Druga proba jest wlaczona
-    condition: template
-    value_template: "{{ trigger.id != 'backup' or (enable_backup_time | bool) }}"
-  - alias: Sezon podlewania
-    condition: template
-    value_template: "{{ season_ok | bool }}"
-  - alias: Pogoda pozwala podlewac
-    condition: template
-    value_template: "{{ weather_ok | bool }}"
-  - alias: Czujnik deszczu nieaktywny
-    condition: template
-    value_template: "{{ rain_sensor_ok | bool }}"
-  - alias: Prognoza deszczu nie blokuje
-    condition: template
-    value_template: "{{ forecast_rain_ok | bool }}"
-  - alias: Temperatura pozwala podlewac
-    condition: template
-    value_template: "{{ temp_ok | bool }}"
-  - alias: Wiatr pozwala podlewac
-    condition: template
-    value_template: "{{ wind_ok | bool }}"
+  - alias: Wylicz powod pominiecia podlewania
+    variables:
+      irrigation_skip_reason: >-
+        {% if not (season_ok | bool) %}
+          Poza sezonem podlewania. Aktywny sezon to miesiace {{ season_start_month }}-{{ season_end_month }}.
+        {% elif not (weather_ok | bool) %}
+          Pogoda blokuje podlewanie. Aktualny stan: {{ states(current_weather_entity) }}, prognoza: {{ forecast_condition }}.
+        {% elif not (rain_sensor_ok | bool) %}
+          Czujnik deszczu jest aktywny: {{ rain_binary_sensor }} ma stan {{ states(rain_binary_sensor) }}.
+        {% elif not (forecast_rain_ok | bool) %}
+          Prognoza deszczu blokuje podlewanie: {{ forecast_precipitation | float(0) }} mm i {{ forecast_precipitation_probability | int(0) }}% prawdopodobienstwa.
+        {% elif not (temp_ok | bool) %}
+          Temperatura jest za niska: {{ temp_c | float(0) | round(1) }} C, minimum to {{ min_temperature_c }} C.
+        {% elif not (wind_ok | bool) %}
+          Wiatr jest za mocny: {{ wind_value | float(0) | round(1) }}, limit to {{ max_wind }}.
+        {% else %}{% endif %}
+
+  - alias: Zaloguj pominiecie calego podlewania
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ irrigation_skip_reason | trim | length > 0 and (enable_irrigation_logs | bool) }}"
+        sequence:
+          - action: logbook.log
+            data:
+              name: Inteligentne podlewanie
+              message: "Pominieto podlewanie. {{ irrigation_skip_reason | trim }}"
+
+  - alias: Powiadom o pominieciu calego podlewania
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ irrigation_skip_reason | trim | length > 0 and (create_persistent_notification | bool) }}"
+        sequence:
+          - action: persistent_notification.create
+            data:
+              title: Inteligentne podlewanie
+              message: "Pominieto podlewanie. {{ irrigation_skip_reason | trim }}"
+              notification_id: smart_irrigation_last_event
+
+  - alias: Zatrzymaj gdy podlewanie pominiete
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ irrigation_skip_reason | trim | length > 0 }}"
+        sequence:
+          - stop: "Pominieto podlewanie: {{ irrigation_skip_reason | trim }}"
+
+  - alias: Zaloguj start podlewania
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ enable_irrigation_logs | bool }}"
+        sequence:
+          - action: logbook.log
+            data:
+              name: Inteligentne podlewanie
+              message: >-
+                Warunki pozwalaja podlewac. Prognoza opadu {{ forecast_precipitation | float(0) | round(1) }} mm,
+                szansa deszczu {{ forecast_precipitation_probability | int(0) }}%,
+                temperatura {{ temp_c | float(0) | round(1) }} C,
+                wiatr {{ wind_value | float(0) | round(1) }}.
+
+  - alias: Powiadom o starcie podlewania
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ create_persistent_notification | bool }}"
+        sequence:
+          - action: persistent_notification.create
+            data:
+              title: Inteligentne podlewanie
+              message: >-
+                Warunki pozwalaja podlewac. Sprawdzam sekcje i wyliczone czasy.
+                Szczegoly sa w Logbooku.
+              notification_id: smart_irrigation_last_event
 
   - alias: Podlej aktywne sekcje
     repeat:
@@ -1681,11 +1756,49 @@ actions:
                  and states(section_valve) in ['closed', 'off']
                  and (repeat.item.online_sensor | default('', true) | length == 0 or is_state(repeat.item.online_sensor, 'on'))
                  and (repeat.item.battery_sensor | default('', true) | length == 0 or (states(repeat.item.battery_sensor) | float(0)) >= (min_battery_percent | float(20))) }}
+            section_skip_reason: >-
+              {% if not (section_enabled | bool) %}
+                Sekcja poza wybrana liczba sekcji.
+              {% elif section_valve | default('', true) | length == 0 %}
+                Brak zaworu/switcha dla sekcji.
+              {% elif states(section_valve) not in ['closed', 'off'] %}
+                Zawor nie jest gotowy do startu. Aktualny stan: {{ states(section_valve) }}.
+              {% elif repeat.item.online_sensor | default('', true) | length > 0 and not is_state(repeat.item.online_sensor, 'on') %}
+                Sensor online sekcji nie jest aktywny: {{ states(repeat.item.online_sensor) }}.
+              {% elif repeat.item.battery_sensor | default('', true) | length > 0 and (states(repeat.item.battery_sensor) | float(0)) < (min_battery_percent | float(20)) %}
+                Bateria zaworu za niska: {{ states(repeat.item.battery_sensor) }}%, minimum to {{ min_battery_percent }}%.
+              {% elif (section_minutes | int(0)) <= 0 %}
+                Wyliczona dawka {{ section_depth_mm | float(0) | round(1) }} mm jest ponizej minimum {{ min_dose_mm }} mm.
+              {% else %}{% endif %}
         - choose:
             - conditions:
                 - condition: template
                   value_template: "{{ section_ready | bool and (section_minutes | int(0)) > 0 }}"
               sequence:
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ enable_irrigation_logs | bool }}"
+                      sequence:
+                        - action: logbook.log
+                          data:
+                            name: "Podlewanie - {{ section_name }}"
+                            message: >-
+                              Start sekcji {{ section_number }} na {{ section_minutes | int(0) }} min.
+                              Dawka {{ section_depth_mm | float(0) | round(1) }} mm,
+                              opad zraszaczy {{ section_rate_mm_h | float(0) | round(1) }} mm/h.
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ create_persistent_notification | bool }}"
+                      sequence:
+                        - action: persistent_notification.create
+                          data:
+                            title: Inteligentne podlewanie
+                            message: >-
+                              Start sekcji {{ section_number }}: {{ section_name }}.
+                              Czas {{ section_minutes | int(0) }} min, dawka {{ section_depth_mm | float(0) | round(1) }} mm.
+                            notification_id: smart_irrigation_last_event
                 - choose:
                     - conditions:
                         - condition: template
@@ -1719,10 +1832,91 @@ actions:
                 - choose:
                     - conditions:
                         - condition: template
+                          value_template: "{{ enable_irrigation_logs | bool }}"
+                      sequence:
+                        - action: logbook.log
+                          data:
+                            name: "Podlewanie - {{ section_name }}"
+                            message: "Zakonczono sekcje {{ section_number }} po zaplanowanym czasie {{ section_minutes | int(0) }} min."
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ create_persistent_notification | bool }}"
+                      sequence:
+                        - action: persistent_notification.create
+                          data:
+                            title: Inteligentne podlewanie
+                            message: "Zakonczono sekcje {{ section_number }}: {{ section_name }}. Planowany czas {{ section_minutes | int(0) }} min."
+                            notification_id: smart_irrigation_last_event
+                - choose:
+                    - conditions:
+                        - condition: template
                           value_template: >-
                             {{ ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
                                or states(current_weather_entity) in bad_weather_states }}
                       sequence:
+                        - choose:
+                            - conditions:
+                                - condition: template
+                                  value_template: "{{ enable_irrigation_logs | bool }}"
+                              sequence:
+                                - action: logbook.log
+                                  data:
+                                    name: Inteligentne podlewanie
+                                    message: "Przerwano pozostale sekcje po sekcji {{ section_number }} z powodu deszczu albo zlej pogody."
+                        - choose:
+                            - conditions:
+                                - condition: template
+                                  value_template: "{{ create_persistent_notification | bool }}"
+                              sequence:
+                                - action: persistent_notification.create
+                                  data:
+                                    title: Inteligentne podlewanie
+                                    message: "Przerwano pozostale sekcje po sekcji {{ section_number }} z powodu deszczu albo zlej pogody."
+                                    notification_id: smart_irrigation_last_event
                         - stop: Podlewanie przerwane przez deszcz.
                 - delay:
                     seconds: "{{ zone_pause_seconds | int(15) }}"
+          default:
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ section_enabled | bool and (enable_irrigation_logs | bool) }}"
+                  sequence:
+                    - action: logbook.log
+                      data:
+                        name: "Podlewanie - {{ section_name }}"
+                        message: "Pominieto sekcje {{ section_number }}. {{ section_skip_reason | trim }}"
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ section_enabled | bool and (create_persistent_notification | bool) }}"
+                  sequence:
+                    - action: persistent_notification.create
+                      data:
+                        title: Inteligentne podlewanie
+                        message: "Pominieto sekcje {{ section_number }}: {{ section_name }}. {{ section_skip_reason | trim }}"
+                        notification_id: smart_irrigation_last_event
+
+  - alias: Zaloguj koniec cyklu
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ enable_irrigation_logs | bool }}"
+        sequence:
+          - action: logbook.log
+            data:
+              name: Inteligentne podlewanie
+              message: "Zakonczono cykl sprawdzania sekcji podlewania."
+
+  - alias: Powiadom o koncu cyklu
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ create_persistent_notification | bool }}"
+        sequence:
+          - action: persistent_notification.create
+            data:
+              title: Inteligentne podlewanie
+              message: "Zakonczono cykl sprawdzania sekcji podlewania. Szczegoly sa w Logbooku."
+              notification_id: smart_irrigation_last_event

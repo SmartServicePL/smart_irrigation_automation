@@ -24,6 +24,8 @@ The blueprint calculates irrigation time for each section from shared weather/se
 
 Supported section count is configurable from 1 to 8. Sections above the selected count stay in the blueprint configuration but are ignored by the automation.
 
+Optional logging can write watering decisions to Home Assistant Logbook and show the latest result as a `persistent_notification`. This makes it easy to see whether watering happened, how long a section ran, or why watering was skipped.
+
 Documentation:
 
 - [Smart irrigation setup](docs/smart-irrigation.md)
@@ -40,6 +42,7 @@ blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml
 - One `valve` or `switch` entity per irrigation section.
 - A `weather` entity that supports daily forecast.
 - Optional local weather entity, rain sensor, rain amount sensor, temperature sensor, wind source, UV/sunlight source and soil moisture sensor.
+- Optional Logbook and persistent notification logging for irrigation diagnostics.
 
 ## Privacy
 
