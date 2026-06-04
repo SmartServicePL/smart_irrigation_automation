@@ -7,5 +7,6 @@
 - Added shared weather and sensor inputs.
 - Added per-section soil, plant and Rain Bird/Hunter sprinkler settings.
 - Added fixed time, sunrise and sunset schedule modes.
+- Added optional Logbook and persistent notification logging for watering, skipped sections and skip reasons.
 - Added My Home Assistant import button.
 - Added setup documentation and donate button.
