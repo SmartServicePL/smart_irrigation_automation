@@ -1448,6 +1448,50 @@ actions:
       forecast_condition: >-
         {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
         {{ fc[0].condition | default(states(forecast_weather_entity), true) if fc | count > 0 else states(forecast_weather_entity) }}
+      current_weather_condition_pl: >-
+        {% set condition = states(current_weather_entity) | trim %}
+        {% set names = {
+          'clear-night': 'bezchmurna noc',
+          'cloudy': 'pochmurno',
+          'exceptional': 'warunki wyjatkowe',
+          'fog': 'mgla',
+          'hail': 'grad',
+          'lightning': 'burza',
+          'lightning-rainy': 'burza z deszczem',
+          'partlycloudy': 'czesciowe zachmurzenie',
+          'pouring': 'ulewny deszcz',
+          'rainy': 'deszcz',
+          'snowy': 'snieg',
+          'snowy-rainy': 'snieg z deszczem',
+          'sunny': 'slonecznie',
+          'windy': 'wietrznie',
+          'windy-variant': 'wietrznie z zachmurzeniem',
+          'unknown': 'nieznany',
+          'unavailable': 'niedostepny'
+        } %}
+        {{ names.get(condition, condition) }}
+      forecast_condition_pl: >-
+        {% set condition = forecast_condition | trim %}
+        {% set names = {
+          'clear-night': 'bezchmurna noc',
+          'cloudy': 'pochmurno',
+          'exceptional': 'warunki wyjatkowe',
+          'fog': 'mgla',
+          'hail': 'grad',
+          'lightning': 'burza',
+          'lightning-rainy': 'burza z deszczem',
+          'partlycloudy': 'czesciowe zachmurzenie',
+          'pouring': 'ulewny deszcz',
+          'rainy': 'deszcz',
+          'snowy': 'snieg',
+          'snowy-rainy': 'snieg z deszczem',
+          'sunny': 'slonecznie',
+          'windy': 'wietrznie',
+          'windy-variant': 'wietrznie z zachmurzeniem',
+          'unknown': 'nieznany',
+          'unavailable': 'niedostepny'
+        } %}
+        {{ names.get(condition, condition) }}
       forecast_temperature: >-
         {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
         {% set fallback = state_attr(forecast_weather_entity, 'temperature') | float(0) %}
@@ -1549,7 +1593,7 @@ actions:
         {% if not (season_ok | bool) %}
           Poza sezonem podlewania. Aktywny sezon to miesiace {{ season_start_month }}-{{ season_end_month }}.
         {% elif not (weather_ok | bool) %}
-          Pogoda blokuje podlewanie. Aktualny stan: {{ states(current_weather_entity) }}, prognoza: {{ forecast_condition }}.
+          Pogoda blokuje podlewanie. Aktualny stan: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}.
         {% elif not (rain_sensor_ok | bool) %}
           Czujnik deszczu jest aktywny: {{ rain_binary_sensor }} ma stan {{ states(rain_binary_sensor) }}.
         {% elif not (forecast_rain_ok | bool) %}
