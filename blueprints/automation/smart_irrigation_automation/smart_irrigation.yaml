@@ -1661,7 +1661,7 @@ actions:
               title: Inteligentne podlewanie
               message: >-
                 Warunki pozwalaja podlewac. Sprawdzam sekcje i wyliczone czasy.
-                Szczegoly sa w Logbooku.
+                Po zakonczeniu wysle podsumowanie sekcji w tym powiadomieniu.
               notification_id: smart_irrigation_last_event
 
   - alias: Podlej aktywne sekcje
@@ -1953,6 +1953,66 @@ actions:
               name: Inteligentne podlewanie
               message: "Zakonczono cykl sprawdzania sekcji podlewania."
 
+  - alias: Wylicz podsumowanie cyklu
+    variables:
+      irrigation_cycle_summary: |-
+        {%- set zones = [
+          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type, 'sprinkler_profile': zone_1_sprinkler_profile, 'custom_rate_mm_h': zone_1_custom_rate_mm_h, 'runtime_adjustment_percent': zone_1_runtime_adjustment_percent, 'online_sensor': zone_1_online_sensor, 'battery_sensor': zone_1_battery_sensor},
+          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type, 'sprinkler_profile': zone_2_sprinkler_profile, 'custom_rate_mm_h': zone_2_custom_rate_mm_h, 'runtime_adjustment_percent': zone_2_runtime_adjustment_percent, 'online_sensor': zone_2_online_sensor, 'battery_sensor': zone_2_battery_sensor},
+          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type, 'sprinkler_profile': zone_3_sprinkler_profile, 'custom_rate_mm_h': zone_3_custom_rate_mm_h, 'runtime_adjustment_percent': zone_3_runtime_adjustment_percent, 'online_sensor': zone_3_online_sensor, 'battery_sensor': zone_3_battery_sensor},
+          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type, 'sprinkler_profile': zone_4_sprinkler_profile, 'custom_rate_mm_h': zone_4_custom_rate_mm_h, 'runtime_adjustment_percent': zone_4_runtime_adjustment_percent, 'online_sensor': zone_4_online_sensor, 'battery_sensor': zone_4_battery_sensor},
+          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type, 'sprinkler_profile': zone_5_sprinkler_profile, 'custom_rate_mm_h': zone_5_custom_rate_mm_h, 'runtime_adjustment_percent': zone_5_runtime_adjustment_percent, 'online_sensor': zone_5_online_sensor, 'battery_sensor': zone_5_battery_sensor},
+          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type, 'sprinkler_profile': zone_6_sprinkler_profile, 'custom_rate_mm_h': zone_6_custom_rate_mm_h, 'runtime_adjustment_percent': zone_6_runtime_adjustment_percent, 'online_sensor': zone_6_online_sensor, 'battery_sensor': zone_6_battery_sensor},
+          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type, 'sprinkler_profile': zone_7_sprinkler_profile, 'custom_rate_mm_h': zone_7_custom_rate_mm_h, 'runtime_adjustment_percent': zone_7_runtime_adjustment_percent, 'online_sensor': zone_7_online_sensor, 'battery_sensor': zone_7_battery_sensor},
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type, 'sprinkler_profile': zone_8_sprinkler_profile, 'custom_rate_mm_h': zone_8_custom_rate_mm_h, 'runtime_adjustment_percent': zone_8_runtime_adjustment_percent, 'online_sensor': zone_8_online_sensor, 'battery_sensor': zone_8_battery_sensor}
+        ] -%}
+        {%- set ns = namespace(lines=[], watered=0, skipped=0, total=0) -%}
+        {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) -%}
+          {%- set soil = zone.soil_type -%}
+          {%- set soil_factor = 1.18 if soil == 'sand' else 1.08 if soil == 'sandy_loam' else 0.92 if soil == 'clay_loam' else 0.85 if soil == 'clay' else 1 -%}
+          {%- set plant = zone.plant_type -%}
+          {%- set weekly_mm = 20 if plant == 'flowers' else 30 if plant == 'vegetables' else 18 if plant == 'shrubs' else 25 -%}
+          {%- set profile = zone.sprinkler_profile -%}
+          {%- set rate = 12 if profile == 'rainbird_rotor' else 38 if profile == 'rainbird_spray' else 8 if profile == 'rainbird_drip' else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate_mm_h | float(12)) -%}
+          {%- set runs = waterings_per_week | float(3) -%}
+          {%- set raw_depth = (weekly_mm | float(25)) / (runs if runs > 0 else 1) * (soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set depth = 0 if raw_depth < 0 else (max_dose_mm | float(10)) if raw_depth > (max_dose_mm | float(10)) else (raw_depth | round(1)) -%}
+          {%- set effective_rate = (rate | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 -%}
+          {%- set raw_minutes = ((depth | float(0)) / (effective_rate if effective_rate > 0 else 1)) * 60 * (zone.runtime_adjustment_percent | float(100)) / 100 -%}
+          {%- set rounded_minutes = raw_minutes | round(0) | int -%}
+          {%- set minutes = 0 if (depth | float(0)) < (min_dose_mm | float(3)) else (min_runtime_minutes | int(8)) if rounded_minutes < (min_runtime_minutes | int(8)) else (max_runtime_minutes | int(45)) if rounded_minutes > (max_runtime_minutes | int(45)) else rounded_minutes -%}
+          {%- set valve = zone.valve | default('', true) -%}
+          {%- set online = zone.online_sensor | default('', true) -%}
+          {%- set battery = zone.battery_sensor | default('', true) -%}
+          {%- set ready = valve | length > 0 and states(valve) in ['closed', 'off'] and (online | length == 0 or is_state(online, 'on')) and (battery | length == 0 or (states(battery) | float(0)) >= (min_battery_percent | float(20))) -%}
+          {%- if ready and (minutes | int(0)) > 0 -%}
+            {%- set ns.watered = ns.watered + 1 -%}
+            {%- set ns.total = ns.total + (minutes | int(0)) -%}
+            {%- set ns.lines = ns.lines + ['- Sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): podlano ' ~ minutes ~ ' min, dawka ' ~ (depth | float(0) | round(1)) ~ ' mm.'] -%}
+          {%- else -%}
+            {%- if valve | length == 0 -%}
+              {%- set reason = 'brak zaworu/switcha' -%}
+            {%- elif states(valve) not in ['closed', 'off'] -%}
+              {%- set reason = 'zawor nie byl gotowy, stan: ' ~ states(valve) -%}
+            {%- elif online | length > 0 and not is_state(online, 'on') -%}
+              {%- set reason = 'sensor online ma stan ' ~ states(online) -%}
+            {%- elif battery | length > 0 and (states(battery) | float(0)) < (min_battery_percent | float(20)) -%}
+              {%- set reason = 'bateria ' ~ states(battery) ~ '%, minimum ' ~ min_battery_percent ~ '%' -%}
+            {%- elif (minutes | int(0)) <= 0 -%}
+              {%- set reason = 'dawka ' ~ (depth | float(0) | round(1)) ~ ' mm ponizej minimum ' ~ min_dose_mm ~ ' mm' -%}
+            {%- else -%}
+              {%- set reason = 'warunki sekcji nie pozwolily na start' -%}
+            {%- endif -%}
+            {%- set ns.skipped = ns.skipped + 1 -%}
+            {%- set ns.lines = ns.lines + ['- Sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): pominieto, ' ~ reason ~ '.'] -%}
+          {%- endif -%}
+        {%- endfor %}
+        Zakonczono cykl podlewania.
+        Podlano sekcji: {{ ns.watered }}, pominieto: {{ ns.skipped }}, laczny czas: {{ ns.total }} min.
+        Pogoda: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}, opad {{ forecast_precipitation | float(0) | round(1) }} mm, szansa deszczu {{ forecast_precipitation_probability | int(0) }}%.
+        Sekcje:
+        {{ ns.lines | join('\n') }}
+
   - alias: Powiadom o koncu cyklu
     choose:
       - conditions:
@@ -1962,5 +2022,5 @@ actions:
           - action: persistent_notification.create
             data:
               title: Inteligentne podlewanie
-              message: "Zakonczono cykl sprawdzania sekcji podlewania. Szczegoly sa w Logbooku."
+              message: "{{ irrigation_cycle_summary | trim }}"
               notification_id: smart_irrigation_last_event
