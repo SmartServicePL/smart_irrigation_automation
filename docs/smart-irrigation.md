@@ -6,18 +6,20 @@
 
 ## How it works
 
-The automation starts from a fixed time, sunrise or sunset with configurable offset. Before watering it checks season, current weather, rain forecast, physical rain sensor, temperature, wind and optional soil moisture.
+The automation starts from a fixed time, sunrise or sunset with configurable offset. Before watering it checks season, current weather, rain forecast, physical rain sensor, temperature, wind and optional soil moisture. If the weather entity or forecast is `unknown`/`unavailable`, watering is skipped with a clear reason instead of running without reliable weather data.
 
 For every active section it calculates a water dose and runtime from:
 
 - plant type: grass, flowers, vegetables or shrubs,
 - soil type: sand, sandy loam, loam, clay loam or clay,
-- sprinkler profile: Rain Bird or Hunter rotors, sprays, drip lines, Hunter MP Rotator or custom mm/h,
+- sprinkler profile: detailed Rain Bird profiles, Hunter profiles or custom mm/h,
 - recent/forecast rain,
 - temperature, sunlight/UV and optional soil moisture,
 - irrigation efficiency and per-section runtime correction.
 
-If rain starts while a section is running, the automation closes the valve and stops the remaining sections.
+Rain Bird profiles include 5000/3500 rotors, 1800 sprays, R-VAN rotary nozzles and XF dripline, plus generic Rain Bird rotors, sprays and dripline for mixed or unknown installations.
+
+If rain starts while a section is running, the weather changes to a blocking condition, or weather data becomes unavailable, the automation closes the valve, reports the interruption reason and stops the remaining sections.
 
 ## Logs and notifications
 
@@ -30,7 +32,7 @@ At the bottom of the blueprint you can enable **Wlacz logbook.log**. When enable
 - skipped section with reason,
 - interruption by rain or bad weather.
 
-You can also enable **Tworz powiadomienie persistent_notification**. This keeps the latest irrigation result visible in Home Assistant notifications, for example a skipped watering reason or the last section that started/finished. The detailed history stays in Logbook.
+You can also enable **Tworz powiadomienie persistent_notification**. This keeps the irrigation result visible in Home Assistant notifications. The final notification includes watered/skipped section counts, total planned runtime, weather summary and a per-section result or skip reason.
 
 ## Recommended setup
 

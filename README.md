@@ -24,7 +24,9 @@ The blueprint calculates irrigation time for each section from shared weather/se
 
 Supported section count is configurable from 1 to 8. Sections above the selected count stay in the blueprint configuration but are ignored by the automation.
 
-Optional logging can write watering decisions to Home Assistant Logbook and show the latest result as a `persistent_notification`. This makes it easy to see whether watering happened, how long a section ran, or why watering was skipped.
+Rain Bird is the primary target, with detailed profiles for 5000/3500 rotors, 1800 sprays, R-VAN rotary nozzles and XF dripline. Generic Rain Bird, Hunter and custom mm/h profiles are still available.
+
+Optional logging can write watering decisions to Home Assistant Logbook and show the result as a `persistent_notification`. The final notification summarizes watered and skipped sections, total planned runtime, weather inputs and skip reasons.
 
 Documentation:
 

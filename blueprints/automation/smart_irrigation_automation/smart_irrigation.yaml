@@ -157,11 +157,19 @@ blueprint:
             select:
               mode: dropdown
               options:
-                - label: Rain Bird - rotory
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
                   value: rainbird_rotor
-                - label: Rain Bird - spray/statyczne
+                - label: Rain Bird - spray ogolny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca
+                - label: Rain Bird - linia kroplujaca ogolna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -274,11 +282,19 @@ blueprint:
             select:
               mode: dropdown
               options:
-                - label: Rain Bird - rotory
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
                   value: rainbird_rotor
-                - label: Rain Bird - spray/statyczne
+                - label: Rain Bird - spray ogolny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca
+                - label: Rain Bird - linia kroplujaca ogolna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -391,11 +407,19 @@ blueprint:
             select:
               mode: dropdown
               options:
-                - label: Rain Bird - rotory
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
                   value: rainbird_rotor
-                - label: Rain Bird - spray/statyczne
+                - label: Rain Bird - spray ogolny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca
+                - label: Rain Bird - linia kroplujaca ogolna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -508,11 +532,19 @@ blueprint:
             select:
               mode: dropdown
               options:
-                - label: Rain Bird - rotory
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
                   value: rainbird_rotor
-                - label: Rain Bird - spray/statyczne
+                - label: Rain Bird - spray ogolny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca
+                - label: Rain Bird - linia kroplujaca ogolna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -625,11 +657,19 @@ blueprint:
             select:
               mode: dropdown
               options:
-                - label: Rain Bird - rotory
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
                   value: rainbird_rotor
-                - label: Rain Bird - spray/statyczne
+                - label: Rain Bird - spray ogolny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca
+                - label: Rain Bird - linia kroplujaca ogolna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -742,11 +782,19 @@ blueprint:
             select:
               mode: dropdown
               options:
-                - label: Rain Bird - rotory
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
                   value: rainbird_rotor
-                - label: Rain Bird - spray/statyczne
+                - label: Rain Bird - spray ogolny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca
+                - label: Rain Bird - linia kroplujaca ogolna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -859,11 +907,19 @@ blueprint:
             select:
               mode: dropdown
               options:
-                - label: Rain Bird - rotory
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
                   value: rainbird_rotor
-                - label: Rain Bird - spray/statyczne
+                - label: Rain Bird - spray ogolny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca
+                - label: Rain Bird - linia kroplujaca ogolna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -976,11 +1032,19 @@ blueprint:
             select:
               mode: dropdown
               options:
-                - label: Rain Bird - rotory
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
                   value: rainbird_rotor
-                - label: Rain Bird - spray/statyczne
+                - label: Rain Bird - spray ogolny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca
+                - label: Rain Bird - linia kroplujaca ogolna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -1564,6 +1628,9 @@ actions:
       weather_ok: >-
         {{ states(current_weather_entity) not in bad_weather_states
            and forecast_condition not in bad_weather_states }}
+      weather_data_ok: >-
+        {{ states(current_weather_entity) | trim not in ['unknown', 'unavailable', 'none', '']
+           and forecast_condition | trim not in ['unknown', 'unavailable', 'none', ''] }}
       rain_sensor_ok: >-
         {{ rain_binary_sensor | default('', true) | length == 0
            or is_state(rain_binary_sensor, 'off') }}
@@ -1592,6 +1659,8 @@ actions:
       irrigation_skip_reason: >-
         {% if not (season_ok | bool) %}
           Poza sezonem podlewania. Aktywny sezon to miesiace {{ season_start_month }}-{{ season_end_month }}.
+        {% elif not (weather_data_ok | bool) %}
+          Brak wiarygodnych danych pogodowych. Aktualny stan: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}.
         {% elif not (weather_ok | bool) %}
           Pogoda blokuje podlewanie. Aktualny stan: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}.
         {% elif not (rain_sensor_ok | bool) %}
@@ -1771,9 +1840,10 @@ actions:
               {% endif %}
             section_rate_mm_h: >-
               {% set profile = repeat.item.sprinkler_profile %}
-              {% if profile == 'rainbird_rotor' %}12
-              {% elif profile == 'rainbird_spray' %}38
-              {% elif profile == 'rainbird_drip' %}8
+              {% if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] %}12
+              {% elif profile in ['rainbird_spray', 'rainbird_1800_spray'] %}38
+              {% elif profile == 'rainbird_rvan' %}15
+              {% elif profile in ['rainbird_drip', 'rainbird_xf_drip'] %}8
               {% elif profile == 'hunter_rotor' %}11
               {% elif profile == 'hunter_mp_rotator' %}10
               {% elif profile == 'hunter_spray' %}40
@@ -1857,10 +1927,37 @@ actions:
                         entity_id: "{{ section_valve }}"
                 - wait_template: >-
                     {{ ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
-                       or states(current_weather_entity) in bad_weather_states }}
+                       or states(current_weather_entity) in bad_weather_states
+                       or states(current_weather_entity) in ['unknown', 'unavailable'] }}
                   timeout: >-
                     {{ '%02d:%02d:00' | format((section_minutes | int(1)) // 60, (section_minutes | int(1)) % 60) }}
                   continue_on_timeout: true
+                - alias: Sprawdz czy sekcja zostala przerwana
+                  variables:
+                    section_interrupted: >-
+                      {{ ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
+                         or states(current_weather_entity) in bad_weather_states
+                         or states(current_weather_entity) in ['unknown', 'unavailable'] }}
+                    section_interruption_reason: >-
+                      {% if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
+                        czujnik deszczu {{ rain_binary_sensor }} jest aktywny
+                      {% elif states(current_weather_entity) in bad_weather_states %}
+                        {% set condition = states(current_weather_entity) | trim %}
+                        {% set names = {
+                          'hail': 'grad',
+                          'lightning': 'burza',
+                          'lightning-rainy': 'burza z deszczem',
+                          'pouring': 'ulewny deszcz',
+                          'rainy': 'deszcz',
+                          'snowy': 'snieg',
+                          'snowy-rainy': 'snieg z deszczem'
+                        } %}
+                        pogoda zmienila sie na {{ names.get(condition, condition) }}
+                      {% elif states(current_weather_entity) in ['unknown', 'unavailable'] %}
+                        dane pogodowe staly sie niedostepne
+                      {% else %}
+                        deszcz albo zla pogoda
+                      {% endif %}
                 - choose:
                     - conditions:
                         - condition: template
@@ -1873,6 +1970,31 @@ actions:
                     - action: valve.close_valve
                       target:
                         entity_id: "{{ section_valve }}"
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ section_interrupted | bool }}"
+                      sequence:
+                        - choose:
+                            - conditions:
+                                - condition: template
+                                  value_template: "{{ enable_irrigation_logs | bool }}"
+                              sequence:
+                                - action: logbook.log
+                                  data:
+                                    name: Inteligentne podlewanie
+                                    message: "Przerwano sekcje {{ section_number }}: {{ section_name }}. Powod: {{ section_interruption_reason | trim }}. Pozostale sekcje nie zostana uruchomione."
+                        - choose:
+                            - conditions:
+                                - condition: template
+                                  value_template: "{{ create_persistent_notification | bool }}"
+                              sequence:
+                                - action: persistent_notification.create
+                                  data:
+                                    title: Inteligentne podlewanie
+                                    message: "Przerwano sekcje {{ section_number }}: {{ section_name }}. Powod: {{ section_interruption_reason | trim }}. Pozostale sekcje nie zostana uruchomione."
+                                    notification_id: smart_irrigation_last_event
+                        - stop: "Podlewanie przerwane: {{ section_interruption_reason | trim }}."
                 - choose:
                     - conditions:
                         - condition: template
@@ -1892,33 +2014,6 @@ actions:
                             title: Inteligentne podlewanie
                             message: "Zakonczono sekcje {{ section_number }}: {{ section_name }}. Planowany czas {{ section_minutes | int(0) }} min."
                             notification_id: smart_irrigation_last_event
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: >-
-                            {{ ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
-                               or states(current_weather_entity) in bad_weather_states }}
-                      sequence:
-                        - choose:
-                            - conditions:
-                                - condition: template
-                                  value_template: "{{ enable_irrigation_logs | bool }}"
-                              sequence:
-                                - action: logbook.log
-                                  data:
-                                    name: Inteligentne podlewanie
-                                    message: "Przerwano pozostale sekcje po sekcji {{ section_number }} z powodu deszczu albo zlej pogody."
-                        - choose:
-                            - conditions:
-                                - condition: template
-                                  value_template: "{{ create_persistent_notification | bool }}"
-                              sequence:
-                                - action: persistent_notification.create
-                                  data:
-                                    title: Inteligentne podlewanie
-                                    message: "Przerwano pozostale sekcje po sekcji {{ section_number }} z powodu deszczu albo zlej pogody."
-                                    notification_id: smart_irrigation_last_event
-                        - stop: Podlewanie przerwane przez deszcz.
                 - delay:
                     seconds: "{{ zone_pause_seconds | int(15) }}"
           default:
@@ -1973,7 +2068,7 @@ actions:
           {%- set plant = zone.plant_type -%}
           {%- set weekly_mm = 20 if plant == 'flowers' else 30 if plant == 'vegetables' else 18 if plant == 'shrubs' else 25 -%}
           {%- set profile = zone.sprinkler_profile -%}
-          {%- set rate = 12 if profile == 'rainbird_rotor' else 38 if profile == 'rainbird_spray' else 8 if profile == 'rainbird_drip' else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate_mm_h | float(12)) -%}
+          {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate_mm_h | float(12)) -%}
           {%- set runs = waterings_per_week | float(3) -%}
           {%- set raw_depth = (weekly_mm | float(25)) / (runs if runs > 0 else 1) * (soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
           {%- set depth = 0 if raw_depth < 0 else (max_dose_mm | float(10)) if raw_depth > (max_dose_mm | float(10)) else (raw_depth | round(1)) -%}
