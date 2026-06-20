@@ -19,6 +19,8 @@ For every active section it calculates a water dose and runtime from:
 
 Rain Bird profiles include 5000/3500 rotors, 1800 sprays, R-VAN rotary nozzles and XF dripline, plus generic Rain Bird rotors, sprays and dripline for mixed or unknown installations.
 
+Enable **Przekazuj czas do sterownika switch** when sections are exposed as Rain Bird RC2/ESP `switch` entities. The blueprint then sends the calculated section runtime as the Rain Bird `duration` parameter on every start. Disable this option only for a switch integration that does not accept runtime data.
+
 If rain starts while a section is running, the weather changes to a blocking condition, or weather data becomes unavailable, the automation closes the valve, reports the interruption reason and stops the remaining sections.
 
 ## Logs and notifications

@@ -26,6 +26,8 @@ Supported section count is configurable from 1 to 8. Sections above the selected
 
 Rain Bird is the primary target, with detailed profiles for 5000/3500 rotors, 1800 sprays, R-VAN rotary nozzles and XF dripline. Generic Rain Bird, Hunter and custom mm/h profiles are still available.
 
+For Rain Bird RC2/ESP switch entities, the blueprint forwards the calculated section runtime in the `switch.turn_on` call. This prevents the controller integration's default duration from shortening a calculated irrigation cycle.
+
 Optional logging can write watering decisions to Home Assistant Logbook and show the result as a `persistent_notification`. The final notification summarizes watered and skipped sections, total planned runtime, weather inputs and skip reasons.
 
 Documentation:

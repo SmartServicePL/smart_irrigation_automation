@@ -12,5 +12,6 @@
 - Added detailed final persistent notification with watered/skipped section summary.
 - Added detailed Rain Bird sprinkler profiles and safer interruption handling.
 - Added weather-data safety check for unknown/unavailable weather states.
+- Added per-run duration forwarding for Rain Bird RC2/ESP switch entities.
 - Added My Home Assistant import button.
 - Added setup documentation and donate button.
