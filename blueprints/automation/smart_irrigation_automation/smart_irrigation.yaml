@@ -96,6 +96,12 @@ blueprint:
               max: 8
               step: 1
               mode: slider
+        send_runtime_to_switch:
+          name: Przekazuj czas do sterownika switch
+          description: Wlacz dla Rain Bird RC2/ESP i podobnych integracji. Automatyzacja przekaze wyliczony czas sekcji bezposrednio w komendzie switch.turn_on, zamiast korzystac z domyslnego czasu sterownika.
+          default: true
+          selector:
+            boolean:
 
     zone_1_section:
       name: Sekcja 1
@@ -1363,6 +1369,7 @@ variables:
   sunlight_source_entity: !input sunlight_source_entity
   soil_moisture_sensor: !input soil_moisture_sensor
   zone_count: !input zone_count
+  send_runtime_to_switch: !input send_runtime_to_switch
   zone_1_valve: !input zone_1_valve
   zone_1_name: !input zone_1_name
   zone_1_soil_type: !input zone_1_soil_type
@@ -1914,6 +1921,15 @@ actions:
                               Czas {{ section_minutes | int(0) }} min, dawka {{ section_depth_mm | float(0) | round(1) }} mm.
                             notification_id: smart_irrigation_last_event
                 - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ section_valve.split('.')[0] == 'switch' and (send_runtime_to_switch | bool) }}"
+                      sequence:
+                        - action: switch.turn_on
+                          target:
+                            entity_id: "{{ section_valve }}"
+                          data:
+                            duration: "{{ section_minutes | int(1) }}"
                     - conditions:
                         - condition: template
                           value_template: "{{ section_valve.split('.')[0] == 'switch' }}"
