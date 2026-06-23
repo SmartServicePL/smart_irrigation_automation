@@ -97,8 +97,8 @@ blueprint:
               step: 1
               mode: slider
         send_runtime_to_switch:
-          name: Przekazuj czas do sterownika switch
-          description: Wlacz dla Rain Bird RC2/ESP i podobnych integracji. Automatyzacja przekaze wyliczony czas sekcji bezposrednio w komendzie switch.turn_on, zamiast korzystac z domyslnego czasu sterownika.
+          name: Uzywaj czasu sekcji w sterowniku Rain Bird
+          description: Wlacz dla natywnych encji integracji Rain Bird RC2/ESP. Automatyzacja uzyje uslugi rainbird.start_irrigation i przekaze wyliczony czas w minutach. Dla pozostalych switchy ustawienie jest ignorowane.
           default: true
           selector:
             boolean:
@@ -1491,7 +1491,7 @@ variables:
       {% set next_ts = as_timestamp(next_event) if next_event is not none else 0 %}
       {% set now_ts = as_timestamp(now()) %}
       {% set offset = (sun_event_offset_minutes | int(0)) * 60 %}
-      {% set window = 90 %}
+      {% set window = 60 %}
       {% set target_next = next_ts + offset %}
       {% set target_previous = next_ts - 86400 + offset %}
       {{ next_ts > 0
@@ -1899,33 +1899,12 @@ actions:
                 - choose:
                     - conditions:
                         - condition: template
-                          value_template: "{{ enable_irrigation_logs | bool }}"
+                          value_template: >-
+                            {{ section_valve.split('.')[0] == 'switch'
+                               and (send_runtime_to_switch | bool)
+                               and section_valve in integration_entities('rainbird') }}
                       sequence:
-                        - action: logbook.log
-                          data:
-                            name: "Podlewanie - {{ section_name }}"
-                            message: >-
-                              Start sekcji {{ section_number }} na {{ section_minutes | int(0) }} min.
-                              Dawka {{ section_depth_mm | float(0) | round(1) }} mm,
-                              opad zraszaczy {{ section_rate_mm_h | float(0) | round(1) }} mm/h.
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ create_persistent_notification | bool }}"
-                      sequence:
-                        - action: persistent_notification.create
-                          data:
-                            title: Inteligentne podlewanie
-                            message: >-
-                              Start sekcji {{ section_number }}: {{ section_name }}.
-                              Czas {{ section_minutes | int(0) }} min, dawka {{ section_depth_mm | float(0) | round(1) }} mm.
-                            notification_id: smart_irrigation_last_event
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ section_valve.split('.')[0] == 'switch' and (send_runtime_to_switch | bool) }}"
-                      sequence:
-                        - action: switch.turn_on
+                        - action: rainbird.start_irrigation
                           target:
                             entity_id: "{{ section_valve }}"
                           data:
@@ -1941,19 +1920,89 @@ actions:
                     - action: valve.open_valve
                       target:
                         entity_id: "{{ section_valve }}"
+                - alias: Poczekaj na potwierdzenie otwarcia sekcji
+                  wait_template: "{{ states(section_valve) in ['on', 'open'] }}"
+                  timeout: "00:00:20"
+                  continue_on_timeout: true
+                - alias: Zapamietaj wynik otwarcia sekcji
+                  variables:
+                    section_started: >-
+                      {{ wait.completed | default(false)
+                         and states(section_valve) in ['on', 'open'] }}
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ not (section_started | bool) }}"
+                      sequence:
+                        - choose:
+                            - conditions:
+                                - condition: template
+                                  value_template: "{{ enable_irrigation_logs | bool }}"
+                              sequence:
+                                - action: logbook.log
+                                  data:
+                                    name: "Podlewanie - {{ section_name }}"
+                                    message: "Nie uruchomiono sekcji {{ section_number }}. Sterownik nie potwierdzil otwarcia; aktualny stan: {{ states(section_valve) }}."
+                        - choose:
+                            - conditions:
+                                - condition: template
+                                  value_template: "{{ create_persistent_notification | bool }}"
+                              sequence:
+                                - action: persistent_notification.create
+                                  data:
+                                    title: Inteligentne podlewanie - blad sekcji
+                                    message: "Nie podlano sekcji {{ section_number }}: {{ section_name }}. Sterownik nie potwierdzil otwarcia; aktualny stan: {{ states(section_valve) }}."
+                                    notification_id: smart_irrigation_last_event
+                        - stop: "Sekcja {{ section_number }} nie potwierdzila otwarcia."
+                - alias: Zapamietaj czas faktycznego startu
+                  variables:
+                    section_started_at: "{{ as_timestamp(now()) }}"
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ enable_irrigation_logs | bool }}"
+                      sequence:
+                        - action: logbook.log
+                          data:
+                            name: "Podlewanie - {{ section_name }}"
+                            message: >-
+                              Uruchomiono sekcje {{ section_number }} na {{ section_minutes | int(0) }} min.
+                              Sterownik potwierdzil stan {{ states(section_valve) }}.
+                              Dawka {{ section_depth_mm | float(0) | round(1) }} mm,
+                              opad zraszaczy {{ section_rate_mm_h | float(0) | round(1) }} mm/h.
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ create_persistent_notification | bool }}"
+                      sequence:
+                        - action: persistent_notification.create
+                          data:
+                            title: Inteligentne podlewanie
+                            message: >-
+                              Uruchomiono sekcje {{ section_number }}: {{ section_name }}.
+                              Sterownik potwierdzil podlewanie. Czas {{ section_minutes | int(0) }} min,
+                              dawka {{ section_depth_mm | float(0) | round(1) }} mm.
+                            notification_id: smart_irrigation_last_event
                 - wait_template: >-
                     {{ ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
                        or states(current_weather_entity) in bad_weather_states
-                       or states(current_weather_entity) in ['unknown', 'unavailable'] }}
+                       or states(current_weather_entity) in ['unknown', 'unavailable']
+                       or states(section_valve) not in ['on', 'open'] }}
                   timeout: >-
                     {{ '%02d:%02d:00' | format((section_minutes | int(1)) // 60, (section_minutes | int(1)) % 60) }}
                   continue_on_timeout: true
                 - alias: Sprawdz czy sekcja zostala przerwana
                   variables:
                     section_interrupted: >-
-                      {{ ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
+                      {% set weather_interrupted =
+                         ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
                          or states(current_weather_entity) in bad_weather_states
-                         or states(current_weather_entity) in ['unknown', 'unavailable'] }}
+                         or states(current_weather_entity) in ['unknown', 'unavailable'] %}
+                      {% set elapsed = as_timestamp(now()) - (section_started_at | float(as_timestamp(now()))) %}
+                      {% set valve_stopped_early =
+                         states(section_valve) not in ['on', 'open']
+                         and elapsed < ((section_minutes | int(1)) * 60 - 10) %}
+                      {{ weather_interrupted or valve_stopped_early }}
                     section_interruption_reason: >-
                       {% if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
                         czujnik deszczu {{ rain_binary_sensor }} jest aktywny
@@ -1971,6 +2020,8 @@ actions:
                         pogoda zmienila sie na {{ names.get(condition, condition) }}
                       {% elif states(current_weather_entity) in ['unknown', 'unavailable'] %}
                         dane pogodowe staly sie niedostepne
+                      {% elif states(section_valve) not in ['on', 'open'] %}
+                        sterownik zamknal sekcje przed uplywem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
                       {% else %}
                         deszcz albo zla pogoda
                       {% endif %}
