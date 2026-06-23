@@ -19,7 +19,9 @@ For every active section it calculates a water dose and runtime from:
 
 Rain Bird profiles include 5000/3500 rotors, 1800 sprays, R-VAN rotary nozzles and XF dripline, plus generic Rain Bird rotors, sprays and dripline for mixed or unknown installations.
 
-Enable **Przekazuj czas do sterownika switch** when sections are exposed as Rain Bird RC2/ESP `switch` entities. The blueprint then sends the calculated section runtime as the Rain Bird `duration` parameter on every start. Disable this option only for a switch integration that does not accept runtime data.
+Enable **Uzywaj czasu sekcji w sterowniku Rain Bird** when sections are native Rain Bird RC2/ESP `switch` entities. The blueprint detects native Rain Bird entities and calls `rainbird.start_irrigation` with the calculated runtime in minutes. Other switch integrations always use standard `switch.turn_on`.
+
+After sending a start command, the blueprint waits for an `on/open` state confirmation. If the controller does not confirm the start or closes the section too early, the run is stopped and the Logbook/persistent notification clearly reports that watering did not occur as planned.
 
 If rain starts while a section is running, the weather changes to a blocking condition, or weather data becomes unavailable, the automation closes the valve, reports the interruption reason and stops the remaining sections.
 
