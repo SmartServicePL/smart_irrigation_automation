@@ -1,9 +1,9 @@
-blueprint:
+﻿blueprint:
   name: Inteligentne podlewanie ogrodu - 1 do 8 sekcji
   description: >
     Uniwersalny blueprint podlewania od 1 do 8 sekcji. Wspolne sa encje
     pogodowe i opcjonalne posiadane sensory. Dla kazdej sekcji osobno
-    ustawiasz nazwe, zawor, rodzaj gleby, co rosnie, typ zraszaczy
+    ustawiasz nazwe, encje sekcji, rodzaj gleby, co rosnie, typ zraszaczy
     Rain Bird/Hunter, korekte czasu oraz opcjonalne sensory online/baterii.
   domain: automation
   author: Smart Service
@@ -97,8 +97,8 @@ blueprint:
               step: 1
               mode: slider
         send_runtime_to_switch:
-          name: Uzywaj czasu sekcji w sterowniku Rain Bird
-          description: Wlacz dla natywnych encji integracji Rain Bird RC2/ESP. Automatyzacja uzyje uslugi rainbird.start_irrigation i przekaze wyliczony czas w minutach. Dla pozostalych switchy ustawienie jest ignorowane.
+          name: Przekazuj wyliczony czas do sterownika Rain Bird
+          description: Wlacz dla natywnych encji Rain Bird. Dla Rain Bird RC2 automatyzacja uzyje rainbird_rc2.start_zone, a dla starszej integracji rainbird.start_irrigation. Dla pozostalych switchy ustawienie jest ignorowane.
           default: true
           selector:
             boolean:
@@ -108,8 +108,8 @@ blueprint:
       icon: mdi:sprinkler-variant
       input:
         zone_1_valve:
-          name: Sekcja 1 - zawor
-          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          name: Sekcja 1 - encja
+          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           selector:
             entity:
               filter:
@@ -219,7 +219,7 @@ blueprint:
                 - domain: binary_sensor
         zone_1_battery_sensor:
           name: Sekcja 1 - bateria
-          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -232,8 +232,8 @@ blueprint:
       collapsed: true
       input:
         zone_2_valve:
-          name: Sekcja 2 - zawor
-          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          name: Sekcja 2 - encja
+          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -344,7 +344,7 @@ blueprint:
                 - domain: binary_sensor
         zone_2_battery_sensor:
           name: Sekcja 2 - bateria
-          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -357,8 +357,8 @@ blueprint:
       collapsed: true
       input:
         zone_3_valve:
-          name: Sekcja 3 - zawor
-          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          name: Sekcja 3 - encja
+          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -469,7 +469,7 @@ blueprint:
                 - domain: binary_sensor
         zone_3_battery_sensor:
           name: Sekcja 3 - bateria
-          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -482,8 +482,8 @@ blueprint:
       collapsed: true
       input:
         zone_4_valve:
-          name: Sekcja 4 - zawor
-          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          name: Sekcja 4 - encja
+          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -594,7 +594,7 @@ blueprint:
                 - domain: binary_sensor
         zone_4_battery_sensor:
           name: Sekcja 4 - bateria
-          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -607,8 +607,8 @@ blueprint:
       collapsed: true
       input:
         zone_5_valve:
-          name: Sekcja 5 - zawor
-          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          name: Sekcja 5 - encja
+          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -719,7 +719,7 @@ blueprint:
                 - domain: binary_sensor
         zone_5_battery_sensor:
           name: Sekcja 5 - bateria
-          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -732,8 +732,8 @@ blueprint:
       collapsed: true
       input:
         zone_6_valve:
-          name: Sekcja 6 - zawor
-          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          name: Sekcja 6 - encja
+          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -844,7 +844,7 @@ blueprint:
                 - domain: binary_sensor
         zone_6_battery_sensor:
           name: Sekcja 6 - bateria
-          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -857,8 +857,8 @@ blueprint:
       collapsed: true
       input:
         zone_7_valve:
-          name: Sekcja 7 - zawor
-          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          name: Sekcja 7 - encja
+          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -969,7 +969,7 @@ blueprint:
                 - domain: binary_sensor
         zone_7_battery_sensor:
           name: Sekcja 7 - bateria
-          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -982,8 +982,8 @@ blueprint:
       collapsed: true
       input:
         zone_8_valve:
-          name: Sekcja 8 - zawor
-          description: Zawor albo switch sterujacy ta sekcja. Automatyzacja otworzy go na wyliczony czas i zamknie po zakonczeniu.
+          name: Sekcja 8 - encja
+          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -1094,7 +1094,7 @@ blueprint:
                 - domain: binary_sensor
         zone_8_battery_sensor:
           name: Sekcja 8 - bateria
-          description: Opcjonalny sensor baterii zaworu. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -1150,7 +1150,7 @@ blueprint:
             boolean:
         season_start_month:
           name: Miesiac startu sezonu
-          description: Pierwszy miesiac, w ktorym automatyzacja moze podlewac. Poza sezonem zawory nie sa uruchamiane.
+          description: Pierwszy miesiac, w ktorym automatyzacja moze podlewac. Poza sezonem sekcje nie sa uruchamiane.
           default: 4
           selector:
             number:
@@ -1169,8 +1169,8 @@ blueprint:
               step: 1
               mode: slider
         waterings_per_week:
-          name: Podlewania tygodniowo
-          description: Ile razy w tygodniu ma byc dzielone zapotrzebowanie roslin na wode. Wieksza liczba = mniejsza dawka jednego podlewania.
+          name: Docelowa liczba cykli tygodniowo
+          description: Ustawia docelowa dawke jednego cyklu, ale nie narzuca dni podlewania. Automatyzacja codziennie ocenia deficyt kazdej sekcji i uruchamia ja dopiero po osiagnieciu potrzebnej dawki.
           default: 3
           selector:
             number:
@@ -1202,7 +1202,7 @@ blueprint:
               mode: slider
         min_runtime_minutes:
           name: Minimalny czas sekcji
-          description: Najkrotszy czas pracy sekcji, jesli podlewanie juz wystartuje. Pomaga utrzymac stabilna prace zaworow i instalacji.
+          description: Najkrotszy czas pracy sekcji, jesli podlewanie juz wystartuje. Pomaga utrzymac stabilna prace sekcji i instalacji.
           default: 8
           selector:
             number:
@@ -1305,7 +1305,7 @@ blueprint:
               step: 1
               mode: slider
         min_battery_percent:
-          name: Minimalna bateria zaworu
+          name: Minimalna bateria sekcji
           description: Jesli sekcja ma sensor baterii i bateria jest ponizej tego progu, sekcja zostanie pominieta.
           default: 20
           selector:
@@ -1348,6 +1348,10 @@ blueprint:
 mode: single
 max_exceeded: silent
 
+trigger_variables:
+  trigger_schedule_mode: !input schedule_mode
+  trigger_sun_offset_minutes: !input sun_event_offset_minutes
+
 triggers:
   - trigger: time
     id: primary
@@ -1355,9 +1359,24 @@ triggers:
   - trigger: time
     id: backup
     at: !input backup_start_time
-  - trigger: time_pattern
+  - trigger: template
     id: sun_check
-    minutes: "/1"
+    value_template: >-
+      {% if trigger_schedule_mode in ['sunrise', 'sunset'] %}
+        {% set attr = 'next_rising' if trigger_schedule_mode == 'sunrise' else 'next_setting' %}
+        {% set next_event = state_attr('sun.sun', attr) %}
+        {% set next_ts = as_timestamp(next_event) if next_event is not none else 0 %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set offset = (trigger_sun_offset_minutes | int(0)) * 60 %}
+        {% set window = 300 %}
+        {% set target_next = next_ts + offset %}
+        {% set target_previous = next_ts - 86400 + offset %}
+        {{ next_ts > 0
+           and ((now_ts >= target_next and now_ts < target_next + window)
+                or (now_ts >= target_previous and now_ts < target_previous + window)) }}
+      {% else %}
+        false
+      {% endif %}
 
 variables:
   forecast_weather_entity: !input forecast_weather_entity
@@ -1486,17 +1505,7 @@ variables:
     {% if schedule_mode == 'fixed_time' %}
       {{ trigger.id == 'primary' or (trigger.id == 'backup' and (enable_backup_time | bool)) }}
     {% elif trigger.id == 'sun_check' and schedule_mode in ['sunrise', 'sunset'] %}
-      {% set attr = 'next_rising' if schedule_mode == 'sunrise' else 'next_setting' %}
-      {% set next_event = state_attr('sun.sun', attr) %}
-      {% set next_ts = as_timestamp(next_event) if next_event is not none else 0 %}
-      {% set now_ts = as_timestamp(now()) %}
-      {% set offset = (sun_event_offset_minutes | int(0)) * 60 %}
-      {% set window = 60 %}
-      {% set target_next = next_ts + offset %}
-      {% set target_previous = next_ts - 86400 + offset %}
-      {{ next_ts > 0
-         and ((now_ts >= target_next and now_ts < target_next + window)
-              or (now_ts >= target_previous and now_ts < target_previous + window)) }}
+      true
     {% else %}
       false
     {% endif %}
@@ -1740,6 +1749,10 @@ actions:
                 Po zakonczeniu wysle podsumowanie sekcji w tym powiadomieniu.
               notification_id: smart_irrigation_last_event
 
+  - alias: Zapamietaj poczatek cyklu
+    variables:
+      irrigation_cycle_started_at: "{{ now().isoformat() }}"
+
   - alias: Podlej aktywne sekcje
     repeat:
       for_each:
@@ -1830,6 +1843,31 @@ actions:
             section_enabled: "{{ (repeat.item.number | int) <= (zone_count | int(1)) }}"
             section_valve: "{{ repeat.item.valve }}"
             section_name: "{{ repeat.item.name }}"
+            section_is_rc2: "{{ section_valve in integration_entities('rainbird_rc2') }}"
+            section_rc2_connection_entity: >-
+              {% if section_valve in integration_entities('rainbird_rc2') %}
+                {% set entry_id = state_attr(section_valve, 'config_entry_id') %}
+                {% set ns = namespace(entity='') %}
+                {% for entity in integration_entities('rainbird_rc2') %}
+                  {% if entity.startswith('binary_sensor.')
+                        and state_attr(entity, 'config_entry_id') == entry_id
+                        and state_attr(entity, 'device_class') == 'connectivity' %}
+                    {% set ns.entity = entity %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.entity }}
+              {% else %}{% endif %}
+            section_controller_ready: >-
+              {{ section_rc2_connection_entity | trim | length == 0
+                 or is_state(section_rc2_connection_entity, 'on') }}
+            section_controller_status: >-
+              {% if section_rc2_connection_entity | trim | length > 0 %}
+                {{ section_rc2_connection_entity }} ma stan {{ states(section_rc2_connection_entity) }}
+                {% if state_attr(section_rc2_connection_entity, 'is_shutdown') is not none %}, shutdown={{ state_attr(section_rc2_connection_entity, 'is_shutdown') }}{% endif %}
+                {% if state_attr(section_rc2_connection_entity, 'connection_state') is not none %}, connection_state={{ state_attr(section_rc2_connection_entity, 'connection_state') }}{% endif %}
+              {% else %}
+                brak sensora polaczenia RC2
+              {% endif %}
             section_soil_factor: >-
               {% set soil = repeat.item.soil_type %}
               {% if soil == 'sand' %}1.18
@@ -1857,10 +1895,39 @@ actions:
               {% elif profile == 'hunter_drip' %}8
               {% else %}{{ repeat.item.custom_rate_mm_h | float(12) }}
               {% endif %}
-            section_depth_mm: >-
+            section_last_completed: >-
+              {{ state_attr(section_valve, 'last_run_completed') | default('', true) }}
+            section_elapsed_days: >-
               {% set runs = waterings_per_week | float(3) %}
-              {% set raw = (section_weekly_mm | float(25)) / (runs if runs > 0 else 1) * (section_soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) %}
-              {% if raw < 0 %}0{% elif raw > (max_dose_mm | float(10)) %}{{ max_dose_mm | float(10) }}{% else %}{{ raw | round(1) }}{% endif %}
+              {% set fallback_days = 7 / (runs if runs > 0 else 3) %}
+              {% set last_ts = as_timestamp(section_last_completed, 0) %}
+              {% if last_ts > 0 %}
+                {% set elapsed = (as_timestamp(now()) - last_ts) / 86400 %}
+                {{ 0 if elapsed < 0 else elapsed | round(3) }}
+              {% else %}
+                {{ fallback_days | round(3) }}
+              {% endif %}
+            section_target_depth_mm: >-
+              {% set runs = waterings_per_week | float(3) %}
+              {% set raw = (section_weekly_mm | float(25)) / (runs if runs > 0 else 1) * (section_soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) %}
+              {% set minimum = min_dose_mm | float(3) %}
+              {% set maximum = max_dose_mm | float(10) %}
+              {% if raw < minimum %}{{ minimum }}
+              {% elif raw > maximum %}{{ maximum }}
+              {% else %}{{ raw | round(1) }}
+              {% endif %}
+            section_water_deficit_mm: >-
+              {% set daily = (section_weekly_mm | float(25)) / 7 %}
+              {% set raw = daily * (section_elapsed_days | float(0)) * (section_soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) %}
+              {{ 0 if raw < 0 else raw | round(1) }}
+            section_depth_mm: >-
+              {% set deficit = section_water_deficit_mm | float(0) %}
+              {% set threshold = section_target_depth_mm | float(3) %}
+              {% set maximum = max_dose_mm | float(10) %}
+              {% if deficit < threshold %}0
+              {% elif deficit > maximum %}{{ maximum }}
+              {% else %}{{ deficit | round(1) }}
+              {% endif %}
             section_minutes: >-
               {% set depth = section_depth_mm | float(0) %}
               {% set rate = (section_rate_mm_h | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 %}
@@ -1874,22 +1941,25 @@ actions:
             section_ready: >-
               {{ section_enabled | bool
                  and section_valve | default('', true) | length > 0
-                 and states(section_valve) in ['closed', 'off']
+                 and (section_controller_ready | bool)
+                 and states(section_valve) in ['closed', 'off', 'idle']
                  and (repeat.item.online_sensor | default('', true) | length == 0 or is_state(repeat.item.online_sensor, 'on'))
                  and (repeat.item.battery_sensor | default('', true) | length == 0 or (states(repeat.item.battery_sensor) | float(0)) >= (min_battery_percent | float(20))) }}
             section_skip_reason: >-
               {% if not (section_enabled | bool) %}
                 Sekcja poza wybrana liczba sekcji.
               {% elif section_valve | default('', true) | length == 0 %}
-                Brak zaworu/switcha dla sekcji.
-              {% elif states(section_valve) not in ['closed', 'off'] %}
-                Zawor nie jest gotowy do startu. Aktualny stan: {{ states(section_valve) }}.
+                Brak encji sekcji.
+              {% elif not (section_controller_ready | bool) %}
+                Sterownik Rain Bird RC2 jest offline albo w stanie shutdown. {{ section_controller_status | trim }}.
+              {% elif states(section_valve) not in ['closed', 'off', 'idle'] %}
+                Sekcja nie jest gotowa do startu. Aktualny stan: {{ states(section_valve) }}.
               {% elif repeat.item.online_sensor | default('', true) | length > 0 and not is_state(repeat.item.online_sensor, 'on') %}
                 Sensor online sekcji nie jest aktywny: {{ states(repeat.item.online_sensor) }}.
               {% elif repeat.item.battery_sensor | default('', true) | length > 0 and (states(repeat.item.battery_sensor) | float(0)) < (min_battery_percent | float(20)) %}
-                Bateria zaworu za niska: {{ states(repeat.item.battery_sensor) }}%, minimum to {{ min_battery_percent }}%.
+                Bateria sekcji za niska: {{ states(repeat.item.battery_sensor) }}%, minimum to {{ min_battery_percent }}%.
               {% elif (section_minutes | int(0)) <= 0 %}
-                Wyliczona dawka {{ section_depth_mm | float(0) | round(1) }} mm jest ponizej minimum {{ min_dose_mm }} mm.
+                Podlewanie nie jest jeszcze potrzebne. Deficyt {{ section_water_deficit_mm | float(0) | round(1) }} mm, prog startu {{ section_target_depth_mm | float(0) | round(1) }} mm, dni od ostatniego cyklu {{ section_elapsed_days | float(0) | round(1) }}.
               {% else %}{% endif %}
         - choose:
             - conditions:
@@ -1897,6 +1967,15 @@ actions:
                   value_template: "{{ section_ready | bool and (section_minutes | int(0)) > 0 }}"
               sequence:
                 - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ section_valve in integration_entities('rainbird_rc2') }}"
+                      sequence:
+                        - action: rainbird_rc2.start_zone
+                          continue_on_error: true
+                          data:
+                            station_entity: "{{ section_valve }}"
+                            duration: "{{ section_minutes | int(1) }}"
                     - conditions:
                         - condition: template
                           value_template: >-
@@ -1921,14 +2000,14 @@ actions:
                       target:
                         entity_id: "{{ section_valve }}"
                 - alias: Poczekaj na potwierdzenie otwarcia sekcji
-                  wait_template: "{{ states(section_valve) in ['on', 'open'] }}"
+                  wait_template: "{{ states(section_valve) in ['on', 'open', 'running'] }}"
                   timeout: "00:00:20"
                   continue_on_timeout: true
                 - alias: Zapamietaj wynik otwarcia sekcji
                   variables:
                     section_started: >-
                       {{ wait.completed | default(false)
-                         and states(section_valve) in ['on', 'open'] }}
+                         and states(section_valve) in ['on', 'open', 'running'] }}
                 - choose:
                     - conditions:
                         - condition: template
@@ -1969,6 +2048,8 @@ actions:
                               Uruchomiono sekcje {{ section_number }} na {{ section_minutes | int(0) }} min.
                               Sterownik potwierdzil stan {{ states(section_valve) }}.
                               Dawka {{ section_depth_mm | float(0) | round(1) }} mm,
+                              deficyt {{ section_water_deficit_mm | float(0) | round(1) }} mm,
+                              prog {{ section_target_depth_mm | float(0) | round(1) }} mm,
                               opad zraszaczy {{ section_rate_mm_h | float(0) | round(1) }} mm/h.
                 - choose:
                     - conditions:
@@ -1983,11 +2064,21 @@ actions:
                               Sterownik potwierdzil podlewanie. Czas {{ section_minutes | int(0) }} min,
                               dawka {{ section_depth_mm | float(0) | round(1) }} mm.
                             notification_id: smart_irrigation_last_event
-                - wait_template: >-
-                    {{ ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
-                       or states(current_weather_entity) in bad_weather_states
-                       or states(current_weather_entity) in ['unknown', 'unavailable']
-                       or states(section_valve) not in ['on', 'open'] }}
+                - alias: Monitoruj pogode i stabilnosc pracy sekcji
+                  wait_for_trigger:
+                    - trigger: template
+                      value_template: >-
+                        {{ ((rain_binary_sensor | default('', true) | length > 0)
+                             and is_state(rain_binary_sensor, 'on'))
+                           or states(current_weather_entity) in bad_weather_states
+                           or states(current_weather_entity) in ['unknown', 'unavailable'] }}
+                    - trigger: template
+                      value_template: >-
+                        {{ states(section_valve) not in ['on', 'open', 'running']
+                           and (not (section_is_rc2 | bool)
+                                or section_rc2_connection_entity | trim | length == 0
+                                or is_state(section_rc2_connection_entity, 'on')) }}
+                      for: "00:00:45"
                   timeout: >-
                     {{ '%02d:%02d:00' | format((section_minutes | int(1)) // 60, (section_minutes | int(1)) % 60) }}
                   continue_on_timeout: true
@@ -1999,9 +2090,11 @@ actions:
                          or states(current_weather_entity) in bad_weather_states
                          or states(current_weather_entity) in ['unknown', 'unavailable'] %}
                       {% set elapsed = as_timestamp(now()) - (section_started_at | float(as_timestamp(now()))) %}
+                      {% set planned = (section_minutes | int(1)) * 60 %}
+                      {% set stop_grace = [120, (planned * 0.08) | int] | max %}
                       {% set valve_stopped_early =
-                         states(section_valve) not in ['on', 'open']
-                         and elapsed < ((section_minutes | int(1)) * 60 - 10) %}
+                         states(section_valve) not in ['on', 'open', 'running']
+                         and elapsed < (planned - stop_grace) %}
                       {{ weather_interrupted or valve_stopped_early }}
                     section_interruption_reason: >-
                       {% if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
@@ -2020,12 +2113,19 @@ actions:
                         pogoda zmienila sie na {{ names.get(condition, condition) }}
                       {% elif states(current_weather_entity) in ['unknown', 'unavailable'] %}
                         dane pogodowe staly sie niedostepne
-                      {% elif states(section_valve) not in ['on', 'open'] %}
-                        sterownik zamknal sekcje przed uplywem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
+                      {% elif states(section_valve) not in ['on', 'open', 'running'] %}
+                        sterownik zamknal sekcje wyraznie przed uplywem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
                       {% else %}
                         deszcz albo zla pogoda
                       {% endif %}
                 - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ section_valve in integration_entities('rainbird_rc2') }}"
+                      sequence:
+                        - action: rainbird_rc2.stop_zone
+                          data:
+                            station_entity: "{{ section_valve }}"
                     - conditions:
                         - condition: template
                           value_template: "{{ section_valve.split('.')[0] == 'switch' }}"
@@ -2137,31 +2237,54 @@ actions:
           {%- set profile = zone.sprinkler_profile -%}
           {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate_mm_h | float(12)) -%}
           {%- set runs = waterings_per_week | float(3) -%}
-          {%- set raw_depth = (weekly_mm | float(25)) / (runs if runs > 0 else 1) * (soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
-          {%- set depth = 0 if raw_depth < 0 else (max_dose_mm | float(10)) if raw_depth > (max_dose_mm | float(10)) else (raw_depth | round(1)) -%}
+          {%- set valve = zone.valve | default('', true) -%}
+          {%- set last_completed = state_attr(valve, 'last_run_completed') | default('', true) -%}
+          {%- set last_ts = as_timestamp(last_completed, 0) -%}
+          {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
+          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
+          {%- set target_raw = (weekly_mm | float(25)) / (runs if runs > 0 else 1) * (soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) -%}
+          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
+          {%- set deficit_raw = (weekly_mm | float(25)) / 7 * elapsed_days * (soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
+          {%- set depth = 0 if deficit < target else (max_dose_mm | float(10)) if deficit > (max_dose_mm | float(10)) else (deficit | round(1)) -%}
           {%- set effective_rate = (rate | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 -%}
           {%- set raw_minutes = ((depth | float(0)) / (effective_rate if effective_rate > 0 else 1)) * 60 * (zone.runtime_adjustment_percent | float(100)) / 100 -%}
           {%- set rounded_minutes = raw_minutes | round(0) | int -%}
           {%- set minutes = 0 if (depth | float(0)) < (min_dose_mm | float(3)) else (min_runtime_minutes | int(8)) if rounded_minutes < (min_runtime_minutes | int(8)) else (max_runtime_minutes | int(45)) if rounded_minutes > (max_runtime_minutes | int(45)) else rounded_minutes -%}
-          {%- set valve = zone.valve | default('', true) -%}
+          {%- set completed_this_cycle = last_ts > 0 and last_ts >= as_timestamp(irrigation_cycle_started_at, 0) -%}
+          {%- set actual_minutes = state_attr(valve, 'last_duration_minutes') | float(minutes) -%}
+          {%- set conn = namespace(entity='') -%}
+          {%- if valve in integration_entities('rainbird_rc2') -%}
+            {%- set entry_id = state_attr(valve, 'config_entry_id') -%}
+            {%- for entity in integration_entities('rainbird_rc2') -%}
+              {%- if entity.startswith('binary_sensor.') and state_attr(entity, 'config_entry_id') == entry_id and state_attr(entity, 'device_class') == 'connectivity' -%}
+                {%- set conn.entity = entity -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {%- set controller_ready = (conn.entity | length == 0) or is_state(conn.entity, 'on') -%}
           {%- set online = zone.online_sensor | default('', true) -%}
           {%- set battery = zone.battery_sensor | default('', true) -%}
-          {%- set ready = valve | length > 0 and states(valve) in ['closed', 'off'] and (online | length == 0 or is_state(online, 'on')) and (battery | length == 0 or (states(battery) | float(0)) >= (min_battery_percent | float(20))) -%}
-          {%- if ready and (minutes | int(0)) > 0 -%}
+          {%- set ready = valve | length > 0 and controller_ready and states(valve) in ['closed', 'off', 'idle'] and (online | length == 0 or is_state(online, 'on')) and (battery | length == 0 or (states(battery) | float(0)) >= (min_battery_percent | float(20))) -%}
+          {%- if completed_this_cycle -%}
             {%- set ns.watered = ns.watered + 1 -%}
-            {%- set ns.total = ns.total + (minutes | int(0)) -%}
-            {%- set ns.lines = ns.lines + ['- Sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): podlano ' ~ minutes ~ ' min, dawka ' ~ (depth | float(0) | round(1)) ~ ' mm.'] -%}
+            {%- set ns.total = ns.total + (actual_minutes | round(0) | int) -%}
+            {%- set ns.lines = ns.lines + ['- Sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): podlano ' ~ (actual_minutes | round(1)) ~ ' min.'] -%}
           {%- else -%}
             {%- if valve | length == 0 -%}
-              {%- set reason = 'brak zaworu/switcha' -%}
-            {%- elif states(valve) not in ['closed', 'off'] -%}
-              {%- set reason = 'zawor nie byl gotowy, stan: ' ~ states(valve) -%}
+              {%- set reason = 'brak encji sekcji' -%}
+            {%- elif not controller_ready -%}
+              {%- set reason = 'sterownik Rain Bird RC2 offline/shutdown, ' ~ conn.entity ~ ' ma stan ' ~ states(conn.entity) -%}
+            {%- elif states(valve) not in ['closed', 'off', 'idle'] -%}
+              {%- set reason = 'sekcja nie byla gotowa, stan: ' ~ states(valve) -%}
             {%- elif online | length > 0 and not is_state(online, 'on') -%}
               {%- set reason = 'sensor online ma stan ' ~ states(online) -%}
             {%- elif battery | length > 0 and (states(battery) | float(0)) < (min_battery_percent | float(20)) -%}
               {%- set reason = 'bateria ' ~ states(battery) ~ '%, minimum ' ~ min_battery_percent ~ '%' -%}
             {%- elif (minutes | int(0)) <= 0 -%}
-              {%- set reason = 'dawka ' ~ (depth | float(0) | round(1)) ~ ' mm ponizej minimum ' ~ min_dose_mm ~ ' mm' -%}
+              {%- set reason = 'podlewanie niepotrzebne: deficyt ' ~ (deficit | round(1)) ~ ' mm, prog ' ~ (target | round(1)) ~ ' mm, od ostatniego cyklu ' ~ (elapsed_days | round(1)) ~ ' dnia' -%}
+            {%- elif ready -%}
+              {%- set reason = 'sekcja wymagala podlewania, ale cykl nie zostal potwierdzony' -%}
             {%- else -%}
               {%- set reason = 'warunki sekcji nie pozwolily na start' -%}
             {%- endif -%}
