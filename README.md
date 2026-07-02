@@ -20,17 +20,28 @@ https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprin
 
 ## Smart Irrigation
 
-The blueprint calculates irrigation time for each section from shared weather/sensor data and per-section garden settings. Common inputs include weather forecast, local weather, rain sensor, rain amount, temperature, wind, sunlight/UV and optional soil moisture. Each section has its own valve, name, soil type, plant type, sprinkler profile, custom precipitation rate, runtime correction, online sensor and battery sensor.
+The blueprint calculates irrigation need and runtime independently for every
+section. It accumulates a modeled water deficit from plant demand, soil,
+temperature, sunlight, rain and optional soil moisture. A section starts only
+after its deficit reaches the calculated dose threshold.
+
+The target cycles-per-week setting defines the preferred depth of one
+irrigation cycle. It does not assign weekdays and never forces watering merely
+because a scheduled day arrived. With Rain Bird RC2, the last confirmed
+completion time is persisted by the integration and used by the next decision.
 
 Supported section count is configurable from 1 to 8. Sections above the selected count stay in the blueprint configuration but are ignored by the automation.
 
 Rain Bird is the primary target, with detailed profiles for 5000/3500 rotors, 1800 sprays, R-VAN rotary nozzles and XF dripline. Generic Rain Bird, Hunter and custom mm/h profiles are still available.
 
-For native Rain Bird RC2/ESP switch entities, the blueprint automatically uses `rainbird.start_irrigation` and passes the calculated runtime in minutes. Other switch integrations continue to use standard `switch.turn_on`.
+For native Rain Bird RC2 switch entities, the blueprint automatically uses
+`rainbird_rc2.start_zone` and passes the calculated runtime in minutes. Other
+switch integrations continue to use standard `switch.turn_on`.
 
 The blueprint waits for the valve or switch to confirm `on/open` before reporting that watering started. A missing start confirmation or an early controller stop is reported as an irrigation failure instead of a completed section.
 
-Optional logging can write watering decisions to Home Assistant Logbook and show the result as a `persistent_notification`. The final notification summarizes watered and skipped sections, total planned runtime, weather inputs and skip reasons.
+Optional logging writes the deficit, start threshold, watering decision and
+confirmed duration to Home Assistant Logbook and persistent notifications.
 
 Documentation:
 
