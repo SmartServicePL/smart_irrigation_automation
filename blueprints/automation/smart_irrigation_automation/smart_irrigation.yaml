@@ -1942,6 +1942,9 @@ actions:
               {{ section_enabled | bool
                  and section_valve | default('', true) | length > 0
                  and (section_controller_ready | bool)
+                 and (rain_binary_sensor | default('', true) | length == 0 or is_state(rain_binary_sensor, 'off'))
+                 and states(current_weather_entity) not in bad_weather_states
+                 and states(current_weather_entity) not in ['unknown', 'unavailable']
                  and states(section_valve) in ['closed', 'off', 'idle']
                  and (repeat.item.online_sensor | default('', true) | length == 0 or is_state(repeat.item.online_sensor, 'on'))
                  and (repeat.item.battery_sensor | default('', true) | length == 0 or (states(repeat.item.battery_sensor) | float(0)) >= (min_battery_percent | float(20))) }}
@@ -1952,6 +1955,12 @@ actions:
                 Brak encji sekcji.
               {% elif not (section_controller_ready | bool) %}
                 Sterownik Rain Bird RC2 jest offline albo w stanie shutdown. {{ section_controller_status | trim }}.
+              {% elif (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
+                Czujnik deszczu jest aktywny: {{ rain_binary_sensor }} ma stan {{ states(rain_binary_sensor) }}.
+              {% elif states(current_weather_entity) in bad_weather_states %}
+                Pogoda blokuje podlewanie. Aktualny stan: {{ current_weather_condition_pl }}.
+              {% elif states(current_weather_entity) in ['unknown', 'unavailable'] %}
+                Dane pogodowe sa niedostepne. Aktualny stan: {{ states(current_weather_entity) }}.
               {% elif states(section_valve) not in ['closed', 'off', 'idle'] %}
                 Sekcja nie jest gotowa do startu. Aktualny stan: {{ states(section_valve) }}.
               {% elif repeat.item.online_sensor | default('', true) | length > 0 and not is_state(repeat.item.online_sensor, 'on') %}
@@ -2065,23 +2074,19 @@ actions:
                               dawka {{ section_depth_mm | float(0) | round(1) }} mm.
                             notification_id: smart_irrigation_last_event
                 - alias: Monitoruj pogode i stabilnosc pracy sekcji
-                  wait_for_trigger:
-                    - trigger: template
-                      value_template: >-
-                        {{ ((rain_binary_sensor | default('', true) | length > 0)
-                             and is_state(rain_binary_sensor, 'on'))
-                           or states(current_weather_entity) in bad_weather_states
-                           or states(current_weather_entity) in ['unknown', 'unavailable'] }}
-                    - trigger: template
-                      value_template: >-
-                        {{ states(section_valve) not in ['on', 'open', 'running']
-                           and (not (section_is_rc2 | bool)
-                                or section_rc2_connection_entity | trim | length == 0
-                                or is_state(section_rc2_connection_entity, 'on')) }}
-                      for: "00:00:45"
-                  timeout: >-
-                    {{ '%02d:%02d:00' | format((section_minutes | int(1)) // 60, (section_minutes | int(1)) % 60) }}
-                  continue_on_timeout: true
+                  repeat:
+                    while:
+                      - condition: template
+                        value_template: >-
+                          {% set elapsed = as_timestamp(now()) - (section_started_at | float(as_timestamp(now()))) %}
+                          {% set planned = (section_minutes | int(1)) * 60 %}
+                          {% set rain_active = (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
+                          {% set weather_bad = states(current_weather_entity) in bad_weather_states or states(current_weather_entity) in ['unknown', 'unavailable'] %}
+                          {% set valve_running = states(section_valve) in ['on', 'open', 'running'] %}
+                          {{ elapsed < planned and not rain_active and not weather_bad and valve_running }}
+                    sequence:
+                      - delay:
+                          seconds: 15
                 - alias: Sprawdz czy sekcja zostala przerwana
                   variables:
                     section_interrupted: >-
@@ -2265,7 +2270,9 @@ actions:
           {%- set controller_ready = (conn.entity | length == 0) or is_state(conn.entity, 'on') -%}
           {%- set online = zone.online_sensor | default('', true) -%}
           {%- set battery = zone.battery_sensor | default('', true) -%}
-          {%- set ready = valve | length > 0 and controller_ready and states(valve) in ['closed', 'off', 'idle'] and (online | length == 0 or is_state(online, 'on')) and (battery | length == 0 or (states(battery) | float(0)) >= (min_battery_percent | float(20))) -%}
+          {%- set rain_active = (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') -%}
+          {%- set weather_bad = states(current_weather_entity) in bad_weather_states or states(current_weather_entity) in ['unknown', 'unavailable'] -%}
+          {%- set ready = valve | length > 0 and controller_ready and not rain_active and not weather_bad and states(valve) in ['closed', 'off', 'idle'] and (online | length == 0 or is_state(online, 'on')) and (battery | length == 0 or (states(battery) | float(0)) >= (min_battery_percent | float(20))) -%}
           {%- if completed_this_cycle -%}
             {%- set ns.watered = ns.watered + 1 -%}
             {%- set ns.total = ns.total + (actual_minutes | round(0) | int) -%}
@@ -2275,6 +2282,12 @@ actions:
               {%- set reason = 'brak encji sekcji' -%}
             {%- elif not controller_ready -%}
               {%- set reason = 'sterownik Rain Bird RC2 offline/shutdown, ' ~ conn.entity ~ ' ma stan ' ~ states(conn.entity) -%}
+            {%- elif rain_active -%}
+              {%- set reason = 'czujnik deszczu jest aktywny: ' ~ rain_binary_sensor ~ ' ma stan ' ~ states(rain_binary_sensor) -%}
+            {%- elif states(current_weather_entity) in bad_weather_states -%}
+              {%- set reason = 'pogoda blokuje podlewanie: ' ~ current_weather_condition_pl -%}
+            {%- elif states(current_weather_entity) in ['unknown', 'unavailable'] -%}
+              {%- set reason = 'dane pogodowe sa niedostepne: ' ~ states(current_weather_entity) -%}
             {%- elif states(valve) not in ['closed', 'off', 'idle'] -%}
               {%- set reason = 'sekcja nie byla gotowa, stan: ' ~ states(valve) -%}
             {%- elif online | length > 0 and not is_state(online, 'on') -%}
