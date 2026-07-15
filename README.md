@@ -20,15 +20,17 @@ https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprin
 
 ## Smart Irrigation
 
-The blueprint calculates irrigation need and runtime independently for every
-section. It accumulates a modeled water deficit from plant demand, soil,
-temperature, sunlight, rain and optional soil moisture. A section starts only
-after its deficit reaches the calculated dose threshold.
+The blueprint calculates one irrigation decision for the whole enabled cycle.
+It accumulates a modeled water need from plant demand, soil, temperature,
+sunlight, rain and optional soil moisture. When watering is needed, every
+enabled and ready section is run; each section still gets its own calculated
+runtime from its sprinkler profile, soil, plants and manual adjustment.
 
 The target cycles-per-week setting defines the preferred depth of one
 irrigation cycle. It does not assign weekdays and never forces watering merely
-because a scheduled day arrived. With Rain Bird RC2, the last confirmed
-completion time is persisted by the integration and used by the next decision.
+because a scheduled day arrived. With Rain Bird RC2, confirmed section
+completion times are persisted by the integration and used by the next cycle
+decision.
 
 Supported section count is configurable from 1 to 8. Sections above the selected count stay in the blueprint configuration but are ignored by the automation.
 

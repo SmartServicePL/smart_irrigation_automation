@@ -1170,7 +1170,7 @@
               mode: slider
         waterings_per_week:
           name: Docelowa liczba cykli tygodniowo
-          description: Ustawia docelowa dawke jednego cyklu, ale nie narzuca dni podlewania. Automatyzacja codziennie ocenia deficyt kazdej sekcji i uruchamia ja dopiero po osiagnieciu potrzebnej dawki.
+          description: Ustawia docelowa dawke jednego cyklu. Automatyzacja codziennie ocenia potrzebe podlewania, a gdy cykl jest potrzebny, uruchamia wszystkie wlaczone i gotowe sekcje.
           default: 3
           selector:
             number:
@@ -1720,6 +1720,143 @@ actions:
         sequence:
           - stop: "Pominieto podlewanie: {{ irrigation_skip_reason | trim }}"
 
+  - alias: Wylicz decyzje calego cyklu podlewania
+    variables:
+      irrigation_cycle_needed: |-
+        {%- set zones = [
+          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type},
+          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type},
+          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type},
+          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type},
+          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
+          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
+          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type}
+        ] -%}
+        {%- set ns = namespace(needed=false) -%}
+        {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
+          {%- set soil = zone.soil_type -%}
+          {%- set soil_factor = 1.18 if soil == 'sand' else 1.08 if soil == 'sandy_loam' else 0.92 if soil == 'clay_loam' else 0.85 if soil == 'clay' else 1 -%}
+          {%- set plant = zone.plant_type -%}
+          {%- set weekly_mm = 20 if plant == 'flowers' else 30 if plant == 'vegetables' else 18 if plant == 'shrubs' else 25 -%}
+          {%- set runs = waterings_per_week | float(3) -%}
+          {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
+          {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
+          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
+          {%- set target_raw = weekly_mm / (runs if runs > 0 else 1) * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) -%}
+          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
+          {%- set deficit_raw = weekly_mm / 7 * elapsed_days * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
+          {%- if deficit >= target -%}
+            {%- set ns.needed = true -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {{ ns.needed }}
+      irrigation_cycle_depth_mm: |-
+        {%- set zones = [
+          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type},
+          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type},
+          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type},
+          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type},
+          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
+          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
+          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type}
+        ] -%}
+        {%- set ns = namespace(depth=0) -%}
+        {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
+          {%- set soil = zone.soil_type -%}
+          {%- set soil_factor = 1.18 if soil == 'sand' else 1.08 if soil == 'sandy_loam' else 0.92 if soil == 'clay_loam' else 0.85 if soil == 'clay' else 1 -%}
+          {%- set plant = zone.plant_type -%}
+          {%- set weekly_mm = 20 if plant == 'flowers' else 30 if plant == 'vegetables' else 18 if plant == 'shrubs' else 25 -%}
+          {%- set runs = waterings_per_week | float(3) -%}
+          {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
+          {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
+          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
+          {%- set target_raw = weekly_mm / (runs if runs > 0 else 1) * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) -%}
+          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
+          {%- set deficit_raw = weekly_mm / 7 * elapsed_days * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
+          {%- if deficit >= target -%}
+            {%- set planned = deficit if deficit > target else target -%}
+            {%- set planned = (max_dose_mm | float(10)) if planned > (max_dose_mm | float(10)) else planned -%}
+            {%- if planned > ns.depth -%}
+              {%- set ns.depth = planned -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {{ ns.depth | round(1) }}
+      irrigation_cycle_decision_reason: |-
+        {%- set zones = [
+          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type},
+          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type},
+          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type},
+          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type},
+          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
+          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
+          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type}
+        ] -%}
+        {%- set ns = namespace(due='', highest='brak wlaczonych sekcji z encja', highest_deficit=-1, highest_target=0) -%}
+        {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
+          {%- set soil = zone.soil_type -%}
+          {%- set soil_factor = 1.18 if soil == 'sand' else 1.08 if soil == 'sandy_loam' else 0.92 if soil == 'clay_loam' else 0.85 if soil == 'clay' else 1 -%}
+          {%- set plant = zone.plant_type -%}
+          {%- set weekly_mm = 20 if plant == 'flowers' else 30 if plant == 'vegetables' else 18 if plant == 'shrubs' else 25 -%}
+          {%- set runs = waterings_per_week | float(3) -%}
+          {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
+          {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
+          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
+          {%- set target_raw = weekly_mm / (runs if runs > 0 else 1) * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) -%}
+          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
+          {%- set deficit_raw = weekly_mm / 7 * elapsed_days * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
+          {%- if deficit > ns.highest_deficit -%}
+            {%- set ns.highest_deficit = deficit -%}
+            {%- set ns.highest_target = target -%}
+            {%- set ns.highest = 'sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '), deficyt ' ~ (deficit | round(1)) ~ ' mm, prog ' ~ (target | round(1)) ~ ' mm' -%}
+          {%- endif -%}
+          {%- if deficit >= target and ns.due | length == 0 -%}
+            {%- set ns.due = 'cykl zaplanowala sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '), deficyt ' ~ (deficit | round(1)) ~ ' mm, prog ' ~ (target | round(1)) ~ ' mm' -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {%- if ns.due | length > 0 -%}
+          {{ ns.due }}. Podlewane beda wszystkie wlaczone i gotowe sekcje.
+        {%- else -%}
+          Zadna wlaczona sekcja nie osiagnela progu startu. Najwieksza potrzeba: {{ ns.highest }}.
+        {%- endif -%}
+
+  - alias: Zaloguj pominiecie cyklu bez potrzeby podlewania
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ not (irrigation_cycle_needed | bool) and (enable_irrigation_logs | bool) }}"
+        sequence:
+          - action: logbook.log
+            data:
+              name: Inteligentne podlewanie
+              message: "Pominieto podlewanie. {{ irrigation_cycle_decision_reason | trim }}"
+
+  - alias: Powiadom o pominieciu cyklu bez potrzeby podlewania
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ not (irrigation_cycle_needed | bool) and (create_persistent_notification | bool) }}"
+        sequence:
+          - action: persistent_notification.create
+            data:
+              title: Inteligentne podlewanie
+              message: "Pominieto podlewanie. {{ irrigation_cycle_decision_reason | trim }}"
+              notification_id: smart_irrigation_last_event
+
+  - alias: Zatrzymaj gdy cykl podlewania nie jest potrzebny
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ not (irrigation_cycle_needed | bool) }}"
+        sequence:
+          - stop: "Pominieto podlewanie: {{ irrigation_cycle_decision_reason | trim }}"
+
   - alias: Zaloguj start podlewania
     choose:
       - conditions:
@@ -1730,7 +1867,9 @@ actions:
             data:
               name: Inteligentne podlewanie
               message: >-
-                Warunki pozwalaja podlewac. Prognoza opadu {{ forecast_precipitation | float(0) | round(1) }} mm,
+                Zaplanowano cykl podlewania dla wlaczonych sekcji. {{ irrigation_cycle_decision_reason | trim }}.
+                Najwieksza dawka cyklu {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm.
+                Prognoza opadu {{ forecast_precipitation | float(0) | round(1) }} mm,
                 szansa deszczu {{ forecast_precipitation_probability | int(0) }}%,
                 temperatura {{ temp_c | float(0) | round(1) }} C,
                 wiatr {{ wind_value | float(0) | round(1) }}.
@@ -1745,7 +1884,8 @@ actions:
             data:
               title: Inteligentne podlewanie
               message: >-
-                Warunki pozwalaja podlewac. Sprawdzam sekcje i wyliczone czasy.
+                Zaplanowano cykl podlewania. {{ irrigation_cycle_decision_reason | trim }}.
+                Najwieksza dawka cyklu {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm.
                 Po zakonczeniu wysle podsumowanie sekcji w tym powiadomieniu.
               notification_id: smart_irrigation_last_event
 
@@ -1923,10 +2063,11 @@ actions:
             section_depth_mm: >-
               {% set deficit = section_water_deficit_mm | float(0) %}
               {% set threshold = section_target_depth_mm | float(3) %}
+              {% set planned = deficit if deficit > threshold else threshold %}
               {% set maximum = max_dose_mm | float(10) %}
-              {% if deficit < threshold %}0
-              {% elif deficit > maximum %}{{ maximum }}
-              {% else %}{{ deficit | round(1) }}
+              {% if not (irrigation_cycle_needed | bool) %}0
+              {% elif planned > maximum %}{{ maximum }}
+              {% else %}{{ planned | round(1) }}
               {% endif %}
             section_minutes: >-
               {% set depth = section_depth_mm | float(0) %}
@@ -1968,7 +2109,7 @@ actions:
               {% elif repeat.item.battery_sensor | default('', true) | length > 0 and (states(repeat.item.battery_sensor) | float(0)) < (min_battery_percent | float(20)) %}
                 Bateria sekcji za niska: {{ states(repeat.item.battery_sensor) }}%, minimum to {{ min_battery_percent }}%.
               {% elif (section_minutes | int(0)) <= 0 %}
-                Podlewanie nie jest jeszcze potrzebne. Deficyt {{ section_water_deficit_mm | float(0) | round(1) }} mm, prog startu {{ section_target_depth_mm | float(0) | round(1) }} mm, dni od ostatniego cyklu {{ section_elapsed_days | float(0) | round(1) }}.
+                Sekcja nie ma wyliczonego czasu pracy mimo zaplanowanego cyklu. Sprawdz opad zraszaczy i limity czasu.
               {% else %}{% endif %}
         - choose:
             - conditions:
@@ -2057,8 +2198,8 @@ actions:
                               Uruchomiono sekcje {{ section_number }} na {{ section_minutes | int(0) }} min.
                               Sterownik potwierdzil stan {{ states(section_valve) }}.
                               Dawka {{ section_depth_mm | float(0) | round(1) }} mm,
-                              deficyt {{ section_water_deficit_mm | float(0) | round(1) }} mm,
-                              prog {{ section_target_depth_mm | float(0) | round(1) }} mm,
+                              deficyt sekcji {{ section_water_deficit_mm | float(0) | round(1) }} mm,
+                              prog sekcji {{ section_target_depth_mm | float(0) | round(1) }} mm,
                               opad zraszaczy {{ section_rate_mm_h | float(0) | round(1) }} mm/h.
                 - choose:
                     - conditions:
@@ -2251,7 +2392,8 @@ actions:
           {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
           {%- set deficit_raw = (weekly_mm | float(25)) / 7 * elapsed_days * (soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
           {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
-          {%- set depth = 0 if deficit < target else (max_dose_mm | float(10)) if deficit > (max_dose_mm | float(10)) else (deficit | round(1)) -%}
+          {%- set planned_depth = deficit if deficit > target else target -%}
+          {%- set depth = 0 if not (irrigation_cycle_needed | bool) else (max_dose_mm | float(10)) if planned_depth > (max_dose_mm | float(10)) else (planned_depth | round(1)) -%}
           {%- set effective_rate = (rate | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 -%}
           {%- set raw_minutes = ((depth | float(0)) / (effective_rate if effective_rate > 0 else 1)) * 60 * (zone.runtime_adjustment_percent | float(100)) / 100 -%}
           {%- set rounded_minutes = raw_minutes | round(0) | int -%}
@@ -2295,7 +2437,7 @@ actions:
             {%- elif battery | length > 0 and (states(battery) | float(0)) < (min_battery_percent | float(20)) -%}
               {%- set reason = 'bateria ' ~ states(battery) ~ '%, minimum ' ~ min_battery_percent ~ '%' -%}
             {%- elif (minutes | int(0)) <= 0 -%}
-              {%- set reason = 'podlewanie niepotrzebne: deficyt ' ~ (deficit | round(1)) ~ ' mm, prog ' ~ (target | round(1)) ~ ' mm, od ostatniego cyklu ' ~ (elapsed_days | round(1)) ~ ' dnia' -%}
+              {%- set reason = 'brak wyliczonego czasu pracy sekcji mimo zaplanowanego cyklu' -%}
             {%- elif ready -%}
               {%- set reason = 'sekcja wymagala podlewania, ale cykl nie zostal potwierdzony' -%}
             {%- else -%}
