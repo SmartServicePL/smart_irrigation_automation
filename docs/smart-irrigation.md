@@ -4,6 +4,9 @@
 
 `blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml` adds intelligent Home Assistant irrigation for 1 to 8 garden sections.
 
+Translated UI guides are available in [docs/i18n](i18n/README.md) for English,
+German, Spanish, French, Italian, Dutch and Portuguese.
+
 ## How it works
 
 The automation starts watering from a fixed time, sunrise or sunset with configurable offset. Before watering it checks season, current weather, rain forecast, physical rain sensor, temperature, wind and optional soil moisture. If the weather entity or forecast is `unknown`/`unavailable`, watering is skipped with a clear reason instead of running without reliable weather data.
@@ -13,7 +16,7 @@ It can also run condition-only checks, by default at 12:00, 18:00, 00:00 and 03:
 For every active section it calculates a water dose and runtime from:
 
 - plant type: grass, flowers, vegetables or shrubs,
-- soil type: sand, sandy loam, loam, clay loam or clay,
+- soil type, selected with simplified garden names,
 - sprinkler profile: detailed Rain Bird profiles, Hunter profiles or custom mm/h,
 - recent/forecast rain,
 - daily reference evapotranspiration (ETo), or a fallback estimate from temperature, sunlight/UV and wind,
@@ -25,6 +28,16 @@ For every active section it calculates a water dose and runtime from:
 The blueprint uses a simplified checkbook water-balance model. Daily plant water use is estimated as `ETc = ETo * Kc`. Rain reduces the modeled deficit. Soil type defines available water capacity, plant type defines root depth and allowed depletion, and watering starts when the modeled deficit reaches that section threshold. This is intentionally simpler than full FAO Penman-Monteith, but follows the same scheduling idea and works with normal Home Assistant weather data.
 
 If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. Without that sensor, the blueprint estimates ETo from garden temperature, UV/sunlight and wind.
+
+Available soil choices are intentionally written for normal garden use:
+
+- **Piaszczysta / bardzo lekka** - water drains quickly; irrigation may be needed sooner.
+- **Lekka ogrodowa** - fairly permeable garden soil.
+- **Zwykla ziemia ogrodowa** - default choice for most gardens.
+- **Humusowa / prochniczna** - fertile topsoil or compost-rich purchased garden soil.
+- **Czarnoziem / czarna ziemia** - dark fertile soil that usually stores water well.
+- **Gliniasta / ciezka** - heavier soil that keeps water longer.
+- **Bardzo ciezka / zbita glina** - very compact clay; water enters slowly and runoff risk is higher.
 
 Model references:
 

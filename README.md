@@ -4,7 +4,7 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.1.0**
+Current version: **1.2.0**
 
 ## Import Blueprint
 
@@ -46,6 +46,12 @@ when the modeled depletion reaches the allowed root-zone depletion for the
 selected soil and plant type. If you have a daily ETo sensor, select it; otherwise
 the blueprint estimates ETo from temperature, UV/sun and wind.
 
+Soil selection uses garden-friendly names instead of geological labels:
+piaszczysta / bardzo lekka, lekka ogrodowa, zwykla ziemia ogrodowa,
+humusowa / prochniczna, czarnoziem / czarna ziemia, gliniasta / ciezka and
+bardzo ciezka / zbita glina. Existing configurations using the older technical
+values remain compatible.
+
 For native Rain Bird RC2 switch entities, the blueprint automatically uses
 `rainbird_rc2.start_zone` and passes the calculated runtime in minutes. Other
 switch integrations continue to use standard `switch.turn_on`.
@@ -71,6 +77,8 @@ need reaches the start threshold.
 Documentation:
 
 - [Smart irrigation setup](docs/smart-irrigation.md)
+- [Translations and UI glossary](docs/i18n/README.md): English, German, Spanish,
+  French, Italian, Dutch and Portuguese.
 
 Blueprint path:
 
