@@ -6,7 +6,9 @@
 
 ## How it works
 
-The automation starts from a fixed time, sunrise or sunset with configurable offset. Before watering it checks season, current weather, rain forecast, physical rain sensor, temperature, wind and optional soil moisture. If the weather entity or forecast is `unknown`/`unavailable`, watering is skipped with a clear reason instead of running without reliable weather data.
+The automation starts watering from a fixed time, sunrise or sunset with configurable offset. Before watering it checks season, current weather, rain forecast, physical rain sensor, temperature, wind and optional soil moisture. If the weather entity or forecast is `unknown`/`unavailable`, watering is skipped with a clear reason instead of running without reliable weather data.
+
+It can also run condition-only checks, by default at 12:00, 18:00, 00:00 and 03:00. These checks fetch weather and recalculate watering need, update the next-watering helper, then stop before any section can start. They do not create Home Assistant notifications.
 
 For every active section it calculates a water dose and runtime from:
 
@@ -14,8 +16,23 @@ For every active section it calculates a water dose and runtime from:
 - soil type: sand, sandy loam, loam, clay loam or clay,
 - sprinkler profile: detailed Rain Bird profiles, Hunter profiles or custom mm/h,
 - recent/forecast rain,
-- temperature, sunlight/UV and optional soil moisture,
+- daily reference evapotranspiration (ETo), or a fallback estimate from temperature, sunlight/UV and wind,
+- optional soil moisture,
 - irrigation efficiency and per-section runtime correction.
+
+## Water-Balance Model
+
+The blueprint uses a simplified checkbook water-balance model. Daily plant water use is estimated as `ETc = ETo * Kc`. Rain reduces the modeled deficit. Soil type defines available water capacity, plant type defines root depth and allowed depletion, and watering starts when the modeled deficit reaches that section threshold. This is intentionally simpler than full FAO Penman-Monteith, but follows the same scheduling idea and works with normal Home Assistant weather data.
+
+If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. Without that sensor, the blueprint estimates ETo from garden temperature, UV/sunlight and wind.
+
+Model references:
+
+- [FAO-56 Crop evapotranspiration](https://www.fao.org/4/x0490e/x0490e00.htm)
+- [University of Minnesota Extension: ET-based water balance method](https://extension.umn.edu/irrigation/evapotranspiration-based-irrigation-scheduling-or-water-balance-method)
+- [Colorado State University Extension: water balance approach](https://extension.colostate.edu/resource/irrigation-scheduling-the-water-balance-approach/)
+- [Oregon State University Extension: irrigation water scheduling](https://extension.oregonstate.edu/catalog/em-9717-irrigation-water-scheduling)
+- [UC ANR: plant factor and crop coefficient](https://ucanr.edu/site/center-landscape-urban-horticulture/plant-factor-or-crop-coefficient-whats-difference)
 
 Rain Bird profiles include 5000/3500 rotors, 1800 sprays, R-VAN rotary nozzles and XF dripline, plus generic Rain Bird rotors, sprays and dripline for mixed or unknown installations.
 
@@ -36,7 +53,11 @@ At the bottom of the blueprint you can enable **Wlacz logbook.log**. When enable
 - skipped section with reason,
 - interruption by rain or bad weather.
 
-You can also enable **Tworz powiadomienie persistent_notification**. This keeps the irrigation result visible in Home Assistant notifications. The final notification includes watered/skipped section counts, total planned runtime, weather summary and a per-section result or skip reason.
+You can also enable **Tworz powiadomienie persistent_notification**. Notifications are created only for user-visible events: watering start, watering end with per-section times, skipped watering with a clear reason, or interrupted watering with a short reason.
+
+## Next watering helper
+
+Optionally create an `input_datetime` helper with date and time, then select it in **Helper - nastepne podlewanie**. The automation updates it after each check. If watering is blocked by season or weather, it stores the next scheduled check. If watering is not needed yet, it stores the first scheduled cycle after the calculated water need reaches the start threshold.
 
 ## Recommended setup
 

@@ -66,13 +66,21 @@
                 - domain: weather
         sunlight_source_entity:
           name: UV / slonce
-          description: Sensor UV/slonca albo weather z uv_index. Wysokie UV lekko zwieksza dawke, niskie lekko zmniejsza.
+          description: Sensor UV/slonca albo weather z uv_index. Uzywany do awaryjnego szacowania ewapotranspiracji, gdy nie podasz sensora ET0.
           default: ""
           selector:
             entity:
               filter:
                 - domain: sensor
                 - domain: weather
+        reference_et_sensor:
+          name: Dzienne ET0 / ewapotranspiracja
+          description: Opcjonalny sensor dziennej referencyjnej ewapotranspiracji w mm. Jesli go nie wybierzesz, automatyzacja oszacuje ET0 z temperatury, UV i wiatru.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
         soil_moisture_sensor:
           name: Wilgotnosc gleby
           description: Opcjonalny wspolny sensor wilgotnosci gleby w procentach. Przy wysokiej wilgotnosci podlewanie jest ograniczane albo pomijane.
@@ -1148,6 +1156,36 @@
           default: true
           selector:
             boolean:
+        enable_condition_checks:
+          name: Wlacz dodatkowe przeliczenia
+          description: O tych godzinach automatyzacja realnie pobiera pogode i przelicza potrzebe podlewania, ale nie otwiera sekcji. Aktualizuje helper nastepnego podlewania i opcjonalnie Logbook, bez powiadomien HA.
+          default: true
+          selector:
+            boolean:
+        condition_check_time_1:
+          name: Sprawdzenie 1
+          description: Godzina kontrolnego przeliczenia bez uruchamiania podlewania.
+          default: "12:00:00"
+          selector:
+            time:
+        condition_check_time_2:
+          name: Sprawdzenie 2
+          description: Godzina kontrolnego przeliczenia bez uruchamiania podlewania.
+          default: "18:00:00"
+          selector:
+            time:
+        condition_check_time_3:
+          name: Sprawdzenie 3
+          description: Godzina kontrolnego przeliczenia bez uruchamiania podlewania.
+          default: "00:00:00"
+          selector:
+            time:
+        condition_check_time_4:
+          name: Sprawdzenie 4
+          description: Godzina kontrolnego przeliczenia bez uruchamiania podlewania.
+          default: "03:00:00"
+          selector:
+            time:
         season_start_month:
           name: Miesiac startu sezonu
           description: Pierwszy miesiac, w ktorym automatyzacja moze podlewac. Poza sezonem sekcje nie sa uruchamiane.
@@ -1170,7 +1208,7 @@
               mode: slider
         waterings_per_week:
           name: Docelowa liczba cykli tygodniowo
-          description: Ustawia docelowa dawke jednego cyklu. Automatyzacja codziennie ocenia potrzebe podlewania, a gdy cykl jest potrzebny, uruchamia wszystkie wlaczone i gotowe sekcje.
+          description: Uzywana jako zalozenie startowe, gdy sekcja nie ma historii ostatniego podlewania, oraz do prognozy kolejnego terminu po zakonczonym cyklu. Sama potrzeba podlewania jest liczona z bilansu ET, gleby i roslin.
           default: 3
           selector:
             number:
@@ -1340,10 +1378,18 @@
             boolean:
         create_persistent_notification:
           name: Tworz powiadomienie persistent_notification
-          description: Dodatkowo do logbook.log pokazuje ostatni powod startu, pominiecia albo przerwania podlewania w powiadomieniach Home Assistant.
+          description: Pokazuje powiadomienia tylko przy starcie podlewania, koncu z czasem sekcji, pominieciu albo przerwaniu z krotkim powodem.
           default: false
           selector:
             boolean:
+        next_watering_datetime:
+          name: Helper - nastepne podlewanie
+          description: Opcjonalny input_datetime z data i godzina. Automatyzacja zapisze w nim szacowany termin nastepnego podlewania po kazdym sprawdzeniu cyklu.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
 
 mode: single
 max_exceeded: silent
@@ -1377,6 +1423,18 @@ triggers:
       {% else %}
         false
       {% endif %}
+  - trigger: time
+    id: condition_check_1
+    at: !input condition_check_time_1
+  - trigger: time
+    id: condition_check_2
+    at: !input condition_check_time_2
+  - trigger: time
+    id: condition_check_3
+    at: !input condition_check_time_3
+  - trigger: time
+    id: condition_check_4
+    at: !input condition_check_time_4
 
 variables:
   forecast_weather_entity: !input forecast_weather_entity
@@ -1386,6 +1444,7 @@ variables:
   temperature_source_entity: !input temperature_source_entity
   wind_source_entity: !input wind_source_entity
   sunlight_source_entity: !input sunlight_source_entity
+  reference_et_sensor: !input reference_et_sensor
   soil_moisture_sensor: !input soil_moisture_sensor
   zone_count: !input zone_count
   send_runtime_to_switch: !input send_runtime_to_switch
@@ -1471,6 +1530,8 @@ variables:
 
   schedule_mode: !input schedule_mode
   sun_event_offset_minutes: !input sun_event_offset_minutes
+  primary_start_time: !input primary_start_time
+  enable_condition_checks: !input enable_condition_checks
   enable_backup_time: !input enable_backup_time
   season_start_month: !input season_start_month
   season_end_month: !input season_end_month
@@ -1490,6 +1551,7 @@ variables:
   irrigation_efficiency_percent: !input irrigation_efficiency_percent
   enable_irrigation_logs: !input enable_irrigation_logs
   create_persistent_notification: !input create_persistent_notification
+  next_watering_datetime: !input next_watering_datetime
   bad_weather_states:
     - rainy
     - pouring
@@ -1501,14 +1563,41 @@ variables:
   current_weather_entity: >-
     {% set e = current_weather_entity_input | default('', true) %}
     {{ forecast_weather_entity if e | length == 0 else e }}
-  schedule_trigger_ok: >-
+  trigger_id: "{{ trigger.id | default('manual', true) }}"
+  condition_check_trigger_ids:
+    - condition_check_1
+    - condition_check_2
+    - condition_check_3
+    - condition_check_4
+  trigger_is_condition_check: "{{ trigger_id in condition_check_trigger_ids }}"
+  next_schedule_timestamp: >-
+    {% set now_ts = as_timestamp(now()) %}
     {% if schedule_mode == 'fixed_time' %}
-      {{ trigger.id == 'primary' or (trigger.id == 'backup' and (enable_backup_time | bool)) }}
-    {% elif trigger.id == 'sun_check' and schedule_mode in ['sunrise', 'sunset'] %}
+      {% set first = as_timestamp(today_at(primary_start_time)) %}
+      {% if first <= now_ts %}
+        {% set first = first + 86400 %}
+      {% endif %}
+      {{ first | int }}
+    {% else %}
+      {% set attr = 'next_rising' if schedule_mode == 'sunrise' else 'next_setting' %}
+      {% set event = state_attr('sun.sun', attr) %}
+      {% set first = (as_timestamp(event, now_ts) + (sun_event_offset_minutes | int(0)) * 60) %}
+      {% if first <= now_ts %}
+        {% set first = first + 86400 %}
+      {% endif %}
+      {{ first | int }}
+    {% endif %}
+  irrigation_start_trigger_ok: >-
+    {% if schedule_mode == 'fixed_time' %}
+      {{ trigger_id == 'primary' or (trigger_id == 'backup' and (enable_backup_time | bool)) }}
+    {% elif trigger_id == 'sun_check' and schedule_mode in ['sunrise', 'sunset'] %}
       true
     {% else %}
       false
     {% endif %}
+  schedule_trigger_ok: >-
+    {{ (irrigation_start_trigger_ok | bool)
+       or ((trigger_is_condition_check | bool) and (enable_condition_checks | bool)) }}
 
 actions:
   - alias: Harmonogram startu pasuje
@@ -1666,6 +1755,19 @@ actions:
       sun_factor: >-
         {% set u = sunlight_index | float(5) %}
         {% if u < 2 %}0.9{% elif u <= 7 %}1{% else %}1.1{% endif %}
+      reference_et_mm: >-
+        {% set e = reference_et_sensor | default('', true) %}
+        {% if e | length > 0 and states(e) | is_number %}
+          {{ states(e) | float(0) }}
+        {% else %}
+          {% set t = temp_c | float(0) %}
+          {% set u = sunlight_index | float(5) %}
+          {% set w = wind_value | float(0) %}
+          {% set hot = hot_temperature_c | float(28) %}
+          {% set base = 1.2 + ([t - 8, 0] | max) * 0.13 + u * 0.28 + w * 0.015 %}
+          {% set adjusted = base * (0.85 if t < 15 else 1.15 if t >= hot else 1) %}
+          {{ 0.5 if adjusted < 0.5 else 7.5 if adjusted > 7.5 else adjusted | round(2) }}
+        {% endif %}
       rain_credit_mm: >-
         {% set credit = rain_credit_percent | float(80) / 100 %}
         {{ (((forecast_precipitation | float(0)) + (current_rain_mm | float(0))) * credit) | round(1) }}
@@ -1688,6 +1790,18 @@ actions:
         {% elif not (wind_ok | bool) %}
           Wiatr jest za mocny: {{ wind_value | float(0) | round(1) }}, limit to {{ max_wind }}.
         {% else %}{% endif %}
+
+  - alias: Zapisz termin kolejnego sprawdzenia przy blokadzie
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ irrigation_skip_reason | trim | length > 0 and next_watering_datetime | default('', true) | length > 0 }}"
+        sequence:
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: "{{ next_watering_datetime }}"
+            data:
+              timestamp: "{{ next_schedule_timestamp | int }}"
 
   - alias: Zaloguj pominiecie calego podlewania
     choose:
@@ -1736,16 +1850,18 @@ actions:
         {%- set ns = namespace(needed=false) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
           {%- set soil = zone.soil_type -%}
-          {%- set soil_factor = 1.18 if soil == 'sand' else 1.08 if soil == 'sandy_loam' else 0.92 if soil == 'clay_loam' else 0.85 if soil == 'clay' else 1 -%}
+          {%- set available_water_mm_m = 55 if soil == 'sand' else 115 if soil == 'sandy_loam' else 155 if soil == 'clay_loam' else 120 if soil == 'clay' else 150 -%}
           {%- set plant = zone.plant_type -%}
-          {%- set weekly_mm = 20 if plant == 'flowers' else 30 if plant == 'vegetables' else 18 if plant == 'shrubs' else 25 -%}
+          {%- set crop_coefficient = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
+          {%- set root_depth_m = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
+          {%- set allowed_depletion = 0.4 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.45 -%}
           {%- set runs = waterings_per_week | float(3) -%}
           {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
           {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
           {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
-          {%- set target_raw = weekly_mm / (runs if runs > 0 else 1) * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) -%}
+          {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
           {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
-          {%- set deficit_raw = weekly_mm / 7 * elapsed_days * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set deficit_raw = (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days * (soil_moisture_factor | float(1)) - (rain_credit_mm | float(0)) -%}
           {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
           {%- if deficit >= target -%}
             {%- set ns.needed = true -%}
@@ -1766,16 +1882,18 @@ actions:
         {%- set ns = namespace(depth=0) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
           {%- set soil = zone.soil_type -%}
-          {%- set soil_factor = 1.18 if soil == 'sand' else 1.08 if soil == 'sandy_loam' else 0.92 if soil == 'clay_loam' else 0.85 if soil == 'clay' else 1 -%}
+          {%- set available_water_mm_m = 55 if soil == 'sand' else 115 if soil == 'sandy_loam' else 155 if soil == 'clay_loam' else 120 if soil == 'clay' else 150 -%}
           {%- set plant = zone.plant_type -%}
-          {%- set weekly_mm = 20 if plant == 'flowers' else 30 if plant == 'vegetables' else 18 if plant == 'shrubs' else 25 -%}
+          {%- set crop_coefficient = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
+          {%- set root_depth_m = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
+          {%- set allowed_depletion = 0.4 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.45 -%}
           {%- set runs = waterings_per_week | float(3) -%}
           {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
           {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
           {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
-          {%- set target_raw = weekly_mm / (runs if runs > 0 else 1) * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) -%}
+          {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
           {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
-          {%- set deficit_raw = weekly_mm / 7 * elapsed_days * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set deficit_raw = (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days * (soil_moisture_factor | float(1)) - (rain_credit_mm | float(0)) -%}
           {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
           {%- if deficit >= target -%}
             {%- set planned = deficit if deficit > target else target -%}
@@ -1800,21 +1918,25 @@ actions:
         {%- set ns = namespace(due='', highest='brak wlaczonych sekcji z encja', highest_deficit=-1, highest_target=0) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
           {%- set soil = zone.soil_type -%}
-          {%- set soil_factor = 1.18 if soil == 'sand' else 1.08 if soil == 'sandy_loam' else 0.92 if soil == 'clay_loam' else 0.85 if soil == 'clay' else 1 -%}
+          {%- set available_water_mm_m = 55 if soil == 'sand' else 115 if soil == 'sandy_loam' else 155 if soil == 'clay_loam' else 120 if soil == 'clay' else 150 -%}
           {%- set plant = zone.plant_type -%}
-          {%- set weekly_mm = 20 if plant == 'flowers' else 30 if plant == 'vegetables' else 18 if plant == 'shrubs' else 25 -%}
+          {%- set crop_coefficient = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
+          {%- set root_depth_m = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
+          {%- set allowed_depletion = 0.4 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.45 -%}
           {%- set runs = waterings_per_week | float(3) -%}
           {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
           {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
           {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
-          {%- set target_raw = weekly_mm / (runs if runs > 0 else 1) * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) -%}
+          {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
           {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
-          {%- set deficit_raw = weekly_mm / 7 * elapsed_days * soil_factor * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set deficit_raw = (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days * (soil_moisture_factor | float(1)) - (rain_credit_mm | float(0)) -%}
           {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
           {%- if deficit > ns.highest_deficit -%}
             {%- set ns.highest_deficit = deficit -%}
             {%- set ns.highest_target = target -%}
-            {%- set ns.highest = 'sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '), deficyt ' ~ (deficit | round(1)) ~ ' mm, prog ' ~ (target | round(1)) ~ ' mm' -%}
+            {%- set missing = target - deficit -%}
+            {%- set missing = 0 if missing < 0 else missing -%}
+            {%- set ns.highest = 'najblizej startu jest sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): potrzeba jeszcze ok. ' ~ (missing | round(1)) ~ ' mm' -%}
           {%- endif -%}
           {%- if deficit >= target and ns.due | length == 0 -%}
             {%- set ns.due = 'cykl zaplanowala sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '), deficyt ' ~ (deficit | round(1)) ~ ' mm, prog ' ~ (target | round(1)) ~ ' mm' -%}
@@ -1823,8 +1945,108 @@ actions:
         {%- if ns.due | length > 0 -%}
           {{ ns.due }}. Podlewane beda wszystkie wlaczone i gotowe sekcje.
         {%- else -%}
-          Zadna wlaczona sekcja nie osiagnela progu startu. Najwieksza potrzeba: {{ ns.highest }}.
+          Trawnik nie wymaga jeszcze podlewania. {{ ns.highest }}.
         {%- endif -%}
+      next_watering_estimated_timestamp: |-
+        {%- set zones = [
+          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type},
+          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type},
+          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type},
+          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type},
+          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
+          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
+          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type}
+        ] -%}
+        {%- set ns = namespace(days=999, has_zone=false) -%}
+        {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
+          {%- set soil = zone.soil_type -%}
+          {%- set available_water_mm_m = 55 if soil == 'sand' else 115 if soil == 'sandy_loam' else 155 if soil == 'clay_loam' else 120 if soil == 'clay' else 150 -%}
+          {%- set plant = zone.plant_type -%}
+          {%- set crop_coefficient = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
+          {%- set root_depth_m = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
+          {%- set allowed_depletion = 0.4 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.45 -%}
+          {%- set runs = waterings_per_week | float(3) -%}
+          {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
+          {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
+          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
+          {%- set daily_gain = (reference_et_mm | float(3.5)) * crop_coefficient * (soil_moisture_factor | float(1)) -%}
+          {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
+          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
+          {%- set deficit_raw = daily_gain * elapsed_days - (rain_credit_mm | float(0)) -%}
+          {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
+          {%- if daily_gain > 0 -%}
+            {%- set missing = target - deficit -%}
+            {%- set days_until = 0 if missing <= 0 else missing / daily_gain -%}
+            {%- if days_until < ns.days -%}
+              {%- set ns.days = days_until -%}
+            {%- endif -%}
+            {%- set ns.has_zone = true -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {%- set runs = waterings_per_week | float(3) -%}
+        {%- if not ns.has_zone -%}
+          {%- set candidate = next_schedule_timestamp | float(as_timestamp(now()) + 86400) -%}
+        {%- elif (irrigation_cycle_needed | bool) and not (irrigation_start_trigger_ok | bool) -%}
+          {%- set candidate = next_schedule_timestamp | float(as_timestamp(now()) + 86400) -%}
+        {%- elif irrigation_cycle_needed | bool -%}
+          {%- set candidate = as_timestamp(now()) + (7 / (runs if runs > 0 else 3)) * 86400 -%}
+        {%- else -%}
+          {%- set candidate = as_timestamp(now()) + (ns.days | float(1)) * 86400 -%}
+        {%- endif -%}
+        {%- if schedule_mode == 'fixed_time' -%}
+          {%- set scheduled = as_timestamp(today_at(primary_start_time)) -%}
+        {%- else -%}
+          {%- set attr = 'next_rising' if schedule_mode == 'sunrise' else 'next_setting' -%}
+          {%- set scheduled = as_timestamp(state_attr('sun.sun', attr), as_timestamp(now())) + (sun_event_offset_minutes | int(0)) * 60 -%}
+        {%- endif -%}
+        {%- if scheduled <= as_timestamp(now()) -%}
+          {%- set scheduled = scheduled + 86400 -%}
+        {%- endif -%}
+        {%- if scheduled < candidate -%}
+          {%- set add_days = ((candidate - scheduled) / 86400) | round(0, 'ceil') | int -%}
+          {%- set scheduled = scheduled + add_days * 86400 -%}
+        {%- endif -%}
+        {{ scheduled | int }}
+
+  - alias: Zapisz helper nastepnego podlewania
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ next_watering_datetime | default('', true) | length > 0 }}"
+        sequence:
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: "{{ next_watering_datetime }}"
+            data:
+              timestamp: "{{ next_watering_estimated_timestamp | int }}"
+
+  - alias: Zaloguj kontrolne przeliczenie
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ (trigger_is_condition_check | bool) and (enable_irrigation_logs | bool) }}"
+        sequence:
+          - action: logbook.log
+            data:
+              name: Inteligentne podlewanie
+              message: >-
+                {% set reason = irrigation_cycle_decision_reason | trim | replace('. Podlewane beda wszystkie wlaczone i gotowe sekcje.', '') %}
+                Kontrolne sprawdzenie warunkow.
+                {% if irrigation_cycle_needed | bool %}
+                  Podlewanie jest potrzebne. {{ reason }}. Sekcje nie zostaly uruchomione, bo to tylko sprawdzenie kontrolne.
+                {% else %}
+                  Podlewanie nie jest jeszcze potrzebne. {{ reason }}
+                {% endif %}
+                Nastepny przewidywany termin: {{ (next_watering_estimated_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}.
+
+  - alias: Zatrzymaj po kontrolnym przeliczeniu
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger_is_condition_check | bool }}"
+        sequence:
+          - stop: "Kontrolne przeliczenie bez uruchamiania sekcji."
 
   - alias: Zaloguj pominiecie cyklu bez potrzeby podlewania
     choose:
@@ -1884,9 +2106,8 @@ actions:
             data:
               title: Inteligentne podlewanie
               message: >-
-                Zaplanowano cykl podlewania. {{ irrigation_cycle_decision_reason | trim }}.
-                Najwieksza dawka cyklu {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm.
-                Po zakonczeniu wysle podsumowanie sekcji w tym powiadomieniu.
+                Rozpoczynam podlewanie. {{ irrigation_cycle_decision_reason | trim }}.
+                Najwieksza dawka cyklu: {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm.
               notification_id: smart_irrigation_last_event
 
   - alias: Zapamietaj poczatek cyklu
@@ -2010,18 +2231,32 @@ actions:
               {% endif %}
             section_soil_factor: >-
               {% set soil = repeat.item.soil_type %}
-              {% if soil == 'sand' %}1.18
-              {% elif soil == 'sandy_loam' %}1.08
-              {% elif soil == 'clay_loam' %}0.92
-              {% elif soil == 'clay' %}0.85
-              {% else %}1
+              {% if soil == 'sand' %}55
+              {% elif soil == 'sandy_loam' %}115
+              {% elif soil == 'clay_loam' %}155
+              {% elif soil == 'clay' %}120
+              {% else %}150
               {% endif %}
-            section_weekly_mm: >-
+            section_crop_coefficient: >-
               {% set plant = repeat.item.plant_type %}
-              {% if plant == 'flowers' %}20
-              {% elif plant == 'vegetables' %}30
-              {% elif plant == 'shrubs' %}18
-              {% else %}25
+              {% if plant == 'flowers' %}0.8
+              {% elif plant == 'vegetables' %}1.0
+              {% elif plant == 'shrubs' %}0.55
+              {% else %}0.75
+              {% endif %}
+            section_root_depth_m: >-
+              {% set plant = repeat.item.plant_type %}
+              {% if plant == 'flowers' %}0.25
+              {% elif plant == 'vegetables' %}0.35
+              {% elif plant == 'shrubs' %}0.5
+              {% else %}0.2
+              {% endif %}
+            section_allowed_depletion: >-
+              {% set plant = repeat.item.plant_type %}
+              {% if plant == 'flowers' %}0.4
+              {% elif plant == 'vegetables' %}0.35
+              {% elif plant == 'shrubs' %}0.55
+              {% else %}0.45
               {% endif %}
             section_rate_mm_h: >-
               {% set profile = repeat.item.sprinkler_profile %}
@@ -2048,8 +2283,7 @@ actions:
                 {{ fallback_days | round(3) }}
               {% endif %}
             section_target_depth_mm: >-
-              {% set runs = waterings_per_week | float(3) %}
-              {% set raw = (section_weekly_mm | float(25)) / (runs if runs > 0 else 1) * (section_soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) %}
+              {% set raw = (section_soil_factor | float(150)) * (section_root_depth_m | float(0.2)) * (section_allowed_depletion | float(0.45)) %}
               {% set minimum = min_dose_mm | float(3) %}
               {% set maximum = max_dose_mm | float(10) %}
               {% if raw < minimum %}{{ minimum }}
@@ -2057,8 +2291,8 @@ actions:
               {% else %}{{ raw | round(1) }}
               {% endif %}
             section_water_deficit_mm: >-
-              {% set daily = (section_weekly_mm | float(25)) / 7 %}
-              {% set raw = daily * (section_elapsed_days | float(0)) * (section_soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) %}
+              {% set daily = (reference_et_mm | float(3.5)) * (section_crop_coefficient | float(0.75)) %}
+              {% set raw = daily * (section_elapsed_days | float(0)) * (soil_moisture_factor | float(1)) - (rain_credit_mm | float(0)) %}
               {{ 0 if raw < 0 else raw | round(1) }}
             section_depth_mm: >-
               {% set deficit = section_water_deficit_mm | float(0) %}
@@ -2179,8 +2413,8 @@ actions:
                               sequence:
                                 - action: persistent_notification.create
                                   data:
-                                    title: Inteligentne podlewanie - blad sekcji
-                                    message: "Nie podlano sekcji {{ section_number }}: {{ section_name }}. Sterownik nie potwierdzil otwarcia; aktualny stan: {{ states(section_valve) }}."
+                                    title: Inteligentne podlewanie
+                                    message: "Przerwano podlewanie. Sekcja {{ section_number }}: {{ section_name }} nie potwierdzila startu. Aktualny stan: {{ states(section_valve) }}."
                                     notification_id: smart_irrigation_last_event
                         - stop: "Sekcja {{ section_number }} nie potwierdzila otwarcia."
                 - alias: Zapamietaj czas faktycznego startu
@@ -2201,19 +2435,6 @@ actions:
                               deficyt sekcji {{ section_water_deficit_mm | float(0) | round(1) }} mm,
                               prog sekcji {{ section_target_depth_mm | float(0) | round(1) }} mm,
                               opad zraszaczy {{ section_rate_mm_h | float(0) | round(1) }} mm/h.
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ create_persistent_notification | bool }}"
-                      sequence:
-                        - action: persistent_notification.create
-                          data:
-                            title: Inteligentne podlewanie
-                            message: >-
-                              Uruchomiono sekcje {{ section_number }}: {{ section_name }}.
-                              Sterownik potwierdzil podlewanie. Czas {{ section_minutes | int(0) }} min,
-                              dawka {{ section_depth_mm | float(0) | round(1) }} mm.
-                            notification_id: smart_irrigation_last_event
                 - alias: Monitoruj pogode i stabilnosc pracy sekcji
                   repeat:
                     while:
@@ -2317,16 +2538,6 @@ actions:
                           data:
                             name: "Podlewanie - {{ section_name }}"
                             message: "Zakonczono sekcje {{ section_number }} po zaplanowanym czasie {{ section_minutes | int(0) }} min."
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ create_persistent_notification | bool }}"
-                      sequence:
-                        - action: persistent_notification.create
-                          data:
-                            title: Inteligentne podlewanie
-                            message: "Zakonczono sekcje {{ section_number }}: {{ section_name }}. Planowany czas {{ section_minutes | int(0) }} min."
-                            notification_id: smart_irrigation_last_event
                 - delay:
                     seconds: "{{ zone_pause_seconds | int(15) }}"
           default:
@@ -2339,17 +2550,6 @@ actions:
                       data:
                         name: "Podlewanie - {{ section_name }}"
                         message: "Pominieto sekcje {{ section_number }}. {{ section_skip_reason | trim }}"
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: "{{ section_enabled | bool and (create_persistent_notification | bool) }}"
-                  sequence:
-                    - action: persistent_notification.create
-                      data:
-                        title: Inteligentne podlewanie
-                        message: "Pominieto sekcje {{ section_number }}: {{ section_name }}. {{ section_skip_reason | trim }}"
-                        notification_id: smart_irrigation_last_event
-
   - alias: Zaloguj koniec cyklu
     choose:
       - conditions:
@@ -2377,9 +2577,11 @@ actions:
         {%- set ns = namespace(lines=[], watered=0, skipped=0, total=0) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) -%}
           {%- set soil = zone.soil_type -%}
-          {%- set soil_factor = 1.18 if soil == 'sand' else 1.08 if soil == 'sandy_loam' else 0.92 if soil == 'clay_loam' else 0.85 if soil == 'clay' else 1 -%}
+          {%- set available_water_mm_m = 55 if soil == 'sand' else 115 if soil == 'sandy_loam' else 155 if soil == 'clay_loam' else 120 if soil == 'clay' else 150 -%}
           {%- set plant = zone.plant_type -%}
-          {%- set weekly_mm = 20 if plant == 'flowers' else 30 if plant == 'vegetables' else 18 if plant == 'shrubs' else 25 -%}
+          {%- set crop_coefficient = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
+          {%- set root_depth_m = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
+          {%- set allowed_depletion = 0.4 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.45 -%}
           {%- set profile = zone.sprinkler_profile -%}
           {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate_mm_h | float(12)) -%}
           {%- set runs = waterings_per_week | float(3) -%}
@@ -2388,9 +2590,9 @@ actions:
           {%- set last_ts = as_timestamp(last_completed, 0) -%}
           {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
           {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
-          {%- set target_raw = (weekly_mm | float(25)) / (runs if runs > 0 else 1) * (soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) -%}
+          {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
           {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
-          {%- set deficit_raw = (weekly_mm | float(25)) / 7 * elapsed_days * (soil_factor | float(1)) * (soil_moisture_factor | float(1)) * (temp_factor | float(1)) * (sun_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set deficit_raw = (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days * (soil_moisture_factor | float(1)) - (rain_credit_mm | float(0)) -%}
           {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
           {%- set planned_depth = deficit if deficit > target else target -%}
           {%- set depth = 0 if not (irrigation_cycle_needed | bool) else (max_dose_mm | float(10)) if planned_depth > (max_dose_mm | float(10)) else (planned_depth | round(1)) -%}
@@ -2447,7 +2649,11 @@ actions:
             {%- set ns.lines = ns.lines + ['- Sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): pominieto, ' ~ reason ~ '.'] -%}
           {%- endif -%}
         {%- endfor %}
-        Zakonczono cykl podlewania.
+        {% if ns.watered > 0 %}
+          Zakonczono podlewanie.
+        {% else %}
+          Pominieto podlewanie. Zadna sekcja nie zostala uruchomiona.
+        {% endif %}
         Podlano sekcji: {{ ns.watered }}, pominieto: {{ ns.skipped }}, laczny czas: {{ ns.total }} min.
         Pogoda: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}, opad {{ forecast_precipitation | float(0) | round(1) }} mm, szansa deszczu {{ forecast_precipitation_probability | int(0) }}%.
         Sekcje:
