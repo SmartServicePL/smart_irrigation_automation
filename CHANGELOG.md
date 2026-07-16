@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.0
+
+- Simplified per-section soil choices with garden-friendly names so users do not need to know technical soil classifications.
+- Added **Humusowa / prochniczna** and **Czarnoziem / czarna ziemia** soil options for common purchased garden soils.
+- Mapped the new soil options into the water-balance model:
+  - humus-rich soil stores more water than standard garden soil,
+  - black soil/chernozem stores the most water from the simplified garden-soil list,
+  - existing technical soil values remain compatible with older automations.
+- Added translated UI guides for English, German, Spanish, French, Italian, Dutch and Portuguese.
+- Added README and setup-documentation links to the translation glossary.
+
 ## 1.1.0
 
 - Reworked irrigation need calculation to a simplified ET water-balance model:
