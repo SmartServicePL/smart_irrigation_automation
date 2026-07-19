@@ -1,6 +1,6 @@
 # Smart Irrigation Automation
 
-Home Assistant automation blueprint for intelligent garden irrigation from 1 to 8 sections.
+Home Assistant automation blueprint for intelligent garden irrigation from 1 to 12 sections.
 
 Prepared by **Smart Service**.
 
@@ -35,7 +35,13 @@ because a scheduled day arrived. With Rain Bird RC2, confirmed section
 completion times are persisted by the integration and used by the next cycle
 decision.
 
-Supported section count is configurable from 1 to 8. Sections above the selected count stay in the blueprint configuration but are ignored by the automation.
+Supported section count is configurable from 1 to 12. Sections above the selected count stay in the blueprint configuration but are ignored by the automation.
+
+Controllers may be mixed in one automation. For example, sections 1-8 can use
+native Rain Bird RC2 entities while sections 9-12 use Sonoff, Shelly or ESPHome
+relays for drip lines. The automation runs them sequentially and applies the
+same weather checks, water-balance decision and per-section runtime calculation
+to every enabled section.
 
 Rain Bird is the primary target, with detailed profiles for 5000/3500 rotors, 1800 sprays, R-VAN rotary nozzles and XF dripline. Generic Rain Bird, Hunter and custom mm/h profiles are still available.
 
@@ -54,7 +60,10 @@ values remain compatible.
 
 For native Rain Bird RC2 switch entities, the blueprint automatically uses
 `rainbird_rc2.start_zone` and passes the calculated runtime in minutes. Other
-switch integrations continue to use standard `switch.turn_on`.
+switch integrations use standard `switch.turn_on`, wait for confirmation, keep
+the section active for the calculated time and then call `switch.turn_off`.
+Normal `valve` entities are handled with `valve.open_valve` and
+`valve.close_valve`.
 
 The blueprint waits for the valve or switch to confirm `on/open` before reporting that watering started. A missing start confirmation or an early controller stop is reported as an irrigation failure instead of a completed section.
 

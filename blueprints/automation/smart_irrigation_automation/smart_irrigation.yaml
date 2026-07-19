@@ -1,10 +1,12 @@
 ﻿blueprint:
-  name: Inteligentne podlewanie ogrodu - 1 do 8 sekcji
+  name: Inteligentne podlewanie ogrodu - 1 do 12 sekcji
   description: >
-    Uniwersalny blueprint podlewania od 1 do 8 sekcji. Wspolne sa encje
-    pogodowe i opcjonalne posiadane sensory. Dla kazdej sekcji osobno
-    ustawiasz nazwe, encje sekcji, rodzaj gleby, co rosnie, typ zraszaczy
-    Rain Bird/Hunter, korekte czasu oraz opcjonalne sensory online/baterii.
+    Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsluguje instalacje
+    Rain Bird RC2 oraz uklady mieszane z dodatkowymi zaworami lub przekaznikami
+    Sonoff, Shelly i ESPHome. Wspolne sa encje pogodowe i opcjonalne posiadane
+    sensory. Dla kazdej sekcji osobno ustawiasz nazwe, encje sekcji, rodzaj
+    gleby, co rosnie, typ zraszaczy Rain Bird/Hunter, korekte czasu oraz
+    opcjonalne sensory online/baterii.
   domain: automation
   author: Smart Service
   homeassistant:
@@ -101,12 +103,12 @@
           selector:
             number:
               min: 1
-              max: 8
+              max: 12
               step: 1
               mode: slider
         send_runtime_to_switch:
           name: Przekazuj wyliczony czas do sterownika Rain Bird
-          description: Wlacz dla natywnych encji Rain Bird. Dla Rain Bird RC2 automatyzacja uzyje rainbird_rc2.start_zone, a dla starszej integracji rainbird.start_irrigation. Dla pozostalych switchy ustawienie jest ignorowane.
+          description: Dla Rain Bird RC2 automatyzacja zawsze uzywa rainbird_rc2.start_zone. To ustawienie wlacza przekazywanie czasu do starszej integracji Rain Bird przez rainbird.start_irrigation. Nie zmienia obslugi Sonoff, Shelly, ESPHome ani innych zwyklych encji switch/valve.
           default: true
           selector:
             boolean:
@@ -117,7 +119,7 @@
       input:
         zone_1_valve:
           name: Sekcja 1 - encja
-          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           selector:
             entity:
               filter:
@@ -245,7 +247,7 @@
       input:
         zone_2_valve:
           name: Sekcja 2 - encja
-          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -374,7 +376,7 @@
       input:
         zone_3_valve:
           name: Sekcja 3 - encja
-          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -503,7 +505,7 @@
       input:
         zone_4_valve:
           name: Sekcja 4 - encja
-          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -632,7 +634,7 @@
       input:
         zone_5_valve:
           name: Sekcja 5 - encja
-          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -761,7 +763,7 @@
       input:
         zone_6_valve:
           name: Sekcja 6 - encja
-          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -890,7 +892,7 @@
       input:
         zone_7_valve:
           name: Sekcja 7 - encja
-          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -1019,7 +1021,7 @@
       input:
         zone_8_valve:
           name: Sekcja 8 - encja
-          description: "Encja sekcji: sensor stanu Rain Bird RC2, przelacznik ON/OFF Rain Bird RC2 albo valve/switch innej integracji. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
           default: ""
           selector:
             entity:
@@ -1134,6 +1136,522 @@
                 - domain: binary_sensor
         zone_8_battery_sensor:
           name: Sekcja 8 - bateria
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_9_section:
+      name: Sekcja 9
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_9_valve:
+          name: Sekcja 9 - encja
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_9_name:
+          name: Sekcja 9 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 9
+          selector:
+            text:
+        zone_9_soil_type:
+          name: Sekcja 9 - rodzaj gleby
+          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta / bardzo lekka
+                  value: sand
+                - label: Lekka ogrodowa
+                  value: sandy_loam
+                - label: Zwykla ziemia ogrodowa
+                  value: loam
+                - label: Humusowa / prochniczna
+                  value: humus
+                - label: Czarnoziem / czarna ziemia
+                  value: chernozem
+                - label: Gliniasta / ciezka
+                  value: clay_loam
+                - label: Bardzo ciezka / zbita glina
+                  value: clay
+        zone_9_plant_type:
+          name: Sekcja 9 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_9_sprinkler_profile:
+          name: Sekcja 9 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
+                  value: rainbird_rotor
+                - label: Rain Bird - spray ogolny
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca ogolna
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_9_custom_rate_mm_h:
+          name: Sekcja 9 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_9_runtime_adjustment_percent:
+          name: Sekcja 9 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_9_online_sensor:
+          name: Sekcja 9 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_9_battery_sensor:
+          name: Sekcja 9 - bateria
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_10_section:
+      name: Sekcja 10
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_10_valve:
+          name: Sekcja 10 - encja
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_10_name:
+          name: Sekcja 10 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 10
+          selector:
+            text:
+        zone_10_soil_type:
+          name: Sekcja 10 - rodzaj gleby
+          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta / bardzo lekka
+                  value: sand
+                - label: Lekka ogrodowa
+                  value: sandy_loam
+                - label: Zwykla ziemia ogrodowa
+                  value: loam
+                - label: Humusowa / prochniczna
+                  value: humus
+                - label: Czarnoziem / czarna ziemia
+                  value: chernozem
+                - label: Gliniasta / ciezka
+                  value: clay_loam
+                - label: Bardzo ciezka / zbita glina
+                  value: clay
+        zone_10_plant_type:
+          name: Sekcja 10 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_10_sprinkler_profile:
+          name: Sekcja 10 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
+                  value: rainbird_rotor
+                - label: Rain Bird - spray ogolny
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca ogolna
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_10_custom_rate_mm_h:
+          name: Sekcja 10 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_10_runtime_adjustment_percent:
+          name: Sekcja 10 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_10_online_sensor:
+          name: Sekcja 10 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_10_battery_sensor:
+          name: Sekcja 10 - bateria
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_11_section:
+      name: Sekcja 11
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_11_valve:
+          name: Sekcja 11 - encja
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_11_name:
+          name: Sekcja 11 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 11
+          selector:
+            text:
+        zone_11_soil_type:
+          name: Sekcja 11 - rodzaj gleby
+          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta / bardzo lekka
+                  value: sand
+                - label: Lekka ogrodowa
+                  value: sandy_loam
+                - label: Zwykla ziemia ogrodowa
+                  value: loam
+                - label: Humusowa / prochniczna
+                  value: humus
+                - label: Czarnoziem / czarna ziemia
+                  value: chernozem
+                - label: Gliniasta / ciezka
+                  value: clay_loam
+                - label: Bardzo ciezka / zbita glina
+                  value: clay
+        zone_11_plant_type:
+          name: Sekcja 11 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_11_sprinkler_profile:
+          name: Sekcja 11 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
+                  value: rainbird_rotor
+                - label: Rain Bird - spray ogolny
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca ogolna
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_11_custom_rate_mm_h:
+          name: Sekcja 11 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_11_runtime_adjustment_percent:
+          name: Sekcja 11 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_11_online_sensor:
+          name: Sekcja 11 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_11_battery_sensor:
+          name: Sekcja 11 - bateria
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+
+    zone_12_section:
+      name: Sekcja 12
+      icon: mdi:sprinkler-variant
+      collapsed: true
+      input:
+        zone_12_valve:
+          name: Sekcja 12 - encja
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: valve
+                - domain: switch
+        zone_12_name:
+          name: Sekcja 12 - nazwa
+          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          default: Sekcja 12
+          selector:
+            text:
+        zone_12_soil_type:
+          name: Sekcja 12 - rodzaj gleby
+          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          default: loam
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Piaszczysta / bardzo lekka
+                  value: sand
+                - label: Lekka ogrodowa
+                  value: sandy_loam
+                - label: Zwykla ziemia ogrodowa
+                  value: loam
+                - label: Humusowa / prochniczna
+                  value: humus
+                - label: Czarnoziem / czarna ziemia
+                  value: chernozem
+                - label: Gliniasta / ciezka
+                  value: clay_loam
+                - label: Bardzo ciezka / zbita glina
+                  value: clay
+        zone_12_plant_type:
+          name: Sekcja 12 - co rosnie
+          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          default: grass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Trawa
+                  value: grass
+                - label: Kwiaty
+                  value: flowers
+                - label: Warzywa
+                  value: vegetables
+                - label: Krzewy
+                  value: shrubs
+        zone_12_sprinkler_profile:
+          name: Sekcja 12 - zraszacze
+          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          default: rainbird_rotor
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Rain Bird 5000/3500 - rotory
+                  value: rainbird_5000_rotor
+                - label: Rain Bird 1800 - spray/statyczne
+                  value: rainbird_1800_spray
+                - label: Rain Bird R-VAN - dysze rotacyjne
+                  value: rainbird_rvan
+                - label: Rain Bird XF - linia kroplujaca
+                  value: rainbird_xf_drip
+                - label: Rain Bird - rotory ogolne
+                  value: rainbird_rotor
+                - label: Rain Bird - spray ogolny
+                  value: rainbird_spray
+                - label: Rain Bird - linia kroplujaca ogolna
+                  value: rainbird_drip
+                - label: Hunter - rotory
+                  value: hunter_rotor
+                - label: Hunter - MP Rotator
+                  value: hunter_mp_rotator
+                - label: Hunter - spray/statyczne
+                  value: hunter_spray
+                - label: Hunter - linia kroplujaca
+                  value: hunter_drip
+                - label: Wlasny opad zraszaczy
+                  value: custom
+        zone_12_custom_rate_mm_h:
+          name: Sekcja 12 - wlasny opad zraszaczy
+          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          default: 12
+          selector:
+            number:
+              min: 1
+              max: 80
+              step: 0.5
+              unit_of_measurement: mm/h
+              mode: box
+        zone_12_runtime_adjustment_percent:
+          name: Sekcja 12 - korekta czasu
+          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          default: 100
+          selector:
+            number:
+              min: 50
+              max: 180
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        zone_12_online_sensor:
+          name: Sekcja 12 - online
+          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+        zone_12_battery_sensor:
+          name: Sekcja 12 - bateria
           description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
           default: ""
           selector:
@@ -1560,6 +2078,46 @@ variables:
   zone_8_online_sensor: !input zone_8_online_sensor
   zone_8_battery_sensor: !input zone_8_battery_sensor
 
+  zone_9_valve: !input zone_9_valve
+  zone_9_name: !input zone_9_name
+  zone_9_soil_type: !input zone_9_soil_type
+  zone_9_plant_type: !input zone_9_plant_type
+  zone_9_sprinkler_profile: !input zone_9_sprinkler_profile
+  zone_9_custom_rate_mm_h: !input zone_9_custom_rate_mm_h
+  zone_9_runtime_adjustment_percent: !input zone_9_runtime_adjustment_percent
+  zone_9_online_sensor: !input zone_9_online_sensor
+  zone_9_battery_sensor: !input zone_9_battery_sensor
+
+  zone_10_valve: !input zone_10_valve
+  zone_10_name: !input zone_10_name
+  zone_10_soil_type: !input zone_10_soil_type
+  zone_10_plant_type: !input zone_10_plant_type
+  zone_10_sprinkler_profile: !input zone_10_sprinkler_profile
+  zone_10_custom_rate_mm_h: !input zone_10_custom_rate_mm_h
+  zone_10_runtime_adjustment_percent: !input zone_10_runtime_adjustment_percent
+  zone_10_online_sensor: !input zone_10_online_sensor
+  zone_10_battery_sensor: !input zone_10_battery_sensor
+
+  zone_11_valve: !input zone_11_valve
+  zone_11_name: !input zone_11_name
+  zone_11_soil_type: !input zone_11_soil_type
+  zone_11_plant_type: !input zone_11_plant_type
+  zone_11_sprinkler_profile: !input zone_11_sprinkler_profile
+  zone_11_custom_rate_mm_h: !input zone_11_custom_rate_mm_h
+  zone_11_runtime_adjustment_percent: !input zone_11_runtime_adjustment_percent
+  zone_11_online_sensor: !input zone_11_online_sensor
+  zone_11_battery_sensor: !input zone_11_battery_sensor
+
+  zone_12_valve: !input zone_12_valve
+  zone_12_name: !input zone_12_name
+  zone_12_soil_type: !input zone_12_soil_type
+  zone_12_plant_type: !input zone_12_plant_type
+  zone_12_sprinkler_profile: !input zone_12_sprinkler_profile
+  zone_12_custom_rate_mm_h: !input zone_12_custom_rate_mm_h
+  zone_12_runtime_adjustment_percent: !input zone_12_runtime_adjustment_percent
+  zone_12_online_sensor: !input zone_12_online_sensor
+  zone_12_battery_sensor: !input zone_12_battery_sensor
+
   schedule_mode: !input schedule_mode
   sun_event_offset_minutes: !input sun_event_offset_minutes
   primary_start_time: !input primary_start_time
@@ -1892,7 +2450,11 @@ actions:
           {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
           {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
           {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
-          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type}
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type},
+          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type},
+          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type},
+          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type},
+          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type}
         ] -%}
         {%- set ns = namespace(needed=false) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
@@ -1924,7 +2486,11 @@ actions:
           {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
           {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
           {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
-          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type}
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type},
+          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type},
+          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type},
+          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type},
+          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type}
         ] -%}
         {%- set ns = namespace(depth=0) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
@@ -1960,7 +2526,11 @@ actions:
           {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
           {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
           {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
-          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type}
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type},
+          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type},
+          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type},
+          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type},
+          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type}
         ] -%}
         {%- set ns = namespace(due='', highest='brak wlaczonych sekcji z encja', highest_deficit=-1, highest_target=0) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
@@ -2003,7 +2573,11 @@ actions:
           {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
           {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
           {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
-          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type}
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type},
+          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type},
+          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type},
+          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type},
+          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type}
         ] -%}
         {%- set ns = namespace(days=999, has_zone=false) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
@@ -2273,6 +2847,46 @@ actions:
         runtime_adjustment_percent: !input zone_8_runtime_adjustment_percent
         online_sensor: !input zone_8_online_sensor
         battery_sensor: !input zone_8_battery_sensor
+      - number: 9
+        valve: !input zone_9_valve
+        name: !input zone_9_name
+        soil_type: !input zone_9_soil_type
+        plant_type: !input zone_9_plant_type
+        sprinkler_profile: !input zone_9_sprinkler_profile
+        custom_rate_mm_h: !input zone_9_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_9_runtime_adjustment_percent
+        online_sensor: !input zone_9_online_sensor
+        battery_sensor: !input zone_9_battery_sensor
+      - number: 10
+        valve: !input zone_10_valve
+        name: !input zone_10_name
+        soil_type: !input zone_10_soil_type
+        plant_type: !input zone_10_plant_type
+        sprinkler_profile: !input zone_10_sprinkler_profile
+        custom_rate_mm_h: !input zone_10_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_10_runtime_adjustment_percent
+        online_sensor: !input zone_10_online_sensor
+        battery_sensor: !input zone_10_battery_sensor
+      - number: 11
+        valve: !input zone_11_valve
+        name: !input zone_11_name
+        soil_type: !input zone_11_soil_type
+        plant_type: !input zone_11_plant_type
+        sprinkler_profile: !input zone_11_sprinkler_profile
+        custom_rate_mm_h: !input zone_11_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_11_runtime_adjustment_percent
+        online_sensor: !input zone_11_online_sensor
+        battery_sensor: !input zone_11_battery_sensor
+      - number: 12
+        valve: !input zone_12_valve
+        name: !input zone_12_name
+        soil_type: !input zone_12_soil_type
+        plant_type: !input zone_12_plant_type
+        sprinkler_profile: !input zone_12_sprinkler_profile
+        custom_rate_mm_h: !input zone_12_custom_rate_mm_h
+        runtime_adjustment_percent: !input zone_12_runtime_adjustment_percent
+        online_sensor: !input zone_12_online_sensor
+        battery_sensor: !input zone_12_battery_sensor
       sequence:
         - alias: Wylicz parametry tej sekcji
           variables:
@@ -2680,7 +3294,11 @@ actions:
           {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type, 'sprinkler_profile': zone_5_sprinkler_profile, 'custom_rate_mm_h': zone_5_custom_rate_mm_h, 'runtime_adjustment_percent': zone_5_runtime_adjustment_percent, 'online_sensor': zone_5_online_sensor, 'battery_sensor': zone_5_battery_sensor},
           {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type, 'sprinkler_profile': zone_6_sprinkler_profile, 'custom_rate_mm_h': zone_6_custom_rate_mm_h, 'runtime_adjustment_percent': zone_6_runtime_adjustment_percent, 'online_sensor': zone_6_online_sensor, 'battery_sensor': zone_6_battery_sensor},
           {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type, 'sprinkler_profile': zone_7_sprinkler_profile, 'custom_rate_mm_h': zone_7_custom_rate_mm_h, 'runtime_adjustment_percent': zone_7_runtime_adjustment_percent, 'online_sensor': zone_7_online_sensor, 'battery_sensor': zone_7_battery_sensor},
-          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type, 'sprinkler_profile': zone_8_sprinkler_profile, 'custom_rate_mm_h': zone_8_custom_rate_mm_h, 'runtime_adjustment_percent': zone_8_runtime_adjustment_percent, 'online_sensor': zone_8_online_sensor, 'battery_sensor': zone_8_battery_sensor}
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type, 'sprinkler_profile': zone_8_sprinkler_profile, 'custom_rate_mm_h': zone_8_custom_rate_mm_h, 'runtime_adjustment_percent': zone_8_runtime_adjustment_percent, 'online_sensor': zone_8_online_sensor, 'battery_sensor': zone_8_battery_sensor},
+          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type, 'sprinkler_profile': zone_9_sprinkler_profile, 'custom_rate_mm_h': zone_9_custom_rate_mm_h, 'runtime_adjustment_percent': zone_9_runtime_adjustment_percent, 'online_sensor': zone_9_online_sensor, 'battery_sensor': zone_9_battery_sensor},
+          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type, 'sprinkler_profile': zone_10_sprinkler_profile, 'custom_rate_mm_h': zone_10_custom_rate_mm_h, 'runtime_adjustment_percent': zone_10_runtime_adjustment_percent, 'online_sensor': zone_10_online_sensor, 'battery_sensor': zone_10_battery_sensor},
+          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type, 'sprinkler_profile': zone_11_sprinkler_profile, 'custom_rate_mm_h': zone_11_custom_rate_mm_h, 'runtime_adjustment_percent': zone_11_runtime_adjustment_percent, 'online_sensor': zone_11_online_sensor, 'battery_sensor': zone_11_battery_sensor},
+          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type, 'sprinkler_profile': zone_12_sprinkler_profile, 'custom_rate_mm_h': zone_12_custom_rate_mm_h, 'runtime_adjustment_percent': zone_12_runtime_adjustment_percent, 'online_sensor': zone_12_online_sensor, 'battery_sensor': zone_12_battery_sensor}
         ] -%}
         {%- set ns = namespace(lines=[], watered=0, skipped=0, total=0) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) -%}
