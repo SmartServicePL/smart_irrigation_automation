@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Expanded the blueprint from 8 to 12 irrigation sections.
+- Added complete inputs, water-balance calculations, runtime execution, diagnostics and final reporting for sections 9-12.
+- Documented mixed-controller installations, such as Rain Bird RC2 sections combined with Sonoff, Shelly or ESPHome relays for additional drip lines.
+- Clarified that Rain Bird RC2 uses `rainbird_rc2.start_zone`, ordinary switches use timed ON/OFF control and ordinary valves use timed open/close control.
 - Reformatted Home Assistant persistent notifications as Markdown-style blocks instead of one long sentence.
 - Added structured notification sections for status, reason, weather, next watering time and final section summary.
 - Changed the final cycle notification to use a compact section table with watered/skipped results.

@@ -2,7 +2,7 @@
 
 [![Open your Home Assistant instance and import this blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSmartServicePL%2Fsmart_irrigation_automation%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsmart_irrigation_automation%2Fsmart_irrigation.yaml)
 
-`blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml` adds intelligent Home Assistant irrigation for 1 to 8 garden sections.
+`blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml` adds intelligent Home Assistant irrigation for 1 to 12 garden sections.
 
 Translated UI guides are available in [docs/i18n](i18n/README.md) for English,
 German, Spanish, French, Italian, Dutch and Portuguese.
@@ -49,7 +49,9 @@ Model references:
 
 Rain Bird profiles include 5000/3500 rotors, 1800 sprays, R-VAN rotary nozzles and XF dripline, plus generic Rain Bird rotors, sprays and dripline for mixed or unknown installations.
 
-Enable **Uzywaj czasu sekcji w sterowniku Rain Bird** when sections are native Rain Bird RC2/ESP `switch` entities. The blueprint detects native Rain Bird entities and calls `rainbird.start_irrigation` with the calculated runtime in minutes. Other switch integrations always use standard `switch.turn_on`.
+For native Rain Bird RC2 entities, the blueprint automatically calls `rainbird_rc2.start_zone` with the calculated runtime in minutes. The **Przekazuj wyliczony czas do sterownika Rain Bird** option is retained for older Rain Bird entities that support `rainbird.start_irrigation`. It does not affect ordinary switch or valve entities.
+
+One automation may combine different controllers. A typical mixed installation can use Rain Bird RC2 for sections 1-8 and Sonoff, Shelly or ESPHome relays for drip lines in sections 9-12. Ordinary `switch` entities are turned on, monitored for start confirmation, kept active for the calculated runtime and turned off. Ordinary `valve` entities are opened and closed in the same controlled sequence. Sections always run one at a time.
 
 After sending a start command, the blueprint waits for an `on/open` state confirmation. If the controller does not confirm the start or closes the section too early, the run is stopped and the Logbook/persistent notification clearly reports that watering did not occur as planned.
 
@@ -74,7 +76,7 @@ Optionally create an `input_datetime` helper with date and time, then select it 
 
 ## Recommended setup
 
-Use one automation instance per garden controller or area. Set **Liczba sekcji** to the real number of sections. Fill only those sections; later sections may stay with defaults.
+Use one automation instance for one hydraulic system or watering area. It may contain more than one controller type. Set **Liczba sekcji** to the real number of sections, up to 12. Fill only those sections; later sections may stay with defaults.
 
 Good starting values:
 
