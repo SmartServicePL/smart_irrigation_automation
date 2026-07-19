@@ -1855,7 +1855,22 @@ actions:
           - action: persistent_notification.create
             data:
               title: Inteligentne podlewanie
-              message: "Pominieto podlewanie. {{ irrigation_skip_reason | trim }}"
+              message: |-
+                **Status:** pominieto podlewanie
+
+                **Powod**
+                {{ irrigation_skip_reason | trim }}
+
+                **Pogoda**
+                - Aktualnie: {{ current_weather_condition_pl }}
+                - Prognoza: {{ forecast_condition_pl }}
+                - Opad: {{ forecast_precipitation | float(0) | round(1) }} mm
+                - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
+                - Temperatura: {{ temp_c | float(0) | round(1) }} C
+                - Wiatr: {{ wind_value | float(0) | round(1) }}
+
+                **Nastepny termin**
+                {{ (next_schedule_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}
               notification_id: smart_irrigation_last_event
 
   - alias: Zatrzymaj gdy podlewanie pominiete
@@ -2100,7 +2115,22 @@ actions:
           - action: persistent_notification.create
             data:
               title: Inteligentne podlewanie
-              message: "Pominieto podlewanie. {{ irrigation_cycle_decision_reason | trim }}"
+              message: |-
+                **Status:** pominieto podlewanie
+
+                **Powod**
+                {{ irrigation_cycle_decision_reason | trim }}
+
+                **Pogoda**
+                - Aktualnie: {{ current_weather_condition_pl }}
+                - Prognoza: {{ forecast_condition_pl }}
+                - Opad: {{ forecast_precipitation | float(0) | round(1) }} mm
+                - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
+                - Temperatura: {{ temp_c | float(0) | round(1) }} C
+                - Wiatr: {{ wind_value | float(0) | round(1) }}
+
+                **Nastepny termin**
+                {{ (next_watering_estimated_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}
               notification_id: smart_irrigation_last_event
 
   - alias: Zatrzymaj gdy cykl podlewania nie jest potrzebny
@@ -2137,9 +2167,23 @@ actions:
           - action: persistent_notification.create
             data:
               title: Inteligentne podlewanie
-              message: >-
-                Rozpoczynam podlewanie. {{ irrigation_cycle_decision_reason | trim }}.
-                Najwieksza dawka cyklu: {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm.
+              message: |-
+                **Status:** rozpoczeto podlewanie
+
+                **Decyzja**
+                {{ irrigation_cycle_decision_reason | trim }}
+
+                **Plan**
+                - Najwieksza dawka cyklu: {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm
+                - Podlewane beda wszystkie wlaczone i gotowe sekcje.
+
+                **Pogoda**
+                - Aktualnie: {{ current_weather_condition_pl }}
+                - Prognoza: {{ forecast_condition_pl }}
+                - Opad: {{ forecast_precipitation | float(0) | round(1) }} mm
+                - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
+                - Temperatura: {{ temp_c | float(0) | round(1) }} C
+                - Wiatr: {{ wind_value | float(0) | round(1) }}
               notification_id: smart_irrigation_last_event
 
   - alias: Zapamietaj poczatek cyklu
@@ -2448,7 +2492,20 @@ actions:
                                 - action: persistent_notification.create
                                   data:
                                     title: Inteligentne podlewanie
-                                    message: "Przerwano podlewanie. Sekcja {{ section_number }}: {{ section_name }} nie potwierdzila startu. Aktualny stan: {{ states(section_valve) }}."
+                                    message: |-
+                                      **Status:** przerwano podlewanie
+
+                                      **Sekcja**
+                                      - Numer: {{ section_number }}
+                                      - Nazwa: {{ section_name }}
+                                      - Encja: {{ section_valve }}
+
+                                      **Powod**
+                                      Sterownik nie potwierdzil otwarcia sekcji.
+
+                                      **Stan**
+                                      - Aktualny stan sekcji: {{ states(section_valve) }}
+                                      - Zaplanowany czas: {{ section_minutes | int(0) }} min
                                     notification_id: smart_irrigation_last_event
                         - stop: "Sekcja {{ section_number }} nie potwierdzila otwarcia."
                 - alias: Zapamietaj czas faktycznego startu
@@ -2560,7 +2617,24 @@ actions:
                                 - action: persistent_notification.create
                                   data:
                                     title: Inteligentne podlewanie
-                                    message: "Przerwano sekcje {{ section_number }}: {{ section_name }}. Powod: {{ section_interruption_reason | trim }}. Pozostale sekcje nie zostana uruchomione."
+                                    message: |-
+                                      **Status:** przerwano podlewanie
+
+                                      **Sekcja**
+                                      - Numer: {{ section_number }}
+                                      - Nazwa: {{ section_name }}
+                                      - Encja: {{ section_valve }}
+
+                                      **Powod**
+                                      {{ section_interruption_reason | trim }}
+
+                                      **Co dalej**
+                                      Pozostale sekcje nie zostana uruchomione w tym cyklu.
+
+                                      **Pogoda**
+                                      - Aktualnie: {{ current_weather_condition_pl }}
+                                      - Prognoza: {{ forecast_condition_pl }}
+                                      - Czujnik deszczu: {{ states(rain_binary_sensor) if (rain_binary_sensor | default('', true) | length > 0) else 'brak' }}
                                     notification_id: smart_irrigation_last_event
                         - stop: "Podlewanie przerwane: {{ section_interruption_reason | trim }}."
                 - choose:
@@ -2654,7 +2728,7 @@ actions:
           {%- if completed_this_cycle -%}
             {%- set ns.watered = ns.watered + 1 -%}
             {%- set ns.total = ns.total + (actual_minutes | round(0) | int) -%}
-            {%- set ns.lines = ns.lines + ['- Sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): podlano ' ~ (actual_minutes | round(1)) ~ ' min.'] -%}
+            {%- set ns.lines = ns.lines + ['| Sekcja ' ~ zone.number ~ ' (' ~ (zone.name | replace('|', '/')) ~ ') | Podlano | ' ~ (actual_minutes | round(1)) ~ ' min |'] -%}
           {%- else -%}
             {%- if valve | length == 0 -%}
               {%- set reason = 'brak encji sekcji' -%}
@@ -2680,17 +2754,32 @@ actions:
               {%- set reason = 'warunki sekcji nie pozwolily na start' -%}
             {%- endif -%}
             {%- set ns.skipped = ns.skipped + 1 -%}
-            {%- set ns.lines = ns.lines + ['- Sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): pominieto, ' ~ reason ~ '.'] -%}
+            {%- set ns.lines = ns.lines + ['| Sekcja ' ~ zone.number ~ ' (' ~ (zone.name | replace('|', '/')) ~ ') | Pominieto | ' ~ (reason | replace('|', '/')) ~ ' |'] -%}
           {%- endif -%}
         {%- endfor %}
         {% if ns.watered > 0 %}
-          Zakonczono podlewanie.
+        **Status:** zakonczono podlewanie
         {% else %}
-          Pominieto podlewanie. Zadna sekcja nie zostala uruchomiona.
+        **Status:** pominieto podlewanie
         {% endif %}
-        Podlano sekcji: {{ ns.watered }}, pominieto: {{ ns.skipped }}, laczny czas: {{ ns.total }} min.
-        Pogoda: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}, opad {{ forecast_precipitation | float(0) | round(1) }} mm, szansa deszczu {{ forecast_precipitation_probability | int(0) }}%.
-        Sekcje:
+
+        **Podsumowanie**
+        - Podlano sekcji: {{ ns.watered }}
+        - Pominieto sekcji: {{ ns.skipped }}
+        - Laczny czas: {{ ns.total }} min
+
+        **Pogoda**
+        - Aktualnie: {{ current_weather_condition_pl }}
+        - Prognoza: {{ forecast_condition_pl }}
+        - Opad: {{ forecast_precipitation | float(0) | round(1) }} mm
+        - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
+        - Temperatura: {{ temp_c | float(0) | round(1) }} C
+        - Wiatr: {{ wind_value | float(0) | round(1) }}
+
+        **Sekcje**
+
+        | Sekcja | Wynik | Szczegoly |
+        | --- | --- | --- |
         {{ ns.lines | join('\n') }}
 
   - alias: Powiadom o koncu cyklu
@@ -2702,5 +2791,6 @@ actions:
           - action: persistent_notification.create
             data:
               title: Inteligentne podlewanie
-              message: "{{ irrigation_cycle_summary | trim }}"
+              message: |-
+                {{ irrigation_cycle_summary | trim }}
               notification_id: smart_irrigation_last_event
