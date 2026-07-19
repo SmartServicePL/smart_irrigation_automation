@@ -66,7 +66,7 @@ At the bottom of the blueprint you can enable **Wlacz logbook.log**. When enable
 - skipped section with reason,
 - interruption by rain or bad weather.
 
-You can also enable **Tworz powiadomienie persistent_notification**. Notifications are created only for user-visible events: watering start, watering end with per-section times, skipped watering with a clear reason, or interrupted watering with a short reason.
+You can also enable **Tworz powiadomienie persistent_notification**. Notifications are created only for user-visible events: watering start, watering end with per-section times, skipped watering with a clear reason, or interrupted watering with a short reason. Messages are formatted as readable blocks with status, reason, weather details and a final section table.
 
 ## Next watering helper
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Reformatted Home Assistant persistent notifications as Markdown-style blocks instead of one long sentence.
+- Added structured notification sections for status, reason, weather, next watering time and final section summary.
+- Changed the final cycle notification to use a compact section table with watered/skipped results.
+
 ## 1.2.0
 
 - Simplified per-section soil choices with garden-friendly names so users do not need to know technical soil classifications.

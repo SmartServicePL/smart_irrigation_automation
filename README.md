@@ -61,7 +61,8 @@ The blueprint waits for the valve or switch to confirm `on/open` before reportin
 Optional logging writes the deficit, start threshold, watering decision and
 confirmed duration to Home Assistant Logbook. Persistent notifications are kept
 for user-visible events: watering start, watering end, skipped watering and
-interrupted watering.
+interrupted watering. They are formatted as readable blocks with status, reason,
+weather details and a final per-section summary table.
 
 Optional condition checks can run during the day and night, by default at
 12:00, 18:00, 00:00 and 03:00. These checks fetch current weather and recalculate
