@@ -8,6 +8,9 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | --- | --- |
 | Wspolne encje pogody i sensory | Gemeinsame Wetter-Entitäten und Sensoren |
 | Encja pogody do prognozy | Wetter-Entität für die Vorhersage |
+| Korzystaj z danych MeteoFusion HA | MeteoFusion-HA-Daten verwenden |
+| MeteoFusion - minimalna pewnosc prognozy | MeteoFusion - minimale Vorhersagesicherheit |
+| Opcjonalne sensory lokalne i nadpisania | Optionale lokale Sensoren und Überschreibungen |
 | Lokalna encja pogody | Lokale Wetter-Entität |
 | Czujnik deszczu | Regensensor |
 | Sensor opadu | Niederschlagsmengensensor |
@@ -75,4 +78,3 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | Helper - nastepne podlewanie | Helfer - nächste Bewässerung |
 | Wlacz logbook.log | logbook.log aktivieren |
 | Tworz powiadomienie persistent_notification | persistent_notification erstellen |
-

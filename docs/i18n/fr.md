@@ -8,6 +8,9 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | --- | --- |
 | Wspolne encje pogody i sensory | Entités météo et capteurs partagés |
 | Encja pogody do prognozy | Entité météo pour les prévisions |
+| Korzystaj z danych MeteoFusion HA | Utiliser les données MeteoFusion HA |
+| MeteoFusion - minimalna pewnosc prognozy | MeteoFusion - confiance minimale des prévisions |
+| Opcjonalne sensory lokalne i nadpisania | Capteurs locaux et remplacements facultatifs |
 | Lokalna encja pogody | Entité météo locale |
 | Czujnik deszczu | Capteur de pluie |
 | Sensor opadu | Capteur de quantité de pluie |
@@ -75,4 +78,3 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | Helper - nastepne podlewanie | Helper - prochain arrosage |
 | Wlacz logbook.log | Activer logbook.log |
 | Tworz powiadomienie persistent_notification | Créer une persistent_notification |
-

@@ -8,6 +8,9 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | --- | --- |
 | Wspolne encje pogody i sensory | Gedeelde weer-entiteiten en sensoren |
 | Encja pogody do prognozy | Weer-entiteit voor de voorspelling |
+| Korzystaj z danych MeteoFusion HA | MeteoFusion HA-gegevens gebruiken |
+| MeteoFusion - minimalna pewnosc prognozy | MeteoFusion - minimale voorspellingszekerheid |
+| Opcjonalne sensory lokalne i nadpisania | Optionele lokale sensoren en overschrijvingen |
 | Lokalna encja pogody | Lokale weer-entiteit |
 | Czujnik deszczu | Regensensor |
 | Sensor opadu | Neerslaghoeveelheidssensor |
@@ -75,4 +78,3 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Helper - nastepne podlewanie | Helper - volgende besproeiing |
 | Wlacz logbook.log | logbook.log inschakelen |
 | Tworz powiadomienie persistent_notification | persistent_notification maken |
-

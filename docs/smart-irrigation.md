@@ -27,7 +27,33 @@ For every active section it calculates a water dose and runtime from:
 
 The blueprint uses a simplified checkbook water-balance model. Daily plant water use is estimated as `ETc = ETo * Kc`. Rain reduces the modeled deficit. Soil type defines available water capacity, plant type defines root depth and allowed depletion, and watering starts when the modeled deficit reaches that section threshold. This is intentionally simpler than full FAO Penman-Monteith, but follows the same scheduling idea and works with normal Home Assistant weather data.
 
-If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. Without that sensor, the blueprint estimates ETo from garden temperature, UV/sunlight and wind.
+If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. Without that sensor, the blueprint first uses MeteoFusion ETo when available; for other weather entities it estimates ETo from garden temperature, UV/sunlight and wind.
+
+## MeteoFusion HA
+
+Select the MeteoFusion weather entity in **Encja pogody do prognozy**, then
+enable **Korzystaj z danych MeteoFusion HA**. The blueprint validates the stable
+`smart_service.weather.v1` contract and uses the rolling 24-hour rain forecast,
+local rain rate and rain total, current station conditions, daily FAO-56 ETo and
+forecast-quality diagnostics.
+
+Manual sensor selections remain overrides. For example, a dedicated garden
+rain gauge can supply the measured rain amount while MeteoFusion supplies ETo
+and the next-24-hour forecast. If no ETo sensor is selected, MeteoFusion ETo is
+used before the blueprint's fallback estimate. All manual weather sensors are
+placed in the collapsed **Opcjonalne sensory lokalne i nadpisania** section, so
+a MeteoFusion-only user can leave the whole section untouched.
+
+**MeteoFusion - minimalna pewnosc prognozy** defines the minimum accepted
+forecast confidence. Irrigation is also skipped when the MeteoFusion station
+data is stale, no forecast source is available or the weather contract is
+unavailable. The notification shows the source, confidence, status and ETo used
+for the decision.
+
+Rain in a daily forecast no longer blocks irrigation by its condition name
+alone. Normal rain is evaluated with the configured precipitation amount and
+probability limits. Forecast heavy rain, lightning, hail and snow remain unconditional
+safety blocks, and current rain from MeteoFusion interrupts an active section.
 
 Available soil choices are intentionally written for normal garden use:
 
@@ -77,6 +103,11 @@ Optionally create an `input_datetime` helper with date and time, then select it 
 ## Recommended setup
 
 Use one automation instance for one hydraulic system or watering area. It may contain more than one controller type. Set **Liczba sekcji** to the real number of sections, up to 12. Fill only those sections; later sections may stay with defaults.
+
+For MeteoFusion HA, select its weather entity, enable **Korzystaj z danych
+MeteoFusion HA** and normally leave the complete optional sensor section empty.
+Select separate garden sensors only when they should override MeteoFusion for
+that measurement.
 
 Good starting values:
 

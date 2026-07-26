@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 1.3.0
+
+- Added explicit **Korzystaj z danych MeteoFusion HA** mode with validation of the stable `smart_service.weather.v1` contract.
+- Moved manual weather entities and sensors into a separate collapsed optional-overrides section for a cleaner MeteoFusion setup.
+- Automatically uses MeteoFusion rolling 24-hour rain, daily FAO-56 ETo, local rain rate/total, current station conditions and forecast-quality data.
+- Added a configurable minimum MeteoFusion confidence threshold and stale-station safety check.
+- Preserved manually selected weather sensors as higher-priority overrides.
+- Changed ordinary forecast rain to use configured amount/probability thresholds instead of blocking solely on the `rainy` condition; heavy rain, lightning, hail and snow remain unconditional forecast blocks.
+- Added live MeteoFusion rain/lightning interruption checks while a section is running.
+- Added MeteoFusion source, confidence, status and ETo details to irrigation notifications.
+- Aligned forecast-rain threshold comparisons with the displayed 0.1 mm precision so invisible hundredths do not cause confusing skips.
 - Expanded the blueprint from 8 to 12 irrigation sections.
 - Added complete inputs, water-balance calculations, runtime execution, diagnostics and final reporting for sections 9-12.
 - Documented mixed-controller installations, such as Rain Bird RC2 sections combined with Sonoff, Shelly or ESPHome relays for additional drip lines.

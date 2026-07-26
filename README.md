@@ -4,7 +4,7 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.2.0**
+Current version: **1.3.0**
 
 ## Import Blueprint
 
@@ -19,6 +19,23 @@ https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprin
 ## Donate
 
 [![Donate via Revolut](https://img.shields.io/badge/Donate-Revolut-0666EB?style=for-the-badge)](https://revolut.me/smartserwis)
+
+## New in 1.3.0: MeteoFusion HA
+
+Version 1.3.0 adds native weather intelligence from
+[MeteoFusion HA](https://github.com/SmartServicePL/meteofusion-ha). Setup is
+intentionally short:
+
+1. Select the MeteoFusion `weather` entity as **Encja pogody do prognozy**.
+2. Enable **Korzystaj z danych MeteoFusion HA**.
+3. Leave **Opcjonalne sensory lokalne i nadpisania** collapsed and empty unless
+   a dedicated garden sensor should override one measurement.
+
+The blueprint then receives rolling 24-hour rain, daily FAO-56 ETo, current
+local-station conditions and forecast-quality diagnostics. It refuses unsafe
+decisions when the MeteoFusion contract is missing, confidence is too low or
+station data is stale. Existing non-MeteoFusion weather setups remain
+compatible by leaving the new option disabled.
 
 ## Smart Irrigation
 
@@ -65,6 +82,24 @@ the section active for the calculated time and then call `switch.turn_off`.
 Normal `valve` entities are handled with `valve.open_valve` and
 `valve.close_valve`.
 
+## MeteoFusion HA
+
+Enable **Korzystaj z danych MeteoFusion HA** after selecting a MeteoFusion
+weather entity. The blueprint validates its `smart_service.weather.v1`
+contract and then uses:
+
+- the rolling next-24-hour precipitation sum and maximum rain probability,
+- daily FAO-56 ETo without requiring a separate sensor selection,
+- local-station rain rate, rain total, temperature and wind,
+- forecast confidence, source count and station freshness.
+
+Explicitly selected rain, temperature, wind, UV or ETo sensors keep priority, so
+MeteoFusion can be combined with dedicated garden sensors. Low-confidence or
+stale MeteoFusion data safely skips irrigation with a readable explanation.
+The optional local sensors are grouped in a collapsed section and may all stay
+empty for a MeteoFusion-only setup. Ordinary `weather` entities remain fully
+supported with the MeteoFusion option disabled.
+
 The blueprint waits for the valve or switch to confirm `on/open` before reporting that watering started. A missing start confirmation or an early controller stop is reported as an irrigation failure instead of a completed section.
 
 Optional logging writes the deficit, start threshold, watering decision and
@@ -101,6 +136,7 @@ blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml
 - Home Assistant 2025.1.0 or newer.
 - One `valve` or `switch` entity per irrigation section.
 - A `weather` entity that supports daily forecast.
+- Optional MeteoFusion HA `0.7.0` or newer for native 24-hour rain, ETo and forecast-quality data.
 - Optional local weather entity, rain sensor, rain amount sensor, temperature sensor, wind source, UV/sunlight source and soil moisture sensor.
 - Optional Logbook diagnostics and persistent notifications for user-visible irrigation events.
 
