@@ -11,7 +11,7 @@ German, Spanish, French, Italian, Dutch and Portuguese.
 
 The automation starts watering from a fixed time, sunrise or sunset with configurable offset. Before watering it checks season, current weather, rain forecast, physical rain sensor, temperature, wind and optional soil moisture. If the weather entity or forecast is `unknown`/`unavailable`, watering is skipped with a clear reason instead of running without reliable weather data.
 
-It can also run condition-only checks, by default at 12:00, 18:00, 00:00 and 03:00. These checks fetch weather and recalculate watering need, update the next-watering helper, then stop before any section can start. They do not create Home Assistant notifications.
+It can also run condition-only checks, by default at 12:00, 18:00, 00:00 and 03:00. These checks fetch weather and recalculate watering need, update the next-watering helper, then stop before any section can start. Weather blocks and low demand discovered by these checks remain silent in Home Assistant notifications.
 
 For every active section it calculates a water dose and runtime from:
 
@@ -27,7 +27,7 @@ For every active section it calculates a water dose and runtime from:
 
 The blueprint uses a simplified checkbook water-balance model. Daily plant water use is estimated as `ETc = ETo * Kc`. Rain reduces the modeled deficit. Soil type defines available water capacity, plant type defines root depth and allowed depletion, and watering starts when the modeled deficit reaches that section threshold. This is intentionally simpler than full FAO Penman-Monteith, but follows the same scheduling idea and works with normal Home Assistant weather data.
 
-If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. Without that sensor, the blueprint first uses MeteoFusion ETo when available; for other weather entities it estimates ETo from garden temperature, UV/sunlight and wind.
+If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. Without that sensor, the blueprint first uses MeteoFusion ETo when available; for other weather entities it estimates ETo from garden temperature, UV/sunlight and wind. A measured-rain override should preferably be a rolling 24-hour or current rain-event total. A sensor that resets at midnight represents only part of the water received since the previous irrigation.
 
 ## MeteoFusion HA
 
@@ -68,7 +68,10 @@ Available soil choices are intentionally written for normal garden use:
 Model references:
 
 - [FAO-56 Crop evapotranspiration](https://www.fao.org/4/x0490e/x0490e00.htm)
+- [FAO-56 root-zone soil-water balance and irrigation timing](https://www.fao.org/4/X0490E/x0490e0e.htm)
 - [University of Minnesota Extension: ET-based water balance method](https://extension.umn.edu/irrigation/evapotranspiration-based-irrigation-scheduling-or-water-balance-method)
+- [US EPA WaterSense: soil-moisture-based irrigation controllers](https://www.epa.gov/watersense/soil-moisture-based-irrigation-controllers)
+- [Rain Bird: Cycle+Soak for RC2 and other connected controllers](https://wifi.rainbird.com/articles/understanding-cycle-and-soak-and-your-rain-bird-smart-wifi-controller/)
 - [Colorado State University Extension: water balance approach](https://extension.colostate.edu/resource/irrigation-scheduling-the-water-balance-approach/)
 - [Oregon State University Extension: irrigation water scheduling](https://extension.oregonstate.edu/catalog/em-9717-irrigation-water-scheduling)
 - [UC ANR: plant factor and crop coefficient](https://ucanr.edu/site/center-landscape-urban-horticulture/plant-factor-or-crop-coefficient-whats-difference)
@@ -79,7 +82,7 @@ For native Rain Bird RC2 entities, the blueprint automatically calls `rainbird_r
 
 One automation may combine different controllers. A typical mixed installation can use Rain Bird RC2 for sections 1-8 and Sonoff, Shelly or ESPHome relays for drip lines in sections 9-12. Ordinary `switch` entities are turned on, monitored for start confirmation, kept active for the calculated runtime and turned off. Ordinary `valve` entities are opened and closed in the same controlled sequence. Sections always run one at a time.
 
-After sending a start command, the blueprint waits for an `on/open` state confirmation. If the controller does not confirm the start or closes the section too early, the run is stopped and the Logbook/persistent notification clearly reports that watering did not occur as planned.
+After sending a start command, the blueprint waits for an `on/open` state confirmation. The start notification is not created until that confirmation arrives. If the controller does not confirm the start or closes the section too early, the run is stopped and the final Logbook/persistent notification clearly reports what actually happened.
 
 If rain starts while a section is running, the weather changes to a blocking condition, or weather data becomes unavailable, the automation closes the valve, reports the interruption reason and stops the remaining sections.
 
@@ -94,7 +97,7 @@ At the bottom of the blueprint you can enable **Wlacz logbook.log**. When enable
 - skipped section with reason,
 - interruption by rain or bad weather.
 
-You can also enable **Tworz powiadomienie persistent_notification**. Notifications are created only for user-visible events: watering start, watering end with per-section times, skipped watering with a clear reason, or interrupted watering with a short reason. Messages are formatted as readable blocks with status, reason, weather details and a final section table.
+You can also enable **Tworz powiadomienie persistent_notification**. There is one daily execution decision. If watering starts, the notification appears only after the first section confirms opening and is then replaced by the final result with per-section time and estimated applied depth. If watering does not start, one skipped result explains why. Condition-only checks never create notifications. A safety interruption becomes the final completed-before-time result instead of an extra intermediate message.
 
 ## Next watering helper
 

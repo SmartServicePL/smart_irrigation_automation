@@ -64,8 +64,8 @@
               filter:
                 - domain: binary_sensor
         rain_amount_sensor:
-          name: Sensor opadu
-          description: Sensor aktualnego lub dzisiejszego opadu w mm. Ta wartosc jest odejmowana od potrzebnej dawki wody. Puste = MeteoFusion HA automatycznie uzyje rain_today, jezeli jest dostepne.
+          name: Opad zmierzony - najlepiej ostatnie 24 h
+          description: Sensor opadu w mm. Najlepszy jest opad kroczacy z ostatnich 24 h albo suma trwajacego zdarzenia deszczowego; sensor tylko dzienny moze pominac deszcz po polnocy. Wartosc jest odejmowana od bilansu. Puste = MeteoFusion HA uzyje rain_today.
           default: ""
           selector:
             entity:
@@ -108,7 +108,7 @@
                 - domain: sensor
         soil_moisture_sensor:
           name: Wilgotnosc gleby
-          description: Opcjonalny wspolny sensor wilgotnosci gleby w procentach. Przy wysokiej wilgotnosci podlewanie jest ograniczane albo pomijane.
+          description: Opcjonalny, reprezentatywny sensor wilgotnosci gleby w procentach. Dziala jako bezposrednia blokada podlewania po osiagnieciu progu ustawionego w sekcji blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -1718,15 +1718,15 @@
           selector:
             time:
         backup_start_time:
-          name: Druga proba podlewania
-          description: Uzywana tylko przy trybie "Stala godzina".
+          name: Awaryjny start po pominietej godzinie
+          description: Uzywany tylko przy stalej godzinie, gdy HA nie wykonal glownego startu. Wymaga helpera nastepnego podlewania. Nie wykonuje drugiej decyzji po prawidlowej glownej probie.
           default: "05:30:00"
           selector:
             time:
         enable_backup_time:
-          name: Wlacz druga probe
-          description: Dotyczy tylko trybu "Stala godzina".
-          default: true
+          name: Wlacz awaryjny start
+          description: Dotyczy tylko stalej godziny i wymaga helpera nastepnego podlewania. Zapobiega utracie cyklu po restarcie HA, ale nie tworzy drugiego komunikatu tego samego dnia.
+          default: false
           selector:
             boolean:
         enable_condition_checks:
@@ -1907,13 +1907,14 @@
               mode: slider
         max_wind:
           name: Maksymalny wiatr
-          description: Przy wietrze powyzej tej wartosci podlewanie zostanie pominiete, zeby woda nie byla znoszona poza sekcje.
+          description: Limit w km/h. Predkosc z encji w m/s, mph lub wezlach jest automatycznie przeliczana. Powyzej limitu podlewanie zostanie pominiete, zeby woda nie byla znoszona poza sekcje.
           default: 35
           selector:
             number:
               min: 0
               max: 100
               step: 1
+              unit_of_measurement: km/h
               mode: slider
         min_battery_percent:
           name: Minimalna bateria sekcji
@@ -1924,6 +1925,17 @@
               min: 0
               max: 100
               step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        soil_moisture_block_percent:
+          name: Wilgotnosc gleby blokujaca podlewanie
+          description: Uzywane tylko po wybraniu sensora wilgotnosci gleby. Po osiagnieciu tego progu czujnik bezposrednio blokuje cykl, tak jak profesjonalny sterownik oparty na wilgotnosci. Prog ustaw zgodnie z kalibracja swojego sensora.
+          default: 70
+          selector:
+            number:
+              min: 20
+              max: 95
+              step: 1
               unit_of_measurement: "%"
               mode: slider
         irrigation_efficiency_percent:
@@ -2163,6 +2175,7 @@ variables:
   hot_temperature_c: !input hot_temperature_c
   max_wind: !input max_wind
   min_battery_percent: !input min_battery_percent
+  soil_moisture_block_percent: !input soil_moisture_block_percent
   irrigation_efficiency_percent: !input irrigation_efficiency_percent
   enable_irrigation_logs: !input enable_irrigation_logs
   create_persistent_notification: !input create_persistent_notification
@@ -2211,7 +2224,14 @@ variables:
     {% endif %}
   irrigation_start_trigger_ok: >-
     {% if schedule_mode == 'fixed_time' %}
-      {{ trigger_id == 'primary' or (trigger_id == 'backup' and (enable_backup_time | bool)) }}
+      {% set helper = next_watering_datetime | default('', true) %}
+      {% set helper_ts = as_timestamp(states(helper), 0) if helper | length > 0 else 0 %}
+      {% set missed_primary = trigger_id == 'backup'
+           and (enable_backup_time | bool)
+           and helper | length > 0
+           and helper_ts > 0
+           and helper_ts <= as_timestamp(now()) %}
+      {{ trigger_id == 'primary' or missed_primary }}
     {% elif trigger_id == 'sun_check' and schedule_mode in ['sunrise', 'sunset'] %}
       true
     {% else %}
@@ -2366,7 +2386,9 @@ actions:
         {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
         {% set current = context.get('current', {}) if context is mapping else {} %}
         {% if e | length > 0 and states(e) | is_number %}
-          {{ states(e) | float(0) }}
+          {% set raw = states(e) | float(0) %}
+          {% set unit = state_attr(e, 'unit_of_measurement') | default('mm', true) | lower %}
+          {{ (raw * 25.4) | round(2) if unit in ['in', 'inch', 'inches'] else raw }}
         {% elif (meteofusion_native | bool) and current.get('rain_today') | is_number %}
           {{ current.get('rain_today') | float(0) }}
         {% else %}
@@ -2395,12 +2417,18 @@ actions:
           {% if (meteofusion_native | bool) and current.get('wind_speed') | is_number %}
             {{ current.get('wind_speed') | float(0) }}
           {% else %}
-            {{ state_attr(current_weather_entity, 'wind_speed') | float(0) }}
+            {% set raw = state_attr(current_weather_entity, 'wind_speed') | float(0) %}
+            {% set unit = state_attr(current_weather_entity, 'wind_speed_unit') | default('km/h', true) | lower %}
+            {{ (raw * 3.6) | round(2) if unit in ['m/s', 'mps'] else (raw * 1.609344) | round(2) if unit in ['mph', 'mi/h'] else (raw * 1.852) | round(2) if unit in ['kn', 'kt', 'knot', 'knots'] else raw }}
           {% endif %}
         {% elif e.split('.')[0] == 'weather' %}
-          {{ state_attr(e, 'wind_speed') | float(0) }}
+          {% set raw = state_attr(e, 'wind_speed') | float(0) %}
+          {% set unit = state_attr(e, 'wind_speed_unit') | default('km/h', true) | lower %}
+          {{ (raw * 3.6) | round(2) if unit in ['m/s', 'mps'] else (raw * 1.609344) | round(2) if unit in ['mph', 'mi/h'] else (raw * 1.852) | round(2) if unit in ['kn', 'kt', 'knot', 'knots'] else raw }}
         {% else %}
-          {{ states(e) | float(0) }}
+          {% set raw = states(e) | float(0) %}
+          {% set unit = state_attr(e, 'unit_of_measurement') | default('km/h', true) | lower %}
+          {{ (raw * 3.6) | round(2) if unit in ['m/s', 'mps'] else (raw * 1.609344) | round(2) if unit in ['mph', 'mi/h'] else (raw * 1.852) | round(2) if unit in ['kn', 'kt', 'knot', 'knots'] else raw }}
         {% endif %}
       sunlight_index: >-
         {% set e = sunlight_source_entity | default('', true) %}
@@ -2419,13 +2447,10 @@ actions:
           -1
         {% endif %}
       soil_moisture_factor: >-
+        1
+      soil_moisture_ok: >-
         {% set m = soil_moisture_percent | float(-1) %}
-        {% if m < 0 %}1
-        {% elif m >= 70 %}0
-        {% elif m >= 60 %}0.55
-        {% elif m <= 25 %}1.2
-        {% else %}1
-        {% endif %}
+        {{ m < 0 or m < (soil_moisture_block_percent | float(70)) }}
       season_ok: >-
         {% set start = season_start_month | int(4) %}
         {% set end = season_end_month | int(10) %}
@@ -2448,9 +2473,9 @@ actions:
             or is_state(rain_binary_sensor, 'off'))
            and not (meteofusion_rain_now | bool) }}
       forecast_rain_ok: >-
-        {{ (forecast_precipitation | float(0) | round(1)) <= (max_forecast_rain_mm | float(4))
+        {{ (forecast_precipitation | float(0) | round(1)) < (max_forecast_rain_mm | float(4))
            and not ((forecast_precipitation_probability | int(0)) >= (max_rain_probability_percent | int(80))
-                    and (forecast_precipitation | float(0)) >= 1) }}
+                     and (forecast_precipitation | float(0)) >= 1) }}
       temp_ok: "{{ (temp_c | float(0)) >= (min_temperature_c | float(8)) }}"
       wind_ok: "{{ (wind_value | float(0)) <= (max_wind | float(35)) }}"
       temp_factor: >-
@@ -2511,6 +2536,8 @@ actions:
           {% else %}
             MeteoFusion wykrywa aktualny deszcz: {{ meteofusion_rain_rate | float(0) | round(2) }} mm/h.
           {% endif %}
+        {% elif not (soil_moisture_ok | bool) %}
+          Gleba jest wystarczajaco wilgotna: {{ soil_moisture_percent | float(0) | round(1) }}%, prog blokady {{ soil_moisture_block_percent | float(70) | round(0) }}%.
         {% elif not (forecast_rain_ok | bool) %}
           Prognoza deszczu ({{ forecast_window_label }}) blokuje podlewanie: {{ forecast_precipitation | float(0) }} mm i {{ forecast_precipitation_probability | int(0) }}% prawdopodobienstwa.
         {% elif not (temp_ok | bool) %}
@@ -2535,7 +2562,7 @@ actions:
     choose:
       - conditions:
           - condition: template
-            value_template: "{{ irrigation_skip_reason | trim | length > 0 and (enable_irrigation_logs | bool) }}"
+            value_template: "{{ irrigation_skip_reason | trim | length > 0 and not (trigger_is_condition_check | bool) and (enable_irrigation_logs | bool) }}"
         sequence:
           - action: logbook.log
             data:
@@ -2546,7 +2573,7 @@ actions:
     choose:
       - conditions:
           - condition: template
-            value_template: "{{ irrigation_skip_reason | trim | length > 0 and (create_persistent_notification | bool) }}"
+            value_template: "{{ irrigation_skip_reason | trim | length > 0 and not (trigger_is_condition_check | bool) and (create_persistent_notification | bool) }}"
         sequence:
           - action: persistent_notification.create
             data:
@@ -2561,6 +2588,7 @@ actions:
                 - Zrodlo: {{ weather_source_summary | trim }}
                 - Aktualnie: {{ current_weather_condition_pl }}
                 - Prognoza: {{ forecast_condition_pl }}
+                - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
                 - Opad ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
                 - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
                 - Temperatura: {{ temp_c | float(0) | round(1) }} C
@@ -2582,18 +2610,18 @@ actions:
     variables:
       irrigation_cycle_needed: |-
         {%- set zones = [
-          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type},
-          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type},
-          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type},
-          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type},
-          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
-          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
-          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
-          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type},
-          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type},
-          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type},
-          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type},
-          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type}
+          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type, 'profile': zone_1_sprinkler_profile, 'custom_rate': zone_1_custom_rate_mm_h},
+          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type, 'profile': zone_2_sprinkler_profile, 'custom_rate': zone_2_custom_rate_mm_h},
+          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type, 'profile': zone_3_sprinkler_profile, 'custom_rate': zone_3_custom_rate_mm_h},
+          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type, 'profile': zone_4_sprinkler_profile, 'custom_rate': zone_4_custom_rate_mm_h},
+          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type, 'profile': zone_5_sprinkler_profile, 'custom_rate': zone_5_custom_rate_mm_h},
+          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type, 'profile': zone_6_sprinkler_profile, 'custom_rate': zone_6_custom_rate_mm_h},
+          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type, 'profile': zone_7_sprinkler_profile, 'custom_rate': zone_7_custom_rate_mm_h},
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type, 'profile': zone_8_sprinkler_profile, 'custom_rate': zone_8_custom_rate_mm_h},
+          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type, 'profile': zone_9_sprinkler_profile, 'custom_rate': zone_9_custom_rate_mm_h},
+          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type, 'profile': zone_10_sprinkler_profile, 'custom_rate': zone_10_custom_rate_mm_h},
+          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type, 'profile': zone_11_sprinkler_profile, 'custom_rate': zone_11_custom_rate_mm_h},
+          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type, 'profile': zone_12_sprinkler_profile, 'custom_rate': zone_12_custom_rate_mm_h}
         ] -%}
         {%- set ns = namespace(needed=false) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
@@ -2609,7 +2637,13 @@ actions:
           {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
           {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
           {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
-          {%- set deficit_raw = (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days * (soil_moisture_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set profile = zone.profile -%}
+          {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate | float(12)) -%}
+          {%- set effective_rate = rate * (irrigation_efficiency_percent | float(75)) / 100 -%}
+          {%- set last_duration = state_attr(zone.valve, 'last_duration_minutes') -%}
+          {%- set delivered = (last_duration | float(0)) * effective_rate / 60 if last_ts > 0 and last_duration | is_number else target -%}
+          {%- set carryover = target - delivered if last_ts > 0 and delivered < target else 0 -%}
+          {%- set deficit_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
           {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
           {%- if deficit >= target -%}
             {%- set ns.needed = true -%}
@@ -2618,18 +2652,18 @@ actions:
         {{ ns.needed }}
       irrigation_cycle_depth_mm: |-
         {%- set zones = [
-          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type},
-          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type},
-          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type},
-          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type},
-          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
-          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
-          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
-          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type},
-          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type},
-          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type},
-          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type},
-          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type}
+          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type, 'profile': zone_1_sprinkler_profile, 'custom_rate': zone_1_custom_rate_mm_h},
+          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type, 'profile': zone_2_sprinkler_profile, 'custom_rate': zone_2_custom_rate_mm_h},
+          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type, 'profile': zone_3_sprinkler_profile, 'custom_rate': zone_3_custom_rate_mm_h},
+          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type, 'profile': zone_4_sprinkler_profile, 'custom_rate': zone_4_custom_rate_mm_h},
+          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type, 'profile': zone_5_sprinkler_profile, 'custom_rate': zone_5_custom_rate_mm_h},
+          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type, 'profile': zone_6_sprinkler_profile, 'custom_rate': zone_6_custom_rate_mm_h},
+          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type, 'profile': zone_7_sprinkler_profile, 'custom_rate': zone_7_custom_rate_mm_h},
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type, 'profile': zone_8_sprinkler_profile, 'custom_rate': zone_8_custom_rate_mm_h},
+          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type, 'profile': zone_9_sprinkler_profile, 'custom_rate': zone_9_custom_rate_mm_h},
+          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type, 'profile': zone_10_sprinkler_profile, 'custom_rate': zone_10_custom_rate_mm_h},
+          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type, 'profile': zone_11_sprinkler_profile, 'custom_rate': zone_11_custom_rate_mm_h},
+          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type, 'profile': zone_12_sprinkler_profile, 'custom_rate': zone_12_custom_rate_mm_h}
         ] -%}
         {%- set ns = namespace(depth=0) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
@@ -2645,7 +2679,13 @@ actions:
           {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
           {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
           {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
-          {%- set deficit_raw = (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days * (soil_moisture_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set profile = zone.profile -%}
+          {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate | float(12)) -%}
+          {%- set effective_rate = rate * (irrigation_efficiency_percent | float(75)) / 100 -%}
+          {%- set last_duration = state_attr(zone.valve, 'last_duration_minutes') -%}
+          {%- set delivered = (last_duration | float(0)) * effective_rate / 60 if last_ts > 0 and last_duration | is_number else target -%}
+          {%- set carryover = target - delivered if last_ts > 0 and delivered < target else 0 -%}
+          {%- set deficit_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
           {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
           {%- if deficit >= target -%}
             {%- set planned = deficit if deficit > target else target -%}
@@ -2658,18 +2698,18 @@ actions:
         {{ ns.depth | round(1) }}
       irrigation_cycle_decision_reason: |-
         {%- set zones = [
-          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type},
-          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type},
-          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type},
-          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type},
-          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
-          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
-          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
-          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type},
-          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type},
-          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type},
-          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type},
-          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type}
+          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type, 'profile': zone_1_sprinkler_profile, 'custom_rate': zone_1_custom_rate_mm_h},
+          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type, 'profile': zone_2_sprinkler_profile, 'custom_rate': zone_2_custom_rate_mm_h},
+          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type, 'profile': zone_3_sprinkler_profile, 'custom_rate': zone_3_custom_rate_mm_h},
+          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type, 'profile': zone_4_sprinkler_profile, 'custom_rate': zone_4_custom_rate_mm_h},
+          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type, 'profile': zone_5_sprinkler_profile, 'custom_rate': zone_5_custom_rate_mm_h},
+          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type, 'profile': zone_6_sprinkler_profile, 'custom_rate': zone_6_custom_rate_mm_h},
+          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type, 'profile': zone_7_sprinkler_profile, 'custom_rate': zone_7_custom_rate_mm_h},
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type, 'profile': zone_8_sprinkler_profile, 'custom_rate': zone_8_custom_rate_mm_h},
+          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type, 'profile': zone_9_sprinkler_profile, 'custom_rate': zone_9_custom_rate_mm_h},
+          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type, 'profile': zone_10_sprinkler_profile, 'custom_rate': zone_10_custom_rate_mm_h},
+          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type, 'profile': zone_11_sprinkler_profile, 'custom_rate': zone_11_custom_rate_mm_h},
+          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type, 'profile': zone_12_sprinkler_profile, 'custom_rate': zone_12_custom_rate_mm_h}
         ] -%}
         {%- set ns = namespace(due='', highest='brak wlaczonych sekcji z encja', highest_deficit=-1, highest_target=0) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
@@ -2685,7 +2725,13 @@ actions:
           {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
           {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
           {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
-          {%- set deficit_raw = (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days * (soil_moisture_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set profile = zone.profile -%}
+          {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate | float(12)) -%}
+          {%- set effective_rate = rate * (irrigation_efficiency_percent | float(75)) / 100 -%}
+          {%- set last_duration = state_attr(zone.valve, 'last_duration_minutes') -%}
+          {%- set delivered = (last_duration | float(0)) * effective_rate / 60 if last_ts > 0 and last_duration | is_number else target -%}
+          {%- set carryover = target - delivered if last_ts > 0 and delivered < target else 0 -%}
+          {%- set deficit_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
           {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
           {%- if deficit > ns.highest_deficit -%}
             {%- set ns.highest_deficit = deficit -%}
@@ -2705,18 +2751,18 @@ actions:
         {%- endif -%}
       next_watering_estimated_timestamp: |-
         {%- set zones = [
-          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type},
-          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type},
-          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type},
-          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type},
-          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type},
-          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type},
-          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type},
-          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type},
-          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type},
-          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type},
-          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type},
-          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type}
+          {'number': 1, 'valve': zone_1_valve, 'name': zone_1_name, 'soil_type': zone_1_soil_type, 'plant_type': zone_1_plant_type, 'profile': zone_1_sprinkler_profile, 'custom_rate': zone_1_custom_rate_mm_h},
+          {'number': 2, 'valve': zone_2_valve, 'name': zone_2_name, 'soil_type': zone_2_soil_type, 'plant_type': zone_2_plant_type, 'profile': zone_2_sprinkler_profile, 'custom_rate': zone_2_custom_rate_mm_h},
+          {'number': 3, 'valve': zone_3_valve, 'name': zone_3_name, 'soil_type': zone_3_soil_type, 'plant_type': zone_3_plant_type, 'profile': zone_3_sprinkler_profile, 'custom_rate': zone_3_custom_rate_mm_h},
+          {'number': 4, 'valve': zone_4_valve, 'name': zone_4_name, 'soil_type': zone_4_soil_type, 'plant_type': zone_4_plant_type, 'profile': zone_4_sprinkler_profile, 'custom_rate': zone_4_custom_rate_mm_h},
+          {'number': 5, 'valve': zone_5_valve, 'name': zone_5_name, 'soil_type': zone_5_soil_type, 'plant_type': zone_5_plant_type, 'profile': zone_5_sprinkler_profile, 'custom_rate': zone_5_custom_rate_mm_h},
+          {'number': 6, 'valve': zone_6_valve, 'name': zone_6_name, 'soil_type': zone_6_soil_type, 'plant_type': zone_6_plant_type, 'profile': zone_6_sprinkler_profile, 'custom_rate': zone_6_custom_rate_mm_h},
+          {'number': 7, 'valve': zone_7_valve, 'name': zone_7_name, 'soil_type': zone_7_soil_type, 'plant_type': zone_7_plant_type, 'profile': zone_7_sprinkler_profile, 'custom_rate': zone_7_custom_rate_mm_h},
+          {'number': 8, 'valve': zone_8_valve, 'name': zone_8_name, 'soil_type': zone_8_soil_type, 'plant_type': zone_8_plant_type, 'profile': zone_8_sprinkler_profile, 'custom_rate': zone_8_custom_rate_mm_h},
+          {'number': 9, 'valve': zone_9_valve, 'name': zone_9_name, 'soil_type': zone_9_soil_type, 'plant_type': zone_9_plant_type, 'profile': zone_9_sprinkler_profile, 'custom_rate': zone_9_custom_rate_mm_h},
+          {'number': 10, 'valve': zone_10_valve, 'name': zone_10_name, 'soil_type': zone_10_soil_type, 'plant_type': zone_10_plant_type, 'profile': zone_10_sprinkler_profile, 'custom_rate': zone_10_custom_rate_mm_h},
+          {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type, 'profile': zone_11_sprinkler_profile, 'custom_rate': zone_11_custom_rate_mm_h},
+          {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type, 'profile': zone_12_sprinkler_profile, 'custom_rate': zone_12_custom_rate_mm_h}
         ] -%}
         {%- set ns = namespace(days=999, has_zone=false) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
@@ -2733,7 +2779,13 @@ actions:
           {%- set daily_gain = (reference_et_mm | float(3.5)) * crop_coefficient * (soil_moisture_factor | float(1)) -%}
           {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
           {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
-          {%- set deficit_raw = daily_gain * elapsed_days - (rain_credit_mm | float(0)) -%}
+          {%- set profile = zone.profile -%}
+          {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate | float(12)) -%}
+          {%- set effective_rate = rate * (irrigation_efficiency_percent | float(75)) / 100 -%}
+          {%- set last_duration = state_attr(zone.valve, 'last_duration_minutes') -%}
+          {%- set delivered = (last_duration | float(0)) * effective_rate / 60 if last_ts > 0 and last_duration | is_number else target -%}
+          {%- set carryover = target - delivered if last_ts > 0 and delivered < target else 0 -%}
+          {%- set deficit_raw = carryover + daily_gain * elapsed_days - (rain_credit_mm | float(0)) -%}
           {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
           {%- if daily_gain > 0 -%}
             {%- set missing = target - deficit -%}
@@ -2838,6 +2890,7 @@ actions:
                 - Zrodlo: {{ weather_source_summary | trim }}
                 - Aktualnie: {{ current_weather_condition_pl }}
                 - Prognoza: {{ forecast_condition_pl }}
+                - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
                 - Opad ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
                 - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
                 - Temperatura: {{ temp_c | float(0) | round(1) }} C
@@ -2873,38 +2926,10 @@ actions:
                 temperatura {{ temp_c | float(0) | round(1) }} C,
                 wiatr {{ wind_value | float(0) | round(1) }}.
 
-  - alias: Powiadom o starcie podlewania
-    choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ create_persistent_notification | bool }}"
-        sequence:
-          - action: persistent_notification.create
-            data:
-              title: Inteligentne podlewanie
-              message: |-
-                **Status:** rozpoczeto podlewanie
-
-                **Decyzja**
-                {{ irrigation_cycle_decision_reason | trim }}
-
-                **Plan**
-                - Najwieksza dawka cyklu: {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm
-                - Podlewane beda wszystkie wlaczone i gotowe sekcje.
-
-                **Pogoda**
-                - Zrodlo: {{ weather_source_summary | trim }}
-                - Aktualnie: {{ current_weather_condition_pl }}
-                - Prognoza: {{ forecast_condition_pl }}
-                - Opad ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
-                - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
-                - Temperatura: {{ temp_c | float(0) | round(1) }} C
-                - Wiatr: {{ wind_value | float(0) | round(1) }}
-              notification_id: smart_irrigation_last_event
-
   - alias: Zapamietaj poczatek cyklu
     variables:
       irrigation_cycle_started_at: "{{ now().isoformat() }}"
+      start_notification_sent: false
 
   - alias: Podlej aktywne sekcje
     repeat:
@@ -3106,6 +3131,8 @@ actions:
               {% endif %}
             section_last_completed: >-
               {{ state_attr(section_valve, 'last_run_completed') | default('', true) }}
+            section_last_duration_minutes: >-
+              {{ state_attr(section_valve, 'last_duration_minutes') | default('', true) }}
             section_elapsed_days: >-
               {% set runs = waterings_per_week | float(3) %}
               {% set fallback_days = 7 / (runs if runs > 0 else 3) %}
@@ -3126,7 +3153,12 @@ actions:
               {% endif %}
             section_water_deficit_mm: >-
               {% set daily = (reference_et_mm | float(3.5)) * (section_crop_coefficient | float(0.75)) %}
-              {% set raw = daily * (section_elapsed_days | float(0)) * (soil_moisture_factor | float(1)) - (rain_credit_mm | float(0)) %}
+              {% set target = section_target_depth_mm | float(3) %}
+              {% set effective_rate = (section_rate_mm_h | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 %}
+              {% set last_duration = section_last_duration_minutes %}
+              {% set delivered = (last_duration | float(0)) * effective_rate / 60 if last_duration | is_number else target %}
+              {% set carryover = target - delivered if section_last_completed | length > 0 and delivered < target else 0 %}
+              {% set raw = carryover + daily * (section_elapsed_days | float(0)) - (rain_credit_mm | float(0)) %}
               {{ 0 if raw < 0 else raw | round(1) }}
             section_depth_mm: >-
               {% set deficit = section_water_deficit_mm | float(0) %}
@@ -3147,6 +3179,9 @@ actions:
               {% elif rounded > (max_runtime_minutes | int(45)) %}{{ max_runtime_minutes | int(45) }}
               {% else %}{{ rounded }}
               {% endif %}
+            section_applied_depth_mm: >-
+              {% set effective_rate = (section_rate_mm_h | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 %}
+              {{ ((section_minutes | float(0)) * effective_rate / 60) | round(1) }}
             section_ready: >-
               {{ section_enabled | bool
                  and section_valve | default('', true) | length > 0
@@ -3251,7 +3286,7 @@ actions:
                                   data:
                                     title: Inteligentne podlewanie
                                     message: |-
-                                      **Status:** przerwano podlewanie
+                                      **Status:** pominieto podlewanie
 
                                       **Sekcja**
                                       - Numer: {{ section_number }}
@@ -3259,7 +3294,7 @@ actions:
                                       - Encja: {{ section_valve }}
 
                                       **Powod**
-                                      Sterownik nie potwierdzil otwarcia sekcji.
+                                      Sterownik nie potwierdzil otwarcia wymaganej sekcji, dlatego cykl zostal bezpiecznie zatrzymany.
 
                                       **Stan**
                                       - Aktualny stan sekcji: {{ states(section_valve) }}
@@ -3269,6 +3304,41 @@ actions:
                 - alias: Zapamietaj czas faktycznego startu
                   variables:
                     section_started_at: "{{ as_timestamp(now()) }}"
+                - alias: Powiadom po potwierdzeniu pierwszej uruchomionej sekcji
+                  choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ not (start_notification_sent | bool) }}"
+                      sequence:
+                        - choose:
+                            - conditions:
+                                - condition: template
+                                  value_template: "{{ create_persistent_notification | bool }}"
+                              sequence:
+                                - action: persistent_notification.create
+                                  data:
+                                    title: Inteligentne podlewanie
+                                    message: |-
+                                      **Status:** rozpoczeto podlewanie
+
+                                      **Pierwsza sekcja**
+                                      - Numer: {{ section_number }}
+                                      - Nazwa: {{ section_name }}
+                                      - Czas: {{ section_minutes | int(0) }} min
+                                      - Stan sterownika: {{ states(section_valve) }}
+
+                                      **Plan cyklu**
+                                      {{ irrigation_cycle_decision_reason | trim }}
+
+                                      **Pogoda**
+                                      - Zrodlo: {{ weather_source_summary | trim }}
+                                      - Aktualnie: {{ current_weather_condition_pl }}
+                                      - Prognoza: {{ forecast_condition_pl }}
+                                      - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
+                                      - Opad prognozowany ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
+                                    notification_id: smart_irrigation_last_event
+                        - variables:
+                            start_notification_sent: true
                 - choose:
                     - conditions:
                         - condition: template
@@ -3281,6 +3351,7 @@ actions:
                               Uruchomiono sekcje {{ section_number }} na {{ section_minutes | int(0) }} min.
                               Sterownik potwierdzil stan {{ states(section_valve) }}.
                               Dawka {{ section_depth_mm | float(0) | round(1) }} mm,
+                              przewidywana dawka dostarczona przy limicie czasu {{ section_applied_depth_mm | float(0) | round(1) }} mm,
                               deficyt sekcji {{ section_water_deficit_mm | float(0) | round(1) }} mm,
                               prog sekcji {{ section_target_depth_mm | float(0) | round(1) }} mm,
                               opad zraszaczy {{ section_rate_mm_h | float(0) | round(1) }} mm/h.
@@ -3405,7 +3476,7 @@ actions:
                                   data:
                                     title: Inteligentne podlewanie
                                     message: |-
-                                      **Status:** przerwano podlewanie
+                                      **Status:** zakonczono podlewanie przed czasem
 
                                       **Sekcja**
                                       - Numer: {{ section_number }}
@@ -3415,8 +3486,8 @@ actions:
                                       **Powod**
                                       {{ section_interruption_reason | trim }}
 
-                                      **Co dalej**
-                                      Pozostale sekcje nie zostana uruchomione w tym cyklu.
+                                      **Wynik cyklu**
+                                      Sekcja zostala bezpiecznie zamknieta, a pozostale sekcje nie zostana uruchomione w tym cyklu.
 
                                       **Pogoda**
                                       - Zrodlo: {{ weather_source_summary | trim }}
@@ -3492,16 +3563,20 @@ actions:
           {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
           {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
           {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
-          {%- set deficit_raw = (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days * (soil_moisture_factor | float(1)) - (rain_credit_mm | float(0)) -%}
+          {%- set effective_rate = (rate | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 -%}
+          {%- set previous_duration = state_attr(valve, 'last_duration_minutes') -%}
+          {%- set delivered = (previous_duration | float(0)) * effective_rate / 60 if last_ts > 0 and previous_duration | is_number else target -%}
+          {%- set carryover = target - delivered if last_ts > 0 and delivered < target else 0 -%}
+          {%- set deficit_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
           {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
           {%- set planned_depth = deficit if deficit > target else target -%}
           {%- set depth = 0 if not (irrigation_cycle_needed | bool) else (max_dose_mm | float(10)) if planned_depth > (max_dose_mm | float(10)) else (planned_depth | round(1)) -%}
-          {%- set effective_rate = (rate | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 -%}
           {%- set raw_minutes = ((depth | float(0)) / (effective_rate if effective_rate > 0 else 1)) * 60 * (zone.runtime_adjustment_percent | float(100)) / 100 -%}
           {%- set rounded_minutes = raw_minutes | round(0) | int -%}
           {%- set minutes = 0 if (depth | float(0)) < (min_dose_mm | float(3)) else (min_runtime_minutes | int(8)) if rounded_minutes < (min_runtime_minutes | int(8)) else (max_runtime_minutes | int(45)) if rounded_minutes > (max_runtime_minutes | int(45)) else rounded_minutes -%}
           {%- set completed_this_cycle = last_ts > 0 and last_ts >= as_timestamp(irrigation_cycle_started_at, 0) -%}
           {%- set actual_minutes = state_attr(valve, 'last_duration_minutes') | float(minutes) -%}
+          {%- set actual_depth = actual_minutes * effective_rate / 60 -%}
           {%- set conn = namespace(entity='') -%}
           {%- if valve in integration_entities('rainbird_rc2') -%}
             {%- set entry_id = state_attr(valve, 'config_entry_id') -%}
@@ -3520,7 +3595,7 @@ actions:
           {%- if completed_this_cycle -%}
             {%- set ns.watered = ns.watered + 1 -%}
             {%- set ns.total = ns.total + (actual_minutes | round(0) | int) -%}
-            {%- set ns.lines = ns.lines + ['| Sekcja ' ~ zone.number ~ ' (' ~ (zone.name | replace('|', '/')) ~ ') | Podlano | ' ~ (actual_minutes | round(1)) ~ ' min |'] -%}
+            {%- set ns.lines = ns.lines + ['| Sekcja ' ~ zone.number ~ ' (' ~ (zone.name | replace('|', '/')) ~ ') | Podlano | ' ~ (actual_minutes | round(1)) ~ ' min, ok. ' ~ (actual_depth | round(1)) ~ ' mm |'] -%}
           {%- else -%}
             {%- if valve | length == 0 -%}
               {%- set reason = 'brak encji sekcji' -%}
@@ -3568,6 +3643,7 @@ actions:
         - Zrodlo: {{ weather_source_summary | trim }}
         - Aktualnie: {{ current_weather_condition_pl }}
         - Prognoza: {{ forecast_condition_pl }}
+        - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
         - Opad ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
         - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
         - Temperatura: {{ temp_c | float(0) | round(1) }} C

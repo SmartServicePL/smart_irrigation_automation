@@ -13,12 +13,13 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | Opcjonalne sensory lokalne i nadpisania | Capteurs locaux et remplacements facultatifs |
 | Lokalna encja pogody | Entité météo locale |
 | Czujnik deszczu | Capteur de pluie |
-| Sensor opadu | Capteur de quantité de pluie |
+| Opad zmierzony - najlepiej ostatnie 24 h | Pluie mesuree - de preference sur les dernieres 24 h |
 | Temperatura ogrodu | Température du jardin |
 | Wiatr | Vent |
 | UV / slonce | UV / soleil |
 | Dzienne ET0 / ewapotranspiracja | ETo journalière / évapotranspiration |
 | Wilgotnosc gleby | Humidité du sol |
+| Wilgotnosc gleby blokujaca podlewanie | Seuil d'humidite du sol bloquant l'arrosage |
 | Ustawienia ogolne | Paramètres généraux |
 | Liczba sekcji | Nombre de zones |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Envoyer la durée calculée au contrôleur Rain Bird |
@@ -67,6 +68,7 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | Wschod slonca | Lever du soleil |
 | Zachod slonca | Coucher du soleil |
 | Przesuniecie wzgledem slonca | Décalage par rapport au soleil |
+| Awaryjny start po pominietej godzinie | Demarrage de secours apres l'heure principale manquee |
 | Miesiac startu sezonu | Mois de début de saison |
 | Miesiac konca sezonu | Mois de fin de saison |
 | Minimalna dawka do startu | Dose minimale pour démarrer |

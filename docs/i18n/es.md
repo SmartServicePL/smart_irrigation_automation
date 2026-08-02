@@ -13,12 +13,13 @@ Usa esta página al configurar el blueprint polaco en Home Assistant.
 | Opcjonalne sensory lokalne i nadpisania | Sensores locales y sustituciones opcionales |
 | Lokalna encja pogody | Entidad meteorológica local |
 | Czujnik deszczu | Sensor de lluvia |
-| Sensor opadu | Sensor de cantidad de lluvia |
+| Opad zmierzony - najlepiej ostatnie 24 h | Lluvia medida - preferiblemente ultimas 24 h |
 | Temperatura ogrodu | Temperatura del jardín |
 | Wiatr | Viento |
 | UV / slonce | UV / sol |
 | Dzienne ET0 / ewapotranspiracja | ETo diaria / evapotranspiración |
 | Wilgotnosc gleby | Humedad del suelo |
+| Wilgotnosc gleby blokujaca podlewanie | Umbral de humedad del suelo que bloquea el riego |
 | Ustawienia ogolne | Ajustes generales |
 | Liczba sekcji | Número de zonas |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Enviar el tiempo calculado al controlador Rain Bird |
@@ -67,6 +68,7 @@ Usa esta página al configurar el blueprint polaco en Home Assistant.
 | Wschod slonca | Amanecer |
 | Zachod slonca | Atardecer |
 | Przesuniecie wzgledem slonca | Desplazamiento respecto al sol |
+| Awaryjny start po pominietej godzinie | Inicio de recuperacion tras omitir la hora principal |
 | Miesiac startu sezonu | Mes de inicio de temporada |
 | Miesiac konca sezonu | Mes de fin de temporada |
 | Minimalna dawka do startu | Dosis mínima para iniciar |

@@ -4,7 +4,7 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.3.0**
+Current version: **1.4.0**
 
 ## Import Blueprint
 
@@ -20,6 +20,23 @@ https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprin
 
 [![Donate via Revolut](https://img.shields.io/badge/Donate-Revolut-0666EB?style=for-the-badge)](https://revolut.me/smartserwis)
 
+## New in 1.4.0: quiet daily decisions and corrected water balance
+
+Version 1.4.0 separates four optional condition checks from the single daily
+execution decision. Condition checks update the next-watering helper and may
+write diagnostic Logbook entries, but they cannot create a skipped-watering
+notification. On a watering day, the persistent notification is first written
+only after a valve confirms that it is open, then replaced by the final result.
+On a non-watering day there is one readable skipped-watering result.
+
+The water-balance model now treats a configured soil-moisture sensor as a direct
+irrigation override at a configurable threshold, normalizes wind speed to km/h,
+and carries forward water that a section could not deliver because of its
+maximum runtime. Final section results show confirmed runtime and estimated net
+water applied. For measured rain, select a rolling 24-hour or current rain-event
+sensor when available; a midnight-reset daily sensor can miss rain from the
+previous day.
+
 ## New in 1.3.0: MeteoFusion HA
 
 Version 1.3.0 adds native weather intelligence from
@@ -31,7 +48,7 @@ intentionally short:
 3. Leave **Opcjonalne sensory lokalne i nadpisania** collapsed and empty unless
    a dedicated garden sensor should override one measurement.
 
-The blueprint then receives rolling 24-hour rain, daily FAO-56 ETo, current
+The blueprint then receives a rolling next-24-hour rain forecast, daily FAO-56 ETo, current
 local-station conditions and forecast-quality diagnostics. It refuses unsafe
 decisions when the MeteoFusion contract is missing, confidence is too low or
 station data is stale. Existing non-MeteoFusion weather setups remain
@@ -104,9 +121,11 @@ The blueprint waits for the valve or switch to confirm `on/open` before reportin
 
 Optional logging writes the deficit, start threshold, watering decision and
 confirmed duration to Home Assistant Logbook. Persistent notifications are kept
-for user-visible events: watering start, watering end, skipped watering and
-interrupted watering. They are formatted as readable blocks with status, reason,
-weather details and a final per-section summary table.
+to one daily lifecycle: start after the first section confirms opening and a
+final completed result, or one skipped result when no watering begins. A safety
+interruption replaces the final result with a completed-before-time explanation.
+All use one notification ID, so the HA panel shows the current outcome instead
+of accumulating a stack of messages.
 
 Optional condition checks can run during the day and night, by default at
 12:00, 18:00, 00:00 and 03:00. These checks fetch current weather and recalculate

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 1.4.0
+
+- Fixed condition-only checks so weather blocks at `12:00`, `18:00`, `00:00` and `03:00` cannot create misleading skipped-watering notifications.
+- Limited the execution path to one daily decision; the legacy backup time is now only a missed-primary recovery when the next-watering helper proves the main start was missed.
+- Moved the start notification after the first valve/switch confirms `on` or `open`, preventing a planned cycle from being reported as real watering.
+- Kept notifications to three user-facing outcomes: confirmed start, final completion (including early safety completion), or one skipped result.
+- Changed soil moisture from a demand multiplier to a direct, configurable irrigation override, matching professional soil-moisture controller behavior.
+- Recommended rolling 24-hour or rain-event totals for measured precipitation so midnight-reset daily sensors do not hide recent rain.
+- Normalized wind inputs from m/s, mph and knots to km/h before applying the configured safety threshold.
+- Carried forward the unfilled part of the root-zone target when a controller's confirmed runtime was too short to deliver the requested depth.
+- Added estimated net applied depth to section diagnostics and final notifications.
+- Corrected forecast-rain threshold equality so the configured blocking amount behaves as described.
+
 ## 1.3.0
 
 - Added explicit **Korzystaj z danych MeteoFusion HA** mode with validation of the stable `smart_service.weather.v1` contract.

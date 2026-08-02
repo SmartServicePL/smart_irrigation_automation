@@ -13,12 +13,13 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Opcjonalne sensory lokalne i nadpisania | Optionele lokale sensoren en overschrijvingen |
 | Lokalna encja pogody | Lokale weer-entiteit |
 | Czujnik deszczu | Regensensor |
-| Sensor opadu | Neerslaghoeveelheidssensor |
+| Opad zmierzony - najlepiej ostatnie 24 h | Gemeten regen - bij voorkeur de laatste 24 uur |
 | Temperatura ogrodu | Tuin temperatuur |
 | Wiatr | Wind |
 | UV / slonce | UV / zon |
 | Dzienne ET0 / ewapotranspiracja | Dagelijkse ETo / evapotranspiratie |
 | Wilgotnosc gleby | Bodemvocht |
+| Wilgotnosc gleby blokujaca podlewanie | Bodemvochtdrempel die beregening blokkeert |
 | Ustawienia ogolne | Algemene instellingen |
 | Liczba sekcji | Aantal zones |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Berekende looptijd naar Rain Bird-controller sturen |
@@ -67,6 +68,7 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Wschod slonca | Zonsopkomst |
 | Zachod slonca | Zonsondergang |
 | Przesuniecie wzgledem slonca | Offset ten opzichte van de zon |
+| Awaryjny start po pominietej godzinie | Herstelstart na gemiste hoofdtijd |
 | Miesiac startu sezonu | Startmaand van het seizoen |
 | Miesiac konca sezonu | Eindmaand van het seizoen |
 | Minimalna dawka do startu | Minimale dosis om te starten |
