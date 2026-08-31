@@ -78,5 +78,6 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Przerwa miedzy sekcjami | Pauze tussen zones |
 | Wlacz dodatkowe przeliczenia | Extra herberekeningen inschakelen |
 | Helper - nastepne podlewanie | Helper - volgende besproeiing |
+| Helper - trwaly bilans wody | Helper - blijvende waterbalans |
 | Wlacz logbook.log | logbook.log inschakelen |
 | Tworz powiadomienie persistent_notification | persistent_notification maken |

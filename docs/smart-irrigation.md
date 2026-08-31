@@ -23,9 +23,21 @@ For every active section it calculates a water dose and runtime from:
 - optional soil moisture,
 - irrigation efficiency and per-section runtime correction.
 
-## Water-Balance Model
+## Persistent Water-Balance Model
 
-The blueprint uses a simplified checkbook water-balance model. Daily plant water use is estimated as `ETc = ETo * Kc`. Rain reduces the modeled deficit. Soil type defines available water capacity, plant type defines root depth and allowed depletion, and watering starts when the modeled deficit reaches that section threshold. This is intentionally simpler than full FAO Penman-Monteith, but follows the same scheduling idea and works with normal Home Assistant weather data.
+The blueprint uses a checkbook water-balance model. Daily plant water use is estimated as `ETc = ETo * Kc`. Newly measured effective rain and confirmed irrigation reduce the stored deficit. Soil type defines available water capacity, plant type defines root depth and allowed depletion, and watering starts when the modeled deficit reaches that section threshold. This is intentionally simpler than full FAO Penman-Monteith, but follows the same scheduling idea and works with normal Home Assistant weather data.
+
+Create one Home Assistant `input_text` helper, set its maximum length to `255`
+and select it as **Helper - trwaly bilans wody**. It stores compact JSON for all
+sections. Do not edit its state manually. The first automation run initializes
+the balances at zero; later checks add elapsed ETo and subtract only new rain.
+This makes a rolling rain value safe: when an old storm leaves the 24-hour
+window, the saved soil-water credit remains in the balance.
+
+Forecast precipitation only delays a start. It is not subtracted from the
+balance until measured locally or reported as measured rain by MeteoFusion.
+Existing automations without the helper keep a compatibility calculation, but
+they cannot remember rain beyond the sensor's own history window.
 
 If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. Without that sensor, the blueprint first uses MeteoFusion ETo when available; for other weather entities it estimates ETo from garden temperature, UV/sunlight and wind. A measured-rain override should preferably be a rolling 24-hour or current rain-event total. A sensor that resets at midnight represents only part of the water received since the previous irrigation.
 
@@ -99,9 +111,13 @@ At the bottom of the blueprint you can enable **Wlacz logbook.log**. When enable
 
 You can also enable **Tworz powiadomienie persistent_notification**. There is one daily execution decision. If watering starts, the notification appears only after the first section confirms opening and is then replaced by the final result with per-section time and estimated applied depth. If watering does not start, one skipped result explains why. Condition-only checks never create notifications. A safety interruption becomes the final completed-before-time result instead of an extra intermediate message.
 
-## Next watering helper
+## Helpers
 
 Optionally create an `input_datetime` helper with date and time, then select it in **Helper - nastepne podlewanie**. The automation updates it after each check. If watering is blocked by season or weather, it stores the next scheduled check. If watering is not needed yet, it stores the first scheduled cycle after the calculated water need reaches the start threshold.
+
+For the persistent calculation, create a Text helper with maximum length `255`
+and select it in **Helper - trwaly bilans wody**. Only one helper is required for
+all configured sections.
 
 ## Recommended setup
 
@@ -117,7 +133,6 @@ Good starting values:
 - Start mode: sunrise.
 - Sun offset: `-30` minutes.
 - Season: `4-10`.
-- Waterings per week: `3`.
 - Minimum dose: `3 mm`.
 - Maximum dose: `10 mm`.
 - Minimum runtime: `8 min`.

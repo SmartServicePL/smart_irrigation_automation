@@ -1,7 +1,7 @@
 ﻿blueprint:
   name: Inteligentne podlewanie ogrodu - 1 do 12 sekcji
   description: >
-    Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsluguje instalacje
+    Wersja 1.5.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsluguje instalacje
     Rain Bird RC2 oraz uklady mieszane z dodatkowymi zaworami lub przekaznikami
     Sonoff, Shelly i ESPHome. Wspolne sa encje pogodowe i opcjonalne posiadane
     sensory. Dla kazdej sekcji osobno ustawiasz nazwe, encje sekcji, rodzaj
@@ -1779,16 +1779,6 @@
               max: 12
               step: 1
               mode: slider
-        waterings_per_week:
-          name: Docelowa liczba cykli tygodniowo
-          description: Uzywana jako zalozenie startowe, gdy sekcja nie ma historii ostatniego podlewania, oraz do prognozy kolejnego terminu po zakonczonym cyklu. Sama potrzeba podlewania jest liczona z bilansu ET, gleby i roslin.
-          default: 3
-          selector:
-            number:
-              min: 1
-              max: 7
-              step: 1
-              mode: slider
         min_dose_mm:
           name: Minimalna dawka do startu
           description: Jesli wyliczona dawka dla sekcji jest mniejsza, sekcja zostanie pominieta. Chroni przed bezsensownymi, bardzo krotkimi cyklami.
@@ -1840,7 +1830,7 @@
           selector:
             number:
               min: 0
-              max: 120
+              max: 100
               step: 5
               unit_of_measurement: s
               mode: slider
@@ -1874,7 +1864,7 @@
               mode: slider
         rain_credit_percent:
           name: Ile deszczu odjac od dawki
-          description: Ile procent prognozowanego/zmierzonego deszczu odjac od wyliczonej dawki podlewania. 80% oznacza ostrozne uwzglednianie opadu.
+          description: Ile procent nowego, zmierzonego deszczu zapisac jako wode dostarczona glebie. Prognoza moze odlozyc start, ale nie jest odejmowana od bilansu, dopoki opad nie zostanie zmierzony. 80% uwzglednia typowe straty.
           default: 80
           selector:
             number:
@@ -1975,6 +1965,14 @@
             entity:
               filter:
                 - domain: input_datetime
+        water_balance_helper:
+          name: Helper - trwaly bilans wody
+          description: Zalecany input_text zapisujacy bilans ET, zmierzonego deszczu i wykonanego podlewania osobno dla wszystkich sekcji. Utworz helper Tekst z maksymalna dlugoscia 255 znakow. Bez helpera dziala zachowany tryb zgodnosci oparty na historii sekcji, ale nie potrafi pamietac deszczu starszego niz wskazanie sensora.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_text
 
 mode: single
 max_exceeded: silent
@@ -2162,7 +2160,6 @@ variables:
   enable_backup_time: !input enable_backup_time
   season_start_month: !input season_start_month
   season_end_month: !input season_end_month
-  waterings_per_week: !input waterings_per_week
   min_dose_mm: !input min_dose_mm
   max_dose_mm: !input max_dose_mm
   min_runtime_minutes: !input min_runtime_minutes
@@ -2180,6 +2177,7 @@ variables:
   enable_irrigation_logs: !input enable_irrigation_logs
   create_persistent_notification: !input create_persistent_notification
   next_watering_datetime: !input next_watering_datetime
+  water_balance_helper: !input water_balance_helper
   bad_weather_states:
     - rainy
     - pouring
@@ -2512,8 +2510,90 @@ actions:
           {{ state_attr(forecast_weather_entity, 'friendly_name') | default(forecast_weather_entity, true) }}, ET0 {{ reference_et_mm | float(0) | round(2) }} mm/d
         {% endif %}
       rain_credit_mm: >-
-        {% set credit = rain_credit_percent | float(80) / 100 %}
-        {{ (((forecast_precipitation | float(0)) + (current_rain_mm | float(0))) * credit) | round(1) }}
+        {% set raw_credit = rain_credit_percent | float(80) / 100 %}
+        {% set credit = 0 if raw_credit < 0 else 1 if raw_credit > 1 else raw_credit %}
+        {{ ((current_rain_mm | float(0)) * credit) | round(1) }}
+
+  - alias: Zaktualizuj trwaly bilans wody
+    variables:
+      water_balance_enabled: >-
+        {{ water_balance_helper | default('', true) | length > 0 }}
+      water_balance_saved: >-
+        {% set raw = states(water_balance_helper) if (water_balance_enabled | bool) else '' %}
+        {{ raw if raw.startswith('{') else '{}' }}
+      water_balance_saved_valid: >-
+        {% set saved = water_balance_saved | from_json({}) %}
+        {{ (water_balance_enabled | bool)
+           and saved is mapping
+           and saved.get('v', 0) | int(0) == 1
+           and saved.get('t', 0) | float(0) > 0
+           and saved.get('z', []) is list
+           and saved.get('z', []) | count >= 12 }}
+      water_balance_elapsed_days: >-
+        {% set saved = water_balance_saved | from_json({}) %}
+        {% set elapsed = (as_timestamp(now()) - (saved.get('t', 0) | float(0))) / 86400 if (water_balance_saved_valid | bool) else 0 %}
+        {{ 0 if elapsed < 0 else 3 if elapsed > 3 else elapsed | round(5) }}
+      water_balance_measured_rain_available: >-
+        {{ rain_amount_sensor | default('', true) | length > 0 or (meteofusion_native | bool) }}
+      water_balance_rain_total_mm: >-
+        {{ (current_rain_mm | float(0)) if (water_balance_measured_rain_available | bool) else 0 }}
+      water_balance_rain_increment_mm: >-
+        {% set saved = water_balance_saved | from_json({}) %}
+        {% set current = water_balance_rain_total_mm | float(0) %}
+        {% set previous = saved.get('r', current) | float(current) if (water_balance_saved_valid | bool) else current %}
+        {% set delta = current - previous %}
+        {{ delta | round(2) if delta > 0 else 0 }}
+      effective_rain_increment_mm: >-
+        {% set raw_credit = rain_credit_percent | float(80) / 100 %}
+        {% set credit = 0 if raw_credit < 0 else 1 if raw_credit > 1 else raw_credit %}
+        {{ ((water_balance_rain_increment_mm | float(0)) * credit) | round(2) }}
+      water_balance_deficits_json: |-
+        {%- set zones = [
+          {'soil': zone_1_soil_type, 'plant': zone_1_plant_type},
+          {'soil': zone_2_soil_type, 'plant': zone_2_plant_type},
+          {'soil': zone_3_soil_type, 'plant': zone_3_plant_type},
+          {'soil': zone_4_soil_type, 'plant': zone_4_plant_type},
+          {'soil': zone_5_soil_type, 'plant': zone_5_plant_type},
+          {'soil': zone_6_soil_type, 'plant': zone_6_plant_type},
+          {'soil': zone_7_soil_type, 'plant': zone_7_plant_type},
+          {'soil': zone_8_soil_type, 'plant': zone_8_plant_type},
+          {'soil': zone_9_soil_type, 'plant': zone_9_plant_type},
+          {'soil': zone_10_soil_type, 'plant': zone_10_plant_type},
+          {'soil': zone_11_soil_type, 'plant': zone_11_plant_type},
+          {'soil': zone_12_soil_type, 'plant': zone_12_plant_type}
+        ] -%}
+        {%- set saved = water_balance_saved | from_json({}) -%}
+        {%- set previous = saved.get('z', []) if (water_balance_saved_valid | bool) else [] -%}
+        {%- set ns = namespace(values=[]) -%}
+        {%- for zone in zones -%}
+          {%- set soil = zone.soil -%}
+          {%- set available = 55 if soil == 'sand' else 115 if soil == 'sandy_loam' else 170 if soil == 'humus' else 180 if soil == 'chernozem' else 155 if soil == 'clay_loam' else 120 if soil == 'clay' else 150 -%}
+          {%- set plant = zone.plant -%}
+          {%- set kc = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
+          {%- set root = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
+          {%- set cap = available * root -%}
+          {%- set old = previous[loop.index0] | float(0) if previous | count > loop.index0 else 0 -%}
+          {%- set raw = old + (reference_et_mm | float(3.5)) * kc * (water_balance_elapsed_days | float(0)) - (effective_rain_increment_mm | float(0)) if (water_balance_saved_valid | bool) else 0 -%}
+          {%- set value = 0 if raw < 0 else cap if raw > cap else raw -%}
+          {%- set ns.values = ns.values + [value | round(2)] -%}
+        {%- endfor -%}
+        {{ ns.values | to_json }}
+      water_balance_deficits: >-
+        {{ water_balance_deficits_json | from_json([]) }}
+      water_balance_payload: >-
+        {"v":1,"t":{{ as_timestamp(now()) | int }},"r":{{ water_balance_rain_total_mm | float(0) | round(2) }},"z":{{ water_balance_deficits_json }} }
+
+  - alias: Zapisz trwaly bilans w helperze
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ water_balance_enabled | bool }}"
+        sequence:
+          - action: input_text.set_value
+            target:
+              entity_id: "{{ water_balance_helper }}"
+            data:
+              value: "{{ water_balance_payload | trim }}"
 
   - alias: Wylicz powod pominiecia podlewania
     variables:
@@ -2631,20 +2711,19 @@ actions:
           {%- set crop_coefficient = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
           {%- set root_depth_m = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
           {%- set allowed_depletion = 0.4 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.45 -%}
-          {%- set runs = waterings_per_week | float(3) -%}
-          {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
           {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
-          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
+          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else 0 -%}
           {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
-          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
+          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else target_raw -%}
           {%- set profile = zone.profile -%}
           {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate | float(12)) -%}
           {%- set effective_rate = rate * (irrigation_efficiency_percent | float(75)) / 100 -%}
           {%- set last_duration = state_attr(zone.valve, 'last_duration_minutes') -%}
           {%- set delivered = (last_duration | float(0)) * effective_rate / 60 if last_ts > 0 and last_duration | is_number else target -%}
           {%- set carryover = target - delivered if last_ts > 0 and delivered < target else 0 -%}
-          {%- set deficit_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
-          {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
+          {%- set fallback_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
+          {%- set fallback_deficit = 0 if fallback_raw < 0 else fallback_raw -%}
+          {%- set deficit = (water_balance_deficits[zone.number - 1] | float(0)) if (water_balance_enabled | bool) else fallback_deficit -%}
           {%- if deficit >= target -%}
             {%- set ns.needed = true -%}
           {%- endif -%}
@@ -2673,20 +2752,19 @@ actions:
           {%- set crop_coefficient = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
           {%- set root_depth_m = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
           {%- set allowed_depletion = 0.4 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.45 -%}
-          {%- set runs = waterings_per_week | float(3) -%}
-          {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
           {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
-          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
+          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else 0 -%}
           {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
-          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
+          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else target_raw -%}
           {%- set profile = zone.profile -%}
           {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate | float(12)) -%}
           {%- set effective_rate = rate * (irrigation_efficiency_percent | float(75)) / 100 -%}
           {%- set last_duration = state_attr(zone.valve, 'last_duration_minutes') -%}
           {%- set delivered = (last_duration | float(0)) * effective_rate / 60 if last_ts > 0 and last_duration | is_number else target -%}
           {%- set carryover = target - delivered if last_ts > 0 and delivered < target else 0 -%}
-          {%- set deficit_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
-          {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
+          {%- set fallback_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
+          {%- set fallback_deficit = 0 if fallback_raw < 0 else fallback_raw -%}
+          {%- set deficit = (water_balance_deficits[zone.number - 1] | float(0)) if (water_balance_enabled | bool) else fallback_deficit -%}
           {%- if deficit >= target -%}
             {%- set planned = deficit if deficit > target else target -%}
             {%- set planned = (max_dose_mm | float(10)) if planned > (max_dose_mm | float(10)) else planned -%}
@@ -2719,20 +2797,19 @@ actions:
           {%- set crop_coefficient = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
           {%- set root_depth_m = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
           {%- set allowed_depletion = 0.4 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.45 -%}
-          {%- set runs = waterings_per_week | float(3) -%}
-          {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
           {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
-          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
+          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else 0 -%}
           {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
-          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
+          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else target_raw -%}
           {%- set profile = zone.profile -%}
           {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate | float(12)) -%}
           {%- set effective_rate = rate * (irrigation_efficiency_percent | float(75)) / 100 -%}
           {%- set last_duration = state_attr(zone.valve, 'last_duration_minutes') -%}
           {%- set delivered = (last_duration | float(0)) * effective_rate / 60 if last_ts > 0 and last_duration | is_number else target -%}
           {%- set carryover = target - delivered if last_ts > 0 and delivered < target else 0 -%}
-          {%- set deficit_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
-          {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
+          {%- set fallback_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
+          {%- set fallback_deficit = 0 if fallback_raw < 0 else fallback_raw -%}
+          {%- set deficit = (water_balance_deficits[zone.number - 1] | float(0)) if (water_balance_enabled | bool) else fallback_deficit -%}
           {%- if deficit > ns.highest_deficit -%}
             {%- set ns.highest_deficit = deficit -%}
             {%- set ns.highest_target = target -%}
@@ -2772,21 +2849,20 @@ actions:
           {%- set crop_coefficient = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
           {%- set root_depth_m = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
           {%- set allowed_depletion = 0.4 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.45 -%}
-          {%- set runs = waterings_per_week | float(3) -%}
-          {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
           {%- set last_ts = as_timestamp(state_attr(zone.valve, 'last_run_completed') | default('', true), 0) -%}
-          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
+          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else 0 -%}
           {%- set daily_gain = (reference_et_mm | float(3.5)) * crop_coefficient * (soil_moisture_factor | float(1)) -%}
           {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
-          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
+          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else target_raw -%}
           {%- set profile = zone.profile -%}
           {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate | float(12)) -%}
           {%- set effective_rate = rate * (irrigation_efficiency_percent | float(75)) / 100 -%}
           {%- set last_duration = state_attr(zone.valve, 'last_duration_minutes') -%}
           {%- set delivered = (last_duration | float(0)) * effective_rate / 60 if last_ts > 0 and last_duration | is_number else target -%}
           {%- set carryover = target - delivered if last_ts > 0 and delivered < target else 0 -%}
-          {%- set deficit_raw = carryover + daily_gain * elapsed_days - (rain_credit_mm | float(0)) -%}
-          {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
+          {%- set fallback_raw = carryover + daily_gain * elapsed_days - (rain_credit_mm | float(0)) -%}
+          {%- set fallback_deficit = 0 if fallback_raw < 0 else fallback_raw -%}
+          {%- set deficit = (water_balance_deficits[zone.number - 1] | float(0)) if (water_balance_enabled | bool) else fallback_deficit -%}
           {%- if daily_gain > 0 -%}
             {%- set missing = target - deficit -%}
             {%- set days_until = 0 if missing <= 0 else missing / daily_gain -%}
@@ -2796,13 +2872,12 @@ actions:
             {%- set ns.has_zone = true -%}
           {%- endif -%}
         {%- endfor -%}
-        {%- set runs = waterings_per_week | float(3) -%}
         {%- if not ns.has_zone -%}
           {%- set candidate = next_schedule_timestamp | float(as_timestamp(now()) + 86400) -%}
         {%- elif (irrigation_cycle_needed | bool) and not (irrigation_start_trigger_ok | bool) -%}
           {%- set candidate = next_schedule_timestamp | float(as_timestamp(now()) + 86400) -%}
         {%- elif irrigation_cycle_needed | bool -%}
-          {%- set candidate = as_timestamp(now()) + (7 / (runs if runs > 0 else 3)) * 86400 -%}
+          {%- set candidate = as_timestamp(now()) -%}
         {%- else -%}
           {%- set candidate = as_timestamp(now()) + (ns.days | float(1)) * 86400 -%}
         {%- endif -%}
@@ -3134,21 +3209,17 @@ actions:
             section_last_duration_minutes: >-
               {{ state_attr(section_valve, 'last_duration_minutes') | default('', true) }}
             section_elapsed_days: >-
-              {% set runs = waterings_per_week | float(3) %}
-              {% set fallback_days = 7 / (runs if runs > 0 else 3) %}
               {% set last_ts = as_timestamp(section_last_completed, 0) %}
               {% if last_ts > 0 %}
                 {% set elapsed = (as_timestamp(now()) - last_ts) / 86400 %}
                 {{ 0 if elapsed < 0 else elapsed | round(3) }}
               {% else %}
-                {{ fallback_days | round(3) }}
+                0
               {% endif %}
             section_target_depth_mm: >-
               {% set raw = (section_soil_factor | float(150)) * (section_root_depth_m | float(0.2)) * (section_allowed_depletion | float(0.45)) %}
               {% set minimum = min_dose_mm | float(3) %}
-              {% set maximum = max_dose_mm | float(10) %}
               {% if raw < minimum %}{{ minimum }}
-              {% elif raw > maximum %}{{ maximum }}
               {% else %}{{ raw | round(1) }}
               {% endif %}
             section_water_deficit_mm: >-
@@ -3158,8 +3229,9 @@ actions:
               {% set last_duration = section_last_duration_minutes %}
               {% set delivered = (last_duration | float(0)) * effective_rate / 60 if last_duration | is_number else target %}
               {% set carryover = target - delivered if section_last_completed | length > 0 and delivered < target else 0 %}
-              {% set raw = carryover + daily * (section_elapsed_days | float(0)) - (rain_credit_mm | float(0)) %}
-              {{ 0 if raw < 0 else raw | round(1) }}
+              {% set fallback_raw = carryover + daily * (section_elapsed_days | float(0)) - (rain_credit_mm | float(0)) %}
+              {% set fallback = 0 if fallback_raw < 0 else fallback_raw %}
+              {{ (water_balance_deficits[section_number - 1] | float(0)) | round(1) if (water_balance_enabled | bool) else fallback | round(1) }}
             section_depth_mm: >-
               {% set deficit = section_water_deficit_mm | float(0) %}
               {% set threshold = section_target_depth_mm | float(3) %}
@@ -3461,6 +3533,30 @@ actions:
                         - choose:
                             - conditions:
                                 - condition: template
+                                  value_template: "{{ water_balance_enabled | bool }}"
+                              sequence:
+                                - variables:
+                                    interrupted_balance_payload: |-
+                                      {%- set saved = states(water_balance_helper) | from_json({}) -%}
+                                      {%- set previous = saved.get('z', water_balance_deficits) if saved is mapping else water_balance_deficits -%}
+                                      {%- set elapsed_minutes = ((as_timestamp(now()) - (section_started_at | float(as_timestamp(now())))) / 60) -%}
+                                      {%- set actual_minutes = 0 if elapsed_minutes < 0 else (section_minutes | float(0)) if elapsed_minutes > (section_minutes | float(0)) else elapsed_minutes -%}
+                                      {%- set effective_rate = (section_rate_mm_h | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 -%}
+                                      {%- set applied = actual_minutes * effective_rate / 60 -%}
+                                      {%- set ns = namespace(values=[]) -%}
+                                      {%- for value in previous -%}
+                                        {%- set updated = (value | float(0)) - applied if loop.index == (section_number | int) else value | float(0) -%}
+                                        {%- set ns.values = ns.values + [0 if updated < 0 else updated | round(2)] -%}
+                                      {%- endfor -%}
+                                      {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(2) }},"z":{{ ns.values | to_json }} }
+                                - action: input_text.set_value
+                                  target:
+                                    entity_id: "{{ water_balance_helper }}"
+                                  data:
+                                    value: "{{ interrupted_balance_payload | trim }}"
+                        - choose:
+                            - conditions:
+                                - condition: template
                                   value_template: "{{ enable_irrigation_logs | bool }}"
                               sequence:
                                 - action: logbook.log
@@ -3496,6 +3592,27 @@ actions:
                                       - Czujnik deszczu: {{ states(rain_binary_sensor) if (rain_binary_sensor | default('', true) | length > 0) else 'brak' }}
                                     notification_id: smart_irrigation_last_event
                         - stop: "Podlewanie przerwane: {{ section_interruption_reason | trim }}."
+                - alias: Odejmij wykonane podlewanie od bilansu sekcji
+                  choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ water_balance_enabled | bool }}"
+                      sequence:
+                        - variables:
+                            section_balance_payload: |-
+                              {%- set saved = states(water_balance_helper) | from_json({}) -%}
+                              {%- set previous = saved.get('z', water_balance_deficits) if saved is mapping else water_balance_deficits -%}
+                              {%- set ns = namespace(values=[]) -%}
+                              {%- for value in previous -%}
+                                {%- set updated = (value | float(0)) - (section_applied_depth_mm | float(0)) if loop.index == (section_number | int) else value | float(0) -%}
+                                {%- set ns.values = ns.values + [0 if updated < 0 else updated | round(2)] -%}
+                              {%- endfor -%}
+                              {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(2) }},"z":{{ ns.values | to_json }} }
+                        - action: input_text.set_value
+                          target:
+                            entity_id: "{{ water_balance_helper }}"
+                          data:
+                            value: "{{ section_balance_payload | trim }}"
                 - choose:
                     - conditions:
                         - condition: template
@@ -3517,6 +3634,64 @@ actions:
                       data:
                         name: "Podlewanie - {{ section_name }}"
                         message: "Pominieto sekcje {{ section_number }}. {{ section_skip_reason | trim }}"
+
+  - alias: Wylicz termin po zakonczonym cyklu z bilansu
+    variables:
+      next_watering_after_cycle_timestamp: |-
+        {%- set zones = [
+          {'number': 1, 'valve': zone_1_valve, 'soil': zone_1_soil_type, 'plant': zone_1_plant_type},
+          {'number': 2, 'valve': zone_2_valve, 'soil': zone_2_soil_type, 'plant': zone_2_plant_type},
+          {'number': 3, 'valve': zone_3_valve, 'soil': zone_3_soil_type, 'plant': zone_3_plant_type},
+          {'number': 4, 'valve': zone_4_valve, 'soil': zone_4_soil_type, 'plant': zone_4_plant_type},
+          {'number': 5, 'valve': zone_5_valve, 'soil': zone_5_soil_type, 'plant': zone_5_plant_type},
+          {'number': 6, 'valve': zone_6_valve, 'soil': zone_6_soil_type, 'plant': zone_6_plant_type},
+          {'number': 7, 'valve': zone_7_valve, 'soil': zone_7_soil_type, 'plant': zone_7_plant_type},
+          {'number': 8, 'valve': zone_8_valve, 'soil': zone_8_soil_type, 'plant': zone_8_plant_type},
+          {'number': 9, 'valve': zone_9_valve, 'soil': zone_9_soil_type, 'plant': zone_9_plant_type},
+          {'number': 10, 'valve': zone_10_valve, 'soil': zone_10_soil_type, 'plant': zone_10_plant_type},
+          {'number': 11, 'valve': zone_11_valve, 'soil': zone_11_soil_type, 'plant': zone_11_plant_type},
+          {'number': 12, 'valve': zone_12_valve, 'soil': zone_12_soil_type, 'plant': zone_12_plant_type}
+        ] -%}
+        {%- set saved = states(water_balance_helper) | from_json({}) if (water_balance_enabled | bool) else {} -%}
+        {%- set deficits = saved.get('z', water_balance_deficits) if saved is mapping else water_balance_deficits -%}
+        {%- set ns = namespace(days=999, found=false) -%}
+        {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
+          {%- set available = 55 if zone.soil == 'sand' else 115 if zone.soil == 'sandy_loam' else 170 if zone.soil == 'humus' else 180 if zone.soil == 'chernozem' else 155 if zone.soil == 'clay_loam' else 120 if zone.soil == 'clay' else 150 -%}
+          {%- set kc = 0.8 if zone.plant == 'flowers' else 1.0 if zone.plant == 'vegetables' else 0.55 if zone.plant == 'shrubs' else 0.75 -%}
+          {%- set root = 0.25 if zone.plant == 'flowers' else 0.35 if zone.plant == 'vegetables' else 0.5 if zone.plant == 'shrubs' else 0.2 -%}
+          {%- set depletion = 0.4 if zone.plant == 'flowers' else 0.35 if zone.plant == 'vegetables' else 0.55 if zone.plant == 'shrubs' else 0.45 -%}
+          {%- set threshold_raw = available * root * depletion -%}
+          {%- set threshold = (min_dose_mm | float(3)) if threshold_raw < (min_dose_mm | float(3)) else threshold_raw -%}
+          {%- set deficit = deficits[zone.number - 1] | float(0) if deficits | count >= zone.number else 0 -%}
+          {%- set daily = (reference_et_mm | float(3.5)) * kc -%}
+          {%- set days = 0 if deficit >= threshold else (threshold - deficit) / daily if daily > 0 else 999 -%}
+          {%- if days < ns.days -%}{%- set ns.days = days -%}{%- endif -%}
+          {%- set ns.found = true -%}
+        {%- endfor -%}
+        {%- set candidate = as_timestamp(now()) + (ns.days if ns.found else 1) * 86400 -%}
+        {%- if schedule_mode == 'fixed_time' -%}
+          {%- set scheduled = as_timestamp(today_at(primary_start_time)) -%}
+        {%- else -%}
+          {%- set attr = 'next_rising' if schedule_mode == 'sunrise' else 'next_setting' -%}
+          {%- set scheduled = as_timestamp(state_attr('sun.sun', attr), as_timestamp(now())) + (sun_event_offset_minutes | int(0)) * 60 -%}
+        {%- endif -%}
+        {%- if scheduled <= as_timestamp(now()) -%}{%- set scheduled = scheduled + 86400 -%}{%- endif -%}
+        {%- if scheduled < candidate -%}
+          {%- set scheduled = scheduled + (((candidate - scheduled) / 86400) | round(0, 'ceil') | int) * 86400 -%}
+        {%- endif -%}
+        {{ scheduled | int }}
+
+  - alias: Zapisz termin po zakonczonym cyklu
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ (water_balance_enabled | bool) and next_watering_datetime | default('', true) | length > 0 }}"
+        sequence:
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: "{{ next_watering_datetime }}"
+            data:
+              timestamp: "{{ next_watering_after_cycle_timestamp | int }}"
   - alias: Zaloguj koniec cyklu
     choose:
       - conditions:
@@ -3555,20 +3730,21 @@ actions:
           {%- set allowed_depletion = 0.4 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.45 -%}
           {%- set profile = zone.sprinkler_profile -%}
           {%- set rate = 12 if profile in ['rainbird_rotor', 'rainbird_5000_rotor'] else 38 if profile in ['rainbird_spray', 'rainbird_1800_spray'] else 15 if profile == 'rainbird_rvan' else 8 if profile in ['rainbird_drip', 'rainbird_xf_drip'] else 11 if profile == 'hunter_rotor' else 10 if profile == 'hunter_mp_rotator' else 40 if profile == 'hunter_spray' else 8 if profile == 'hunter_drip' else (zone.custom_rate_mm_h | float(12)) -%}
-          {%- set runs = waterings_per_week | float(3) -%}
           {%- set valve = zone.valve | default('', true) -%}
           {%- set last_completed = state_attr(valve, 'last_run_completed') | default('', true) -%}
           {%- set last_ts = as_timestamp(last_completed, 0) -%}
-          {%- set fallback_days = 7 / (runs if runs > 0 else 3) -%}
-          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else fallback_days -%}
+          {%- set elapsed_days = ((as_timestamp(now()) - last_ts) / 86400) if last_ts > 0 else 0 -%}
           {%- set target_raw = available_water_mm_m * root_depth_m * allowed_depletion -%}
-          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else (max_dose_mm | float(10)) if target_raw > (max_dose_mm | float(10)) else target_raw -%}
+          {%- set target = (min_dose_mm | float(3)) if target_raw < (min_dose_mm | float(3)) else target_raw -%}
           {%- set effective_rate = (rate | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 -%}
           {%- set previous_duration = state_attr(valve, 'last_duration_minutes') -%}
           {%- set delivered = (previous_duration | float(0)) * effective_rate / 60 if last_ts > 0 and previous_duration | is_number else target -%}
           {%- set carryover = target - delivered if last_ts > 0 and delivered < target else 0 -%}
-          {%- set deficit_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
-          {%- set deficit = 0 if deficit_raw < 0 else deficit_raw -%}
+          {%- set fallback_raw = carryover + (reference_et_mm | float(3.5)) * crop_coefficient * elapsed_days - (rain_credit_mm | float(0)) -%}
+          {%- set fallback_deficit = 0 if fallback_raw < 0 else fallback_raw -%}
+          {%- set current_balance = states(water_balance_helper) | from_json({}) if (water_balance_enabled | bool) else {} -%}
+          {%- set current_deficits = current_balance.get('z', water_balance_deficits) if current_balance is mapping else water_balance_deficits -%}
+          {%- set deficit = (current_deficits[zone.number - 1] | float(0)) if (water_balance_enabled | bool) else fallback_deficit -%}
           {%- set planned_depth = deficit if deficit > target else target -%}
           {%- set depth = 0 if not (irrigation_cycle_needed | bool) else (max_dose_mm | float(10)) if planned_depth > (max_dose_mm | float(10)) else (planned_depth | round(1)) -%}
           {%- set raw_minutes = ((depth | float(0)) / (effective_rate if effective_rate > 0 else 1)) * 60 * (zone.runtime_adjustment_percent | float(100)) / 100 -%}

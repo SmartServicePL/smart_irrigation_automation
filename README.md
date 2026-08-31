@@ -4,7 +4,7 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.4.0**
+Current version: **1.5.0**
 
 ## Import Blueprint
 
@@ -20,6 +20,27 @@ https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprin
 
 [![Donate via Revolut](https://img.shields.io/badge/Donate-Revolut-0666EB?style=for-the-badge)](https://revolut.me/smartserwis)
 
+## New in 1.5.0: persistent per-section water balance
+
+Version 1.5.0 adds a checkbook-style water balance that survives Home Assistant
+restarts. One compact `input_text` helper stores the current soil-water deficit
+for all 12 sections, the last update time and the last observed measured-rain
+total. Each check adds elapsed `ETo * Kc`, subtracts only newly measured
+effective rain, and every confirmed section run subtracts the water it applied.
+A falling rolling-24-hour rain value no longer makes old rain disappear from the
+model.
+
+Forecast rain is now a start delay only. It is never booked as water received
+until a gauge or MeteoFusion reports it. The weekly-cycle setting has been
+removed from the decision model; watering is triggered exclusively by section
+depletion, weather and safety conditions. Existing automations without the new
+helper keep a compatibility calculation so an imported update does not disable
+them, but persistent operation is strongly recommended.
+
+Create one Home Assistant **Text** helper with a maximum length of `255`, then
+select it as **Helper - trwaly bilans wody**. The first run initializes a safe
+zero balance and later checks build the real deficit automatically.
+
 ## New in 1.4.0: quiet daily decisions and corrected water balance
 
 Version 1.4.0 separates four optional condition checks from the single daily
@@ -33,9 +54,9 @@ The water-balance model now treats a configured soil-moisture sensor as a direct
 irrigation override at a configurable threshold, normalizes wind speed to km/h,
 and carries forward water that a section could not deliver because of its
 maximum runtime. Final section results show confirmed runtime and estimated net
-water applied. For measured rain, select a rolling 24-hour or current rain-event
-sensor when available; a midnight-reset daily sensor can miss rain from the
-previous day.
+water applied. For measured rain, select a rolling 24-hour or cumulative
+rain-event sensor when available. The persistent model stores only new
+increments and retains their effect when the rolling value later falls.
 
 ## New in 1.3.0: MeteoFusion HA
 
@@ -62,12 +83,10 @@ sunlight, rain and optional soil moisture. When watering is needed, every
 enabled and ready section is run; each section still gets its own calculated
 runtime from its sprinkler profile, soil, plants and manual adjustment.
 
-The target cycles-per-week setting is used only as a startup/fallback assumption
-when a section has no watering history, and to estimate the next cycle after a
-fresh watering. It does not assign weekdays and never forces watering merely
-because a scheduled day arrived. With Rain Bird RC2, confirmed section
-completion times are persisted by the integration and used by the next cycle
-decision.
+There are no fixed watering weekdays or target runs per week. A persistent
+water balance decides when the first section reaches its soil/root-zone
+threshold. The planned cycle then waters every enabled and ready section, with
+an individually calculated runtime and applied-depth correction.
 
 Supported section count is configurable from 1 to 12. Sections above the selected count stay in the blueprint configuration but are ignored by the automation.
 
@@ -138,6 +157,10 @@ weather blocks watering it stores the next scheduled check, and when watering
 is not yet needed it stores the first scheduled cycle after the modeled water
 need reaches the start threshold.
 
+For the calculation itself, create one `input_text` helper with maximum length
+`255` and select **Helper - trwaly bilans wody**. Do not edit its compact JSON
+value manually. One helper stores all section balances.
+
 Documentation:
 
 - [Smart irrigation setup](docs/smart-irrigation.md)
@@ -157,6 +180,7 @@ blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml
 - A `weather` entity that supports daily forecast.
 - Optional MeteoFusion HA `0.7.0` or newer for native 24-hour rain, ETo and forecast-quality data.
 - Optional local weather entity, rain sensor, rain amount sensor, temperature sensor, wind source, UV/sunlight source and soil moisture sensor.
+- One recommended `input_text` helper with maximum length `255` for persistent water balance.
 - Optional Logbook diagnostics and persistent notifications for user-visible irrigation events.
 
 ## Privacy

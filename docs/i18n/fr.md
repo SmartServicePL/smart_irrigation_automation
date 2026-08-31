@@ -78,5 +78,6 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | Przerwa miedzy sekcjami | Pause entre les zones |
 | Wlacz dodatkowe przeliczenia | Activer les recalculs supplémentaires |
 | Helper - nastepne podlewanie | Helper - prochain arrosage |
+| Helper - trwaly bilans wody | Helper - bilan hydrique persistant |
 | Wlacz logbook.log | Activer logbook.log |
 | Tworz powiadomienie persistent_notification | Créer une persistent_notification |

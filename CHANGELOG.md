@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 1.5.0
+
+- Added one optional `input_text` helper for a persistent per-section soil-water balance across Home Assistant restarts.
+- Changed the model to accumulate elapsed `ETo * Kc` and subtract only newly measured effective rain on every scheduled or condition-only check.
+- Fixed rolling 24-hour rain handling so rain leaving the sensor window does not reappear as a false water deficit.
+- Changed forecast rain to a start-delay safety signal only; forecast millimeters are no longer counted as water received.
+- Capped effective-rain credit at 100% so the model cannot receive more water than was measured.
+- Subtracts estimated net water after every confirmed completed section and partial water after an interrupted section.
+- Removed target waterings per week from the blueprint and all irrigation-decision and next-run calculations.
+- Separated root-zone depletion threshold from the maximum dose of one watering cycle.
+- Recalculates the next-watering helper from persisted post-cycle deficits instead of a fixed weekly interval.
+- Preserved a non-persistent compatibility calculation for existing automations that have not selected the new helper yet.
+- Expanded regression coverage for rolling rain, one-time rain credit, per-section irrigation credit and forecast isolation.
+
 ## 1.4.0
 
 - Fixed condition-only checks so weather blocks at `12:00`, `18:00`, `00:00` and `03:00` cannot create misleading skipped-watering notifications.

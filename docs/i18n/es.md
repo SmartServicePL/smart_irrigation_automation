@@ -78,5 +78,6 @@ Usa esta página al configurar el blueprint polaco en Home Assistant.
 | Przerwa miedzy sekcjami | Pausa entre zonas |
 | Wlacz dodatkowe przeliczenia | Activar recálculos adicionales |
 | Helper - nastepne podlewanie | Helper - próximo riego |
+| Helper - trwaly bilans wody | Helper - balance hídrico persistente |
 | Wlacz logbook.log | Activar logbook.log |
 | Tworz powiadomienie persistent_notification | Crear persistent_notification |
