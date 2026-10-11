@@ -177,6 +177,8 @@ class WaterBalancePayloadTests(unittest.TestCase):
         context.update(
             water_balance_saved=saved,
             water_balance_saved_valid=True,
+            season_ok=True,
+            water_balance_new_season=False,
             water_balance_elapsed_days=0.5,
             reference_et_mm=7.5,
             effective_rain_increment_mm=0,
@@ -262,6 +264,79 @@ class WaterBalancePayloadTests(unittest.TestCase):
 
 
 @unittest.skipIf(jinja2 is None or yaml is None, "jinja2 and PyYAML are required")
+class SeasonBalanceTests(unittest.TestCase):
+    """Evapotranspiration is added for at most 7 days and a new season starts from zero."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.balance = _action_variables(_load_blueprint(), "Zaktualizuj trwaly bilans wody")
+
+    def _render(self, name: str, context: dict) -> str:
+        return _render(FakeHass(), self.balance[name], context)
+
+    def _deficits(self, context: dict) -> list:
+        context = dict(_zone_context(), reference_et_mm=7.5, effective_rain_increment_mm=0, **context)
+        return json.loads(self._render("water_balance_deficits_json", context))
+
+    def test_season_start_timestamp(self) -> None:
+        now = datetime.fromtimestamp(NOW, timezone.utc)
+        first = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        same = dict(season_start_month=now.month, season_end_month=now.month)
+        self.assertEqual(int(self._render("water_balance_season_start_ts", same)), int(first.timestamp()))
+        # Season crossing the new year that started in the previous calendar year.
+        later = now.month % 12 + 1
+        wrap = dict(season_start_month=later, season_end_month=now.month)
+        expected = first.replace(year=now.year - 1 if later > now.month else now.year, month=later)
+        self.assertEqual(int(self._render("water_balance_season_start_ts", wrap)), int(expected.timestamp()))
+
+    def test_long_gap_inside_season_adds_at_most_seven_days(self) -> None:
+        saved = {"v": 1, "t": NOW - 20 * 86400, "r": 0, "z": [10] * 12}
+        common = dict(
+            water_balance_saved=saved,
+            water_balance_saved_valid=True,
+            season_ok=True,
+            water_balance_season_start_ts=NOW - 100 * 86400,
+            water_balance_raw_elapsed_days=20,
+        )
+        self.assertEqual(self._render("water_balance_new_season", common), "False")
+        elapsed = self._render("water_balance_elapsed_days", common)
+        self.assertEqual(float(elapsed), 7.0)
+        deficits = self._deficits(dict(common, water_balance_elapsed_days=elapsed, water_balance_new_season=False))
+        self.assertEqual(deficits[0], round(10 + 7.5 * 0.55 * 7, 1))
+
+    def test_new_season_starts_from_zero(self) -> None:
+        saved = {"v": 1, "t": NOW - 200 * 86400, "r": 0, "z": [40] * 12}
+        common = dict(
+            water_balance_saved=saved,
+            water_balance_saved_valid=True,
+            season_ok=True,
+            water_balance_season_start_ts=NOW - 2 * 86400,
+            water_balance_raw_elapsed_days=200,
+        )
+        new_season = self._render("water_balance_new_season", common)
+        self.assertEqual(new_season, "True")
+        elapsed = self._render("water_balance_elapsed_days", dict(common, water_balance_new_season=True))
+        self.assertAlmostEqual(float(elapsed), 2.0, places=3)
+        deficits = self._deficits(dict(common, water_balance_elapsed_days=elapsed, water_balance_new_season=True))
+        self.assertEqual(deficits[0], round(7.5 * 0.55 * float(elapsed), 1))
+
+    def test_off_season_keeps_balance_at_zero(self) -> None:
+        saved = {"v": 1, "t": NOW - 86400, "r": 0, "z": [40] * 12}
+        common = dict(
+            water_balance_saved=saved,
+            water_balance_saved_valid=True,
+            season_ok=False,
+            water_balance_season_start_ts=NOW + 60 * 86400,
+            water_balance_raw_elapsed_days=1,
+        )
+        self.assertEqual(self._render("water_balance_new_season", common), "False")
+        elapsed = self._render("water_balance_elapsed_days", common)
+        self.assertEqual(float(elapsed), 0.0)
+        deficits = self._deficits(dict(common, water_balance_elapsed_days=elapsed, water_balance_new_season=False))
+        self.assertEqual(deficits, [0] * 12)
+
+
+@unittest.skipIf(jinja2 is None or yaml is None, "jinja2 and PyYAML are required")
 class SkipReasonTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -279,6 +354,7 @@ class SkipReasonTests(unittest.TestCase):
             water_balance_helper_ok=True,
             water_balance_helper_max=255,
             water_balance_payload_length=61,
+            water_balance_measured_rain_available=True,
             zone_count=1,
             zone_1_valve="switch.relay",
             daily_forecast_available=True,
@@ -337,6 +413,23 @@ class SkipReasonTests(unittest.TestCase):
         reason = self._reason(hass, rain_binary_sensor="binary_sensor.rain", rain_sensor_ok=False)
         self.assertIn("niedostepny", reason)
         self.assertNotIn("MeteoFusion", reason)
+
+    def test_balance_helper_without_rain_source_is_blocked(self) -> None:
+        hass = FakeHass({"input_text.balance": "{}"})
+        reason = self._reason(hass, water_balance_measured_rain_available=False)
+        self.assertIn("Brak zrodla opadu", reason)
+        self.assertIn("MeteoFusion", reason)
+
+    def test_rc2_without_helper_does_not_need_rain_source(self) -> None:
+        hass = FakeHass({})
+        reason = self._reason(
+            hass,
+            water_balance_enabled=False,
+            water_balance_helper="",
+            water_balance_measured_rain_available=False,
+            zone_1_valve="",
+        )
+        self.assertEqual(reason, "")
 
     def test_missing_daily_forecast_is_reported(self) -> None:
         hass = FakeHass({"input_text.balance": "{}"})

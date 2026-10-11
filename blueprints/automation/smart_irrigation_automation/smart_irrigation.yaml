@@ -68,7 +68,7 @@ blueprint:
                 - domain: binary_sensor
         rain_amount_sensor:
           name: Opad zmierzony - najlepiej ostatnie 24 h
-          description: Sensor opadu w mm. Najlepszy jest opad kroczacy z ostatnich 24 h albo suma trwajacego zdarzenia deszczowego; sensor tylko dzienny moze pominac deszcz po polnocy. Wartosc jest odejmowana od bilansu. Puste = MeteoFusion HA uzyje rain_today. Bez tego sensora i bez MeteoFusion HA zmierzony deszcz NIE zmniejsza bilansu wody; chroni wtedy tylko blokada pogody i prognozy. Gdy sensor jest chwilowo niedostepny, bilans nie zmienia zapamietanego opadu.
+          description: Sensor opadu w mm. Najlepszy jest opad kroczacy z ostatnich 24 h albo suma trwajacego zdarzenia deszczowego; sensor tylko dzienny moze pominac deszcz po polnocy. Wartosc jest odejmowana od bilansu. Puste = MeteoFusion HA uzyje rain_today. Przy wybranym helperze trwalego bilansu wody wymagane jest jedno zrodlo opadu - ten sensor albo MeteoFusion HA. Bez niego podlewanie jest wstrzymane, bo bilans nie wiedzialby o deszczu. Gdy sensor jest chwilowo niedostepny, bilans nie zmienia zapamietanego opadu.
           default: ""
           selector:
             entity:
@@ -246,7 +246,7 @@ blueprint:
               mode: box
         zone_1_runtime_adjustment_percent:
           name: Sekcja 1 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -375,7 +375,7 @@ blueprint:
               mode: box
         zone_2_runtime_adjustment_percent:
           name: Sekcja 2 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -504,7 +504,7 @@ blueprint:
               mode: box
         zone_3_runtime_adjustment_percent:
           name: Sekcja 3 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -633,7 +633,7 @@ blueprint:
               mode: box
         zone_4_runtime_adjustment_percent:
           name: Sekcja 4 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -762,7 +762,7 @@ blueprint:
               mode: box
         zone_5_runtime_adjustment_percent:
           name: Sekcja 5 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -891,7 +891,7 @@ blueprint:
               mode: box
         zone_6_runtime_adjustment_percent:
           name: Sekcja 6 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -1020,7 +1020,7 @@ blueprint:
               mode: box
         zone_7_runtime_adjustment_percent:
           name: Sekcja 7 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -1149,7 +1149,7 @@ blueprint:
               mode: box
         zone_8_runtime_adjustment_percent:
           name: Sekcja 8 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -1278,7 +1278,7 @@ blueprint:
               mode: box
         zone_9_runtime_adjustment_percent:
           name: Sekcja 9 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -1407,7 +1407,7 @@ blueprint:
               mode: box
         zone_10_runtime_adjustment_percent:
           name: Sekcja 10 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -1536,7 +1536,7 @@ blueprint:
               mode: box
         zone_11_runtime_adjustment_percent:
           name: Sekcja 11 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -1665,7 +1665,7 @@ blueprint:
               mode: box
         zone_12_runtime_adjustment_percent:
           name: Sekcja 12 - korekta czasu
-          description: Reczna korekta dla tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca.
+          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
           default: 100
           selector:
             number:
@@ -2765,9 +2765,24 @@ actions:
         {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
         {% set elapsed = (as_timestamp(now()) - (saved.get('t', 0) | float(0))) / 86400 if (water_balance_saved_valid | bool) else 0 %}
         {{ 0 if elapsed < 0 else elapsed | round(5) }}
+      water_balance_season_start_ts: >-
+        {% set start = season_start_month | int(4) %}
+        {% set end = season_end_month | int(10) %}
+        {% set n = now() %}
+        {% set year = n.year if (start <= end or n.month >= start) else n.year - 1 %}
+        {{ as_timestamp(n.replace(year=year, month=start, day=1, hour=0, minute=0, second=0, microsecond=0)) | int }}
+      water_balance_new_season: >-
+        {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
+        {{ (water_balance_saved_valid | bool) and (season_ok | bool)
+           and (saved.get('t', 0) | float(0)) < (water_balance_season_start_ts | float(0)) }}
       water_balance_elapsed_days: >-
-        {% set elapsed = water_balance_raw_elapsed_days | float(0) %}
-        {{ 3 if elapsed > 3 else elapsed }}
+        {% if not (season_ok | bool) %}
+          0
+        {% else %}
+          {% set since_season = (as_timestamp(now()) - (water_balance_season_start_ts | float(0))) / 86400 %}
+          {% set elapsed = since_season if (water_balance_new_season | bool) else water_balance_raw_elapsed_days | float(0) %}
+          {{ 0 if elapsed < 0 else 7 if elapsed > 7 else elapsed | round(5) }}
+        {% endif %}
       water_balance_measured_rain_available: >-
         {{ rain_amount_sensor | default('', true) | length > 0 or (meteofusion_native | bool) }}
       water_balance_rain_source_ok: >-
@@ -2824,8 +2839,8 @@ actions:
           {%- set kc = 0.8 if plant == 'flowers' else 1.0 if plant == 'vegetables' else 0.55 if plant == 'shrubs' else 0.75 -%}
           {%- set root = 0.25 if plant == 'flowers' else 0.35 if plant == 'vegetables' else 0.5 if plant == 'shrubs' else 0.2 -%}
           {%- set cap = available * root -%}
-          {%- set old = previous[loop.index0] | float(0) if previous | count > loop.index0 else 0 -%}
-          {%- set raw = old + (reference_et_mm | float(3.5)) * kc * (water_balance_elapsed_days | float(0)) - (effective_rain_increment_mm | float(0)) if (water_balance_saved_valid | bool) else 0 -%}
+          {%- set old = previous[loop.index0] | float(0) if previous | count > loop.index0 and not (water_balance_new_season | bool) else 0 -%}
+          {%- set raw = old + (reference_et_mm | float(3.5)) * kc * (water_balance_elapsed_days | float(0)) - (effective_rain_increment_mm | float(0)) if (water_balance_saved_valid | bool) and (season_ok | bool) else 0 -%}
           {%- set value = 0 if raw < 0 else cap if raw > cap else raw -%}
           {%- set ns.values = ns.values + [value | round(1)] -%}
         {%- endfor -%}
@@ -2860,21 +2875,25 @@ actions:
       - condition: template
         value_template: >-
           {{ (enable_irrigation_logs | bool) and (water_balance_enabled | bool)
-             and (water_balance_raw_elapsed_days | float(0)) > 3 }}
+             and (season_ok | bool)
+             and ((water_balance_new_season | bool) or (water_balance_raw_elapsed_days | float(0)) > 7) }}
     then:
       - action: logbook.log
         data:
           name: Inteligentne podlewanie
           message: >-
-            Bilans wody nie byl aktualizowany przez {{ water_balance_raw_elapsed_days | float(0) | round(1) }} dni
-            (automatyzacja wylaczona albo Home Assistant nie dzialal). Doliczono ewapotranspiracje tylko za 3 dni.
+            {% if water_balance_new_season | bool %}
+              Nowy sezon podlewania: bilans wody liczony od zera od poczatku sezonu (miesiac {{ season_start_month }}).
+            {% else %}
+              Bilans wody nie byl aktualizowany przez {{ water_balance_raw_elapsed_days | float(0) | round(1) }} dni
+              (automatyzacja wylaczona albo Home Assistant nie dzialal). Doliczono ewapotranspiracje tylko za 7 dni.
+            {% endif %}
 
   - alias: Wylicz ostrzezenie o braku pomiaru opadu
     variables:
       rain_measurement_warning: >-
-        {% if (water_balance_enabled | bool) and not (water_balance_measured_rain_available | bool) %}
-          Brak pomiaru opadu - bilans nie uwzglednia deszczu. Wybierz sensor opadu albo MeteoFusion HA.
-        {% elif (water_balance_enabled | bool) and not (water_balance_rain_source_ok | bool) %}
+        {% if (water_balance_enabled | bool) and (water_balance_measured_rain_available | bool)
+              and not (water_balance_rain_source_ok | bool) %}
           Zrodlo opadu jest teraz niedostepne - bilans zachowal poprzedni stan opadu i nie odjal nowego deszczu.
         {% endif %}
 
@@ -2898,6 +2917,8 @@ actions:
           Helper bilansu wody {{ water_balance_helper }} ma limit {{ water_balance_helper_max }} znakow, a zapis bilansu wymaga {{ water_balance_payload_length }}. Ustaw maksymalna dlugosc helpera na 255 znakow.
         {% elif not (water_balance_enabled | bool) and zones_non_rc2 | count > 0 %}
           Wybierz "Helper - trwaly bilans wody". Sekcje {{ zones_non_rc2 | join(', ') }} nie raportuja historii pracy, wiec bez helpera nie da sie policzyc ich zapotrzebowania na wode.
+        {% elif (water_balance_enabled | bool) and not (water_balance_measured_rain_available | bool) %}
+          Brak zrodla opadu: bilans wody nie wie o deszczu, wiec podlewanie jest wstrzymane. Wybierz "Opad zmierzony" w sekcji opcjonalnych sensorow albo wlacz "Korzystaj z danych MeteoFusion HA".
         {% elif not (daily_forecast_available | bool) %}
           Encja {{ forecast_weather_entity }} nie udostepnila prognozy dziennej (weather.get_forecasts, type daily). Wybierz encje pogody z prognoza dzienna.
         {% elif (use_meteofusion_data | bool) and not (meteofusion_contract_available | bool) %}
