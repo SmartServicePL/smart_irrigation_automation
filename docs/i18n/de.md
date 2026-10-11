@@ -6,24 +6,24 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 
 | Polnische Beschriftung | Deutsch |
 | --- | --- |
-| Wspolne encje pogody i sensory | Gemeinsame Wetter-Entitäten und Sensoren |
+| Wspólne encje pogody i sensory | Gemeinsame Wetter-Entitäten und Sensoren |
 | Encja pogody do prognozy | Wetter-Entität für die Vorhersage |
 | Korzystaj z danych MeteoFusion HA | MeteoFusion-HA-Daten verwenden |
-| MeteoFusion - minimalna pewnosc prognozy | MeteoFusion - minimale Vorhersagesicherheit |
+| MeteoFusion - minimalna pewność prognozy | MeteoFusion - minimale Vorhersagesicherheit |
 | Opcjonalne sensory lokalne i nadpisania | Optionale lokale Sensoren und Überschreibungen |
 | Lokalna encja pogody | Lokale Wetter-Entität |
 | Czujnik deszczu | Regensensor |
 | Opad zmierzony - najlepiej ostatnie 24 h | Gemessener Niederschlag - vorzugsweise letzte 24 Stunden |
 | Temperatura ogrodu | Gartentemperatur |
 | Wiatr | Wind |
-| UV / slonce | UV / Sonne |
+| UV / słońce | UV / Sonne |
 | Dzienne ET0 / ewapotranspiracja | Tägliches ETo / Evapotranspiration |
-| Wilgotnosc gleby | Bodenfeuchte |
-| Wilgotnosc gleby blokujaca podlewanie | Bodenfeuchteschwelle zum Sperren der Bewasserung |
-| Ustawienia ogolne | Allgemeine Einstellungen |
+| Wilgotność gleby | Bodenfeuchte |
+| Wilgotność gleby blokująca podlewanie | Bodenfeuchteschwelle zum Sperren der Bewasserung |
+| Ustawienia ogólne | Allgemeine Einstellungen |
 | Liczba sekcji | Anzahl der Zonen |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Berechnete Laufzeit an den Rain-Bird-Controller senden |
-| Nadzor czasu pracy sekcji | Laufzeitüberwachung der Zonen |
+| Nadzór czasu pracy sekcji | Laufzeitüberwachung der Zonen |
 
 ## Zoneneinstellungen
 
@@ -32,9 +32,9 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | Sekcja X - encja | Zone X - Entität |
 | Sekcja X - nazwa | Zone X - Name |
 | Sekcja X - rodzaj gleby | Zone X - Bodenart |
-| Sekcja X - co rosnie | Zone X - Bepflanzung |
+| Sekcja X - co rośnie | Zone X - Bepflanzung |
 | Sekcja X - zraszacze | Zone X - Regner |
-| Sekcja X - wlasny opad zraszaczy | Zone X - eigene Niederschlagsrate |
+| Sekcja X - własny opad zraszaczy | Zone X - eigene Niederschlagsrate |
 | Sekcja X - korekta czasu | Zone X - Laufzeitkorrektur |
 | Sekcja X - online | Zone X - Online-Sensor |
 | Sekcja X - bateria | Zone X - Batteriesensor |
@@ -45,11 +45,11 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | --- | --- |
 | Piaszczysta / bardzo lekka | Sandig / sehr leicht |
 | Lekka ogrodowa | Leichter Gartenboden |
-| Zwykla ziemia ogrodowa | Normaler Gartenboden |
-| Humusowa / prochniczna | Humusreicher / kompostreicher Boden |
+| Zwykła ziemia ogrodowa | Normaler Gartenboden |
+| Humusowa / próchniczna | Humusreicher / kompostreicher Boden |
 | Czarnoziem / czarna ziemia | Schwarzerde / Tschernosem |
-| Gliniasta / ciezka | Lehmig / schwer |
-| Bardzo ciezka / zbita glina | Sehr schwerer / verdichteter Tonboden |
+| Gliniasta / ciężka | Lehmig / schwer |
+| Bardzo ciężka / zbita glina | Sehr schwerer / verdichteter Tonboden |
 
 ## Pflanzen
 
@@ -65,34 +65,34 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | Polnische Beschriftung | Deutsch |
 | --- | --- |
 | Start podlewania | Startmodus |
-| Glowna godzina podlewania | Startzeit |
-| Wzgledem wschodu slonca | Sonnenaufgang |
-| Wzgledem zachodu slonca | Sonnenuntergang |
-| Przesuniecie wzgledem slonca | Versatz zur Sonne |
-| Awaryjny start po pominietej godzinie | Ersatzstart nach verpasster Hauptzeit |
-| Miesiac startu sezonu | Startmonat der Saison |
-| Miesiac konca sezonu | Endmonat der Saison |
+| Główna godzina podlewania | Startzeit |
+| Względem wschodu słońca | Sonnenaufgang |
+| Względem zachodu słońca | Sonnenuntergang |
+| Przesunięcie względem słońca | Versatz zur Sonne |
+| Awaryjny start po pominiętej godzinie | Ersatzstart nach verpasster Hauptzeit |
+| Miesiąc startu sezonu | Startmonat der Saison |
+| Miesiąc końca sezonu | Endmonat der Saison |
 | Minimalna dawka do startu | Mindestmenge zum Starten |
 | Maksymalna dawka jednego podlewania | Maximale Menge pro Bewässerung |
 | Minimalny czas sekcji | Mindestlaufzeit der Zone |
 | Maksymalny czas sekcji | Maximale Laufzeit der Zone |
-| Przerwa miedzy sekcjami | Pause zwischen Zonen |
-| Wlacz dodatkowe przeliczenia | Zusätzliche Neuberechnungen aktivieren |
-| Helper - nastepne podlewanie | Helfer - nächste Bewässerung |
-| Helper - trwaly bilans wody | Helfer - dauerhafte Wasserbilanz |
-| Wlacz logbook.log | logbook.log aktivieren |
-| Tworz powiadomienie persistent_notification | persistent_notification erstellen |
+| Przerwa między sekcjami | Pause zwischen Zonen |
+| Włącz dodatkowe przeliczenia | Zusätzliche Neuberechnungen aktivieren |
+| Helper - następne podlewanie | Helfer - nächste Bewässerung |
+| Helper - trwały bilans wody | Helfer - dauerhafte Wasserbilanz |
+| Włącz logbook.log | logbook.log aktivieren |
+| Twórz powiadomienie persistent_notification | persistent_notification erstellen |
 
 ## Wettersperren
 
 | Polnische Beschriftung | Deutsch |
 | --- | --- |
 | Blokady pogodowe | Wettersperren |
-| Prognozowany deszcz blokujacy | Vorhergesagter Regen, der die Bewässerung sperrt |
-| Prawdopodobienstwo deszczu blokujace | Regenwahrscheinlichkeit, die die Bewässerung sperrt |
-| Ile deszczu odjac od dawki | Angerechneter Anteil des gemessenen Regens |
+| Prognozowany deszcz blokujący | Vorhergesagter Regen, der die Bewässerung sperrt |
+| Prawdopodobieństwo deszczu blokujące | Regenwahrscheinlichkeit, die die Bewässerung sperrt |
+| Ile deszczu odjąć od dawki | Angerechneter Anteil des gemessenen Regens |
 | Minimalna temperatura | Mindesttemperatur |
-| Temperatura upalu | Hitzetemperatur |
+| Temperatura upału | Hitzetemperatur |
 | Maksymalny wiatr | Maximaler Wind |
 | Minimalna bateria sekcji | Minimaler Batteriestand der Zone |
-| Sprawnosc instalacji | Wirkungsgrad der Anlage |
+| Sprawność instalacji | Wirkungsgrad der Anlage |

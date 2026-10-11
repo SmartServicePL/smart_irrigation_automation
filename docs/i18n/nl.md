@@ -6,24 +6,24 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 
 | Pools label | Nederlands |
 | --- | --- |
-| Wspolne encje pogody i sensory | Gedeelde weer-entiteiten en sensoren |
+| Wspólne encje pogody i sensory | Gedeelde weer-entiteiten en sensoren |
 | Encja pogody do prognozy | Weer-entiteit voor de voorspelling |
 | Korzystaj z danych MeteoFusion HA | MeteoFusion HA-gegevens gebruiken |
-| MeteoFusion - minimalna pewnosc prognozy | MeteoFusion - minimale voorspellingszekerheid |
+| MeteoFusion - minimalna pewność prognozy | MeteoFusion - minimale voorspellingszekerheid |
 | Opcjonalne sensory lokalne i nadpisania | Optionele lokale sensoren en overschrijvingen |
 | Lokalna encja pogody | Lokale weer-entiteit |
 | Czujnik deszczu | Regensensor |
 | Opad zmierzony - najlepiej ostatnie 24 h | Gemeten regen - bij voorkeur de laatste 24 uur |
 | Temperatura ogrodu | Tuin temperatuur |
 | Wiatr | Wind |
-| UV / slonce | UV / zon |
+| UV / słońce | UV / zon |
 | Dzienne ET0 / ewapotranspiracja | Dagelijkse ETo / evapotranspiratie |
-| Wilgotnosc gleby | Bodemvocht |
-| Wilgotnosc gleby blokujaca podlewanie | Bodemvochtdrempel die beregening blokkeert |
-| Ustawienia ogolne | Algemene instellingen |
+| Wilgotność gleby | Bodemvocht |
+| Wilgotność gleby blokująca podlewanie | Bodemvochtdrempel die beregening blokkeert |
+| Ustawienia ogólne | Algemene instellingen |
 | Liczba sekcji | Aantal zones |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Berekende looptijd naar Rain Bird-controller sturen |
-| Nadzor czasu pracy sekcji | Bewaking van de zonelooptijd |
+| Nadzór czasu pracy sekcji | Bewaking van de zonelooptijd |
 
 ## Zone-instellingen
 
@@ -32,9 +32,9 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Sekcja X - encja | Zone X - entiteit |
 | Sekcja X - nazwa | Zone X - naam |
 | Sekcja X - rodzaj gleby | Zone X - bodemtype |
-| Sekcja X - co rosnie | Zone X - beplanting |
+| Sekcja X - co rośnie | Zone X - beplanting |
 | Sekcja X - zraszacze | Zone X - sproeiers |
-| Sekcja X - wlasny opad zraszaczy | Zone X - aangepaste neerslagsnelheid |
+| Sekcja X - własny opad zraszaczy | Zone X - aangepaste neerslagsnelheid |
 | Sekcja X - korekta czasu | Zone X - looptijdcorrectie |
 | Sekcja X - online | Zone X - online sensor |
 | Sekcja X - bateria | Zone X - batterijsensor |
@@ -45,11 +45,11 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | --- | --- |
 | Piaszczysta / bardzo lekka | Zandig / zeer licht |
 | Lekka ogrodowa | Lichte tuingrond |
-| Zwykla ziemia ogrodowa | Normale tuingrond |
-| Humusowa / prochniczna | Humusrijke / compostrijke grond |
+| Zwykła ziemia ogrodowa | Normale tuingrond |
+| Humusowa / próchniczna | Humusrijke / compostrijke grond |
 | Czarnoziem / czarna ziemia | Chernozem / zwarte aarde |
-| Gliniasta / ciezka | Kleiig / zwaar |
-| Bardzo ciezka / zbita glina | Zeer zware / verdichte klei |
+| Gliniasta / ciężka | Kleiig / zwaar |
+| Bardzo ciężka / zbita glina | Zeer zware / verdichte klei |
 
 ## Planten
 
@@ -65,34 +65,34 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Pools label | Nederlands |
 | --- | --- |
 | Start podlewania | Startmodus |
-| Glowna godzina podlewania | Starttijd |
-| Wzgledem wschodu slonca | Zonsopkomst |
-| Wzgledem zachodu slonca | Zonsondergang |
-| Przesuniecie wzgledem slonca | Offset ten opzichte van de zon |
-| Awaryjny start po pominietej godzinie | Herstelstart na gemiste hoofdtijd |
-| Miesiac startu sezonu | Startmaand van het seizoen |
-| Miesiac konca sezonu | Eindmaand van het seizoen |
+| Główna godzina podlewania | Starttijd |
+| Względem wschodu słońca | Zonsopkomst |
+| Względem zachodu słońca | Zonsondergang |
+| Przesunięcie względem słońca | Offset ten opzichte van de zon |
+| Awaryjny start po pominiętej godzinie | Herstelstart na gemiste hoofdtijd |
+| Miesiąc startu sezonu | Startmaand van het seizoen |
+| Miesiąc końca sezonu | Eindmaand van het seizoen |
 | Minimalna dawka do startu | Minimale dosis om te starten |
 | Maksymalna dawka jednego podlewania | Maximale dosis per sproeibeurt |
 | Minimalny czas sekcji | Minimale looptijd van de zone |
 | Maksymalny czas sekcji | Maximale looptijd van de zone |
-| Przerwa miedzy sekcjami | Pauze tussen zones |
-| Wlacz dodatkowe przeliczenia | Extra herberekeningen inschakelen |
-| Helper - nastepne podlewanie | Helper - volgende besproeiing |
-| Helper - trwaly bilans wody | Helper - blijvende waterbalans |
-| Wlacz logbook.log | logbook.log inschakelen |
-| Tworz powiadomienie persistent_notification | persistent_notification maken |
+| Przerwa między sekcjami | Pauze tussen zones |
+| Włącz dodatkowe przeliczenia | Extra herberekeningen inschakelen |
+| Helper - następne podlewanie | Helper - volgende besproeiing |
+| Helper - trwały bilans wody | Helper - blijvende waterbalans |
+| Włącz logbook.log | logbook.log inschakelen |
+| Twórz powiadomienie persistent_notification | persistent_notification maken |
 
 ## Weerblokkades
 
 | Pools label | Nederlands |
 | --- | --- |
 | Blokady pogodowe | Weerblokkades |
-| Prognozowany deszcz blokujacy | Voorspelde regen die beregening blokkeert |
-| Prawdopodobienstwo deszczu blokujace | Regenkans die beregening blokkeert |
-| Ile deszczu odjac od dawki | Aandeel van gemeten regen dat wordt verrekend |
+| Prognozowany deszcz blokujący | Voorspelde regen die beregening blokkeert |
+| Prawdopodobieństwo deszczu blokujące | Regenkans die beregening blokkeert |
+| Ile deszczu odjąć od dawki | Aandeel van gemeten regen dat wordt verrekend |
 | Minimalna temperatura | Minimumtemperatuur |
-| Temperatura upalu | Hittetemperatuur |
+| Temperatura upału | Hittetemperatuur |
 | Maksymalny wiatr | Maximale wind |
 | Minimalna bateria sekcji | Minimale batterij van de zone |
-| Sprawnosc instalacji | Rendement van de installatie |
+| Sprawność instalacji | Rendement van de installatie |

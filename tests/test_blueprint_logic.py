@@ -161,7 +161,7 @@ class NotificationFlowTests(unittest.TestCase):
         )
 
     def test_start_notification_follows_controller_confirmation(self) -> None:
-        confirmation = self.text.index("Zapamietaj wynik otwarcia sekcji")
+        confirmation = self.text.index("Zapamiętaj wynik otwarcia sekcji")
         notification = self.text.index(
             "Powiadom po potwierdzeniu pierwszej uruchomionej sekcji"
         )
@@ -178,14 +178,14 @@ class BlueprintModelTests(unittest.TestCase):
 
     def test_forecast_is_not_credited_as_measured_rain(self) -> None:
         rain_credit = self.text.index("rain_credit_mm:")
-        balance_update = self.text.index("Zaktualizuj trwaly bilans wody")
+        balance_update = self.text.index("Zaktualizuj trwały bilans wody")
         self.assertNotIn(
             "forecast_precipitation",
             self.text[rain_credit:balance_update],
         )
 
     def test_persistent_balance_is_written_and_reduced_after_a_run(self) -> None:
-        self.assertIn("Helper - trwaly bilans wody", self.text)
+        self.assertIn("Helper - trwały bilans wody", self.text)
         self.assertIn("Odejmij wykonane podlewanie od bilansu sekcji", self.text)
         self.assertIn("effective_rain_increment_mm", self.text)
 

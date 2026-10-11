@@ -1,14 +1,14 @@
 blueprint:
   name: Inteligentne podlewanie ogrodu - 1 do 12 sekcji
   description: >
-    Wersja 1.6.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsluguje instalacje
-    Rain Bird RC2 oraz uklady mieszane z dodatkowymi zaworami lub przekaznikami
-    Sonoff, Shelly i ESPHome. Wspolne sa encje pogodowe i opcjonalne posiadane
-    sensory. Dla kazdej sekcji osobno ustawiasz nazwe, encje sekcji, rodzaj
-    gleby, co rosnie, typ zraszaczy Rain Bird/Hunter, korekte czasu oraz
-    opcjonalne sensory online/baterii. Zamkniecie kazdej sekcji jest potwierdzane
-    i ponawiane, a po restarcie HA otwarte sekcje switch/valve sa zamykane.
-    Zwykle przekazniki warto dodatkowo zabezpieczyc sprzetowym limitem czasu
+    Wersja 1.6.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsługuje instalacje
+    Rain Bird RC2 oraz układy mieszane z dodatkowymi zaworami lub przekaźnikami
+    Sonoff, Shelly i ESPHome. Wspólne są encje pogodowe i opcjonalne posiadane
+    sensory. Dla każdej sekcji osobno ustawiasz nazwę, encję sekcji, rodzaj
+    gleby, co rośnie, typ zraszaczy Rain Bird/Hunter, korektę czasu oraz
+    opcjonalne sensory online/baterii. Zamknięcie każdej sekcji jest potwierdzane
+    i ponawiane, a po restarcie HA otwarte sekcje switch/valve są zamykane.
+    Zwykłe przekaźniki warto dodatkowo zabezpieczyć sprzętowym limitem czasu
     (Shelly "Auto OFF", Sonoff "Inching", ESPHome on_turn_on + delay).
   domain: automation
   author: Smart Service
@@ -17,25 +17,25 @@ blueprint:
   source_url: https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml
   input:
     weather_section:
-      name: Wspolne encje pogody i sensory
+      name: Wspólne encje pogody i sensory
       icon: mdi:weather-partly-rainy
       input:
         forecast_weather_entity:
           name: Encja pogody do prognozy
-          description: Weather uzywany do pobrania prognozy dziennej. Dla MeteoFusion HA automatyzacja dodatkowo i automatycznie uzyje prognozy 24 h, dziennego ET0, deszczu z lokalnej stacji i danych o jakosci prognozy.
+          description: Weather używany do pobrania prognozy dziennej. Dla MeteoFusion HA automatyzacja dodatkowo i automatycznie użyje prognozy 24 h, dziennego ET0, deszczu z lokalnej stacji i danych o jakości prognozy.
           selector:
             entity:
               filter:
                 - domain: weather
         use_meteofusion_data:
           name: Korzystaj z danych MeteoFusion HA
-          description: Wlacz, gdy powyzej wybrano encje weather z integracji MeteoFusion HA. Nie musisz wtedy rozwijac sekcji opcjonalnych sensorow ani podawac lokalnej pogody, opadu, temperatury, wiatru, UV i ET0. Jesli je wybierzesz, beda traktowane jako dokladniejsze dane lokalne i otrzymaja pierwszenstwo.
+          description: Włącz, gdy powyżej wybrano encję weather z integracji MeteoFusion HA. Nie musisz wtedy rozwijać sekcji opcjonalnych sensorów ani podawać lokalnej pogody, opadu, temperatury, wiatru, UV i ET0. Jeśli je wybierzesz, będą traktowane jako dokładniejsze dane lokalne i otrzymają pierwszeństwo.
           default: false
           selector:
             boolean:
         meteofusion_min_confidence_percent:
-          name: MeteoFusion - minimalna pewnosc prognozy
-          description: Uzywane tylko po wlaczeniu opcji "Korzystaj z danych MeteoFusion HA". Podlewanie zostanie pominiete, gdy jakosc prognozy spadnie ponizej tego progu albo dane stacji beda nieaktualne.
+          name: MeteoFusion - minimalna pewność prognozy
+          description: Używane tylko po włączeniu opcji "Korzystaj z danych MeteoFusion HA". Podlewanie zostanie pominięte, gdy jakość prognozy spadnie poniżej tego progu albo dane stacji będą nieaktualne.
           default: 50
           selector:
             number:
@@ -52,7 +52,7 @@ blueprint:
       input:
         current_weather_entity:
           name: Lokalna encja pogody
-          description: Opcjonalne nadpisanie aktualnego stanu pogody. Puste = uzyj glownej encji prognozy. Dla MeteoFusion HA zwykle pozostaw puste.
+          description: Opcjonalne nadpisanie aktualnego stanu pogody. Puste = użyj głównej encji prognozy. Dla MeteoFusion HA zwykle pozostaw puste.
           default: ""
           selector:
             entity:
@@ -60,7 +60,7 @@ blueprint:
                 - domain: weather
         rain_binary_sensor:
           name: Czujnik deszczu
-          description: Opcjonalny czujnik fizycznego deszczu. Gdy ma stan on, podlewanie nie wystartuje albo zostanie przerwane. Gdy jest niedostepny, podlewanie jest wstrzymane dla bezpieczenstwa.
+          description: Opcjonalny czujnik fizycznego deszczu. Gdy ma stan on, podlewanie nie wystartuje albo zostanie przerwane. Gdy jest niedostępny, podlewanie jest wstrzymane dla bezpieczeństwa.
           default: ""
           selector:
             entity:
@@ -68,7 +68,7 @@ blueprint:
                 - domain: binary_sensor
         rain_amount_sensor:
           name: Opad zmierzony - najlepiej ostatnie 24 h
-          description: Sensor opadu w mm. Najlepszy jest opad kroczacy z ostatnich 24 h albo suma trwajacego zdarzenia deszczowego; sensor tylko dzienny moze pominac deszcz po polnocy. Wartosc jest odejmowana od bilansu. Puste = MeteoFusion HA uzyje rain_today. Przy wybranym helperze trwalego bilansu wody wymagane jest jedno zrodlo opadu - ten sensor albo MeteoFusion HA. Bez niego podlewanie jest wstrzymane, bo bilans nie wiedzialby o deszczu. Gdy sensor jest chwilowo niedostepny, bilans nie zmienia zapamietanego opadu.
+          description: Sensor opadu w mm. Najlepszy jest opad kroczący z ostatnich 24 h albo suma trwającego zdarzenia deszczowego; sensor tylko dzienny może pominąć deszcz po północy. Wartość jest odejmowana od bilansu. Puste = MeteoFusion HA użyje rain_today. Przy wybranym helperze trwałego bilansu wody wymagane jest jedno źródło opadu - ten sensor albo MeteoFusion HA. Bez niego podlewanie jest wstrzymane, bo bilans nie wiedziałby o deszczu. Gdy sensor jest chwilowo niedostępny, bilans nie zmienia zapamiętanego opadu.
           default: ""
           selector:
             entity:
@@ -76,7 +76,7 @@ blueprint:
                 - domain: sensor
         temperature_source_entity:
           name: Temperatura ogrodu
-          description: Opcjonalny sensor temperatury w ogrodzie albo encja weather. Puste = uzyj MeteoFusion HA lub glownej encji weather. Niska temperatura blokuje podlewanie, upal zwieksza dawke. Gdy wybrany sensor jest niedostepny, uzywana jest aktualna temperatura z encji pogody; bez zadnej aktualnej temperatury podlewanie jest wstrzymane.
+          description: Opcjonalny sensor temperatury w ogrodzie albo encja weather. Puste = użyj MeteoFusion HA lub głównej encji weather. Niska temperatura blokuje podlewanie, upał zwiększa dawkę. Gdy wybrany sensor jest niedostępny, używana jest aktualna temperatura z encji pogody; bez żadnej aktualnej temperatury podlewanie jest wstrzymane.
           default: ""
           selector:
             entity:
@@ -85,7 +85,7 @@ blueprint:
                 - domain: weather
         wind_source_entity:
           name: Wiatr
-          description: Opcjonalny sensor wiatru albo encja weather. Puste = uzyj MeteoFusion HA lub glownej encji weather. Zbyt mocny wiatr blokuje podlewanie, bo zraszacze tracilyby rownomiernosc. Gdy wybrany sensor jest niedostepny, uzywany jest wiatr z encji pogody; jesli i tam go brakuje, podlewanie jest wstrzymane.
+          description: Opcjonalny sensor wiatru albo encja weather. Puste = użyj MeteoFusion HA lub głównej encji weather. Zbyt mocny wiatr blokuje podlewanie, bo zraszacze traciłyby równomierność. Gdy wybrany sensor jest niedostępny, używany jest wiatr z encji pogody; jeśli i tam go brakuje, podlewanie jest wstrzymane.
           default: ""
           selector:
             entity:
@@ -93,8 +93,8 @@ blueprint:
                 - domain: sensor
                 - domain: weather
         sunlight_source_entity:
-          name: UV / slonce
-          description: Opcjonalny sensor UV/slonca albo weather z uv_index. Puste = uzyj glownej encji weather. Uzywany do awaryjnego szacowania ewapotranspiracji, gdy ET0 nie jest dostepne.
+          name: UV / słońce
+          description: Opcjonalny sensor UV/słońca albo weather z uv_index. Puste = użyj głównej encji weather. Używany do awaryjnego szacowania ewapotranspiracji, gdy ET0 nie jest dostępne.
           default: ""
           selector:
             entity:
@@ -103,15 +103,15 @@ blueprint:
                 - domain: weather
         reference_et_sensor:
           name: Dzienne ET0 / ewapotranspiracja
-          description: Opcjonalny sensor dziennej referencyjnej ewapotranspiracji w mm. Puste = uzyj ET0 z MeteoFusion HA, a przy innej pogodzie oszacuj ET0 z temperatury, UV i wiatru.
+          description: Opcjonalny sensor dziennej referencyjnej ewapotranspiracji w mm. Puste = użyj ET0 z MeteoFusion HA, a przy innej pogodzie oszacuj ET0 z temperatury, UV i wiatru.
           default: ""
           selector:
             entity:
               filter:
                 - domain: sensor
         soil_moisture_sensor:
-          name: Wilgotnosc gleby
-          description: Opcjonalny, reprezentatywny sensor wilgotnosci gleby w procentach. Dziala jako bezposrednia blokada podlewania po osiagnieciu progu ustawionego w sekcji blokad pogodowych.
+          name: Wilgotność gleby
+          description: Opcjonalny, reprezentatywny sensor wilgotności gleby w procentach. Działa jako bezpośrednia blokada podlewania po osiągnięciu progu ustawionego w sekcji blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -119,12 +119,12 @@ blueprint:
                 - domain: sensor
 
     general_section:
-      name: Ustawienia ogolne
+      name: Ustawienia ogólne
       icon: mdi:tune
       input:
         zone_count:
           name: Liczba sekcji
-          description: Ile sekcji ma obslugiwac ta automatyzacja. Sekcje powyzej tej liczby zostaja w konfiguracji, ale sa ignorowane.
+          description: Ile sekcji ma obsługiwać ta automatyzacja. Sekcje powyżej tej liczby zostają w konfiguracji, ale są ignorowane.
           default: 1
           selector:
             number:
@@ -134,13 +134,13 @@ blueprint:
               mode: slider
         send_runtime_to_switch:
           name: Przekazuj wyliczony czas do sterownika Rain Bird
-          description: Dla Rain Bird RC2 automatyzacja zawsze uzywa rainbird_rc2.start_zone. To ustawienie wlacza przekazywanie czasu do starszej integracji Rain Bird przez rainbird.start_irrigation. Nie zmienia obslugi Sonoff, Shelly, ESPHome ani innych zwyklych encji switch/valve.
+          description: Dla Rain Bird RC2 automatyzacja zawsze używa rainbird_rc2.start_zone. To ustawienie włącza przekazywanie czasu do starszej integracji Rain Bird przez rainbird.start_irrigation. Nie zmienia obsługi Sonoff, Shelly, ESPHome ani innych zwykłych encji switch/valve.
           default: true
           selector:
             boolean:
         valve_runtime_watchdog:
-          name: Nadzor czasu pracy sekcji
-          description: Zalecane. Zamyka sekcje switch/valve tej automatyzacji (poza Rain Bird RC2 i Rain Bird, ktore maja wlasny limit czasu w sterowniku), jesli jest wlaczona dluzej niz maksymalny czas sekcji + 5 min, niezaleznie od tego, kto ja wlaczyl. Chroni przed zalaniem po przerwanym przebiegu. Wylacz tylko wtedy, gdy celowo podlewasz recznie dluzej niz ten limit.
+          name: Nadzór czasu pracy sekcji
+          description: Zalecane. Zamyka sekcję switch/valve tej automatyzacji (poza Rain Bird RC2 i Rain Bird, które mają własny limit czasu w sterowniku), jeśli jest włączona dłużej niż maksymalny czas sekcji + 5 min, niezależnie od tego, kto ją włączył. Chroni przed zalaniem po przerwanym przebiegu. Wyłącz tylko wtedy, gdy celowo podlewasz ręcznie dłużej niż ten limit.
           default: true
           selector:
             boolean:
@@ -151,7 +151,7 @@ blueprint:
       input:
         zone_1_valve:
           name: Sekcja 1 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           selector:
             entity:
               filter:
@@ -159,13 +159,13 @@ blueprint:
                 - domain: switch
         zone_1_name:
           name: Sekcja 1 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 1
           selector:
             text:
         zone_1_soil_type:
           name: Sekcja 1 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -175,19 +175,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_1_plant_type:
-          name: Sekcja 1 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 1 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -203,7 +203,7 @@ blueprint:
                   value: shrubs
         zone_1_sprinkler_profile:
           name: Sekcja 1 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -215,13 +215,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -229,13 +229,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_1_custom_rate_mm_h:
-          name: Sekcja 1 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 1 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -246,7 +246,7 @@ blueprint:
               mode: box
         zone_1_runtime_adjustment_percent:
           name: Sekcja 1 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -257,7 +257,7 @@ blueprint:
               mode: slider
         zone_1_online_sensor:
           name: Sekcja 1 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -265,7 +265,7 @@ blueprint:
                 - domain: binary_sensor
         zone_1_battery_sensor:
           name: Sekcja 1 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -279,7 +279,7 @@ blueprint:
       input:
         zone_2_valve:
           name: Sekcja 2 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -288,13 +288,13 @@ blueprint:
                 - domain: switch
         zone_2_name:
           name: Sekcja 2 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 2
           selector:
             text:
         zone_2_soil_type:
           name: Sekcja 2 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -304,19 +304,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_2_plant_type:
-          name: Sekcja 2 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 2 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -332,7 +332,7 @@ blueprint:
                   value: shrubs
         zone_2_sprinkler_profile:
           name: Sekcja 2 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -344,13 +344,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -358,13 +358,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_2_custom_rate_mm_h:
-          name: Sekcja 2 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 2 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -375,7 +375,7 @@ blueprint:
               mode: box
         zone_2_runtime_adjustment_percent:
           name: Sekcja 2 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -386,7 +386,7 @@ blueprint:
               mode: slider
         zone_2_online_sensor:
           name: Sekcja 2 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -394,7 +394,7 @@ blueprint:
                 - domain: binary_sensor
         zone_2_battery_sensor:
           name: Sekcja 2 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -408,7 +408,7 @@ blueprint:
       input:
         zone_3_valve:
           name: Sekcja 3 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -417,13 +417,13 @@ blueprint:
                 - domain: switch
         zone_3_name:
           name: Sekcja 3 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 3
           selector:
             text:
         zone_3_soil_type:
           name: Sekcja 3 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -433,19 +433,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_3_plant_type:
-          name: Sekcja 3 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 3 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -461,7 +461,7 @@ blueprint:
                   value: shrubs
         zone_3_sprinkler_profile:
           name: Sekcja 3 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -473,13 +473,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -487,13 +487,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_3_custom_rate_mm_h:
-          name: Sekcja 3 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 3 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -504,7 +504,7 @@ blueprint:
               mode: box
         zone_3_runtime_adjustment_percent:
           name: Sekcja 3 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -515,7 +515,7 @@ blueprint:
               mode: slider
         zone_3_online_sensor:
           name: Sekcja 3 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -523,7 +523,7 @@ blueprint:
                 - domain: binary_sensor
         zone_3_battery_sensor:
           name: Sekcja 3 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -537,7 +537,7 @@ blueprint:
       input:
         zone_4_valve:
           name: Sekcja 4 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -546,13 +546,13 @@ blueprint:
                 - domain: switch
         zone_4_name:
           name: Sekcja 4 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 4
           selector:
             text:
         zone_4_soil_type:
           name: Sekcja 4 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -562,19 +562,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_4_plant_type:
-          name: Sekcja 4 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 4 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -590,7 +590,7 @@ blueprint:
                   value: shrubs
         zone_4_sprinkler_profile:
           name: Sekcja 4 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -602,13 +602,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -616,13 +616,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_4_custom_rate_mm_h:
-          name: Sekcja 4 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 4 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -633,7 +633,7 @@ blueprint:
               mode: box
         zone_4_runtime_adjustment_percent:
           name: Sekcja 4 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -644,7 +644,7 @@ blueprint:
               mode: slider
         zone_4_online_sensor:
           name: Sekcja 4 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -652,7 +652,7 @@ blueprint:
                 - domain: binary_sensor
         zone_4_battery_sensor:
           name: Sekcja 4 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -666,7 +666,7 @@ blueprint:
       input:
         zone_5_valve:
           name: Sekcja 5 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -675,13 +675,13 @@ blueprint:
                 - domain: switch
         zone_5_name:
           name: Sekcja 5 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 5
           selector:
             text:
         zone_5_soil_type:
           name: Sekcja 5 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -691,19 +691,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_5_plant_type:
-          name: Sekcja 5 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 5 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -719,7 +719,7 @@ blueprint:
                   value: shrubs
         zone_5_sprinkler_profile:
           name: Sekcja 5 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -731,13 +731,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -745,13 +745,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_5_custom_rate_mm_h:
-          name: Sekcja 5 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 5 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -762,7 +762,7 @@ blueprint:
               mode: box
         zone_5_runtime_adjustment_percent:
           name: Sekcja 5 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -773,7 +773,7 @@ blueprint:
               mode: slider
         zone_5_online_sensor:
           name: Sekcja 5 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -781,7 +781,7 @@ blueprint:
                 - domain: binary_sensor
         zone_5_battery_sensor:
           name: Sekcja 5 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -795,7 +795,7 @@ blueprint:
       input:
         zone_6_valve:
           name: Sekcja 6 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -804,13 +804,13 @@ blueprint:
                 - domain: switch
         zone_6_name:
           name: Sekcja 6 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 6
           selector:
             text:
         zone_6_soil_type:
           name: Sekcja 6 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -820,19 +820,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_6_plant_type:
-          name: Sekcja 6 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 6 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -848,7 +848,7 @@ blueprint:
                   value: shrubs
         zone_6_sprinkler_profile:
           name: Sekcja 6 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -860,13 +860,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -874,13 +874,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_6_custom_rate_mm_h:
-          name: Sekcja 6 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 6 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -891,7 +891,7 @@ blueprint:
               mode: box
         zone_6_runtime_adjustment_percent:
           name: Sekcja 6 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -902,7 +902,7 @@ blueprint:
               mode: slider
         zone_6_online_sensor:
           name: Sekcja 6 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -910,7 +910,7 @@ blueprint:
                 - domain: binary_sensor
         zone_6_battery_sensor:
           name: Sekcja 6 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -924,7 +924,7 @@ blueprint:
       input:
         zone_7_valve:
           name: Sekcja 7 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -933,13 +933,13 @@ blueprint:
                 - domain: switch
         zone_7_name:
           name: Sekcja 7 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 7
           selector:
             text:
         zone_7_soil_type:
           name: Sekcja 7 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -949,19 +949,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_7_plant_type:
-          name: Sekcja 7 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 7 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -977,7 +977,7 @@ blueprint:
                   value: shrubs
         zone_7_sprinkler_profile:
           name: Sekcja 7 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -989,13 +989,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -1003,13 +1003,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_7_custom_rate_mm_h:
-          name: Sekcja 7 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 7 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -1020,7 +1020,7 @@ blueprint:
               mode: box
         zone_7_runtime_adjustment_percent:
           name: Sekcja 7 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -1031,7 +1031,7 @@ blueprint:
               mode: slider
         zone_7_online_sensor:
           name: Sekcja 7 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -1039,7 +1039,7 @@ blueprint:
                 - domain: binary_sensor
         zone_7_battery_sensor:
           name: Sekcja 7 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -1053,7 +1053,7 @@ blueprint:
       input:
         zone_8_valve:
           name: Sekcja 8 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -1062,13 +1062,13 @@ blueprint:
                 - domain: switch
         zone_8_name:
           name: Sekcja 8 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 8
           selector:
             text:
         zone_8_soil_type:
           name: Sekcja 8 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -1078,19 +1078,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_8_plant_type:
-          name: Sekcja 8 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 8 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -1106,7 +1106,7 @@ blueprint:
                   value: shrubs
         zone_8_sprinkler_profile:
           name: Sekcja 8 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -1118,13 +1118,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -1132,13 +1132,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_8_custom_rate_mm_h:
-          name: Sekcja 8 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 8 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -1149,7 +1149,7 @@ blueprint:
               mode: box
         zone_8_runtime_adjustment_percent:
           name: Sekcja 8 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -1160,7 +1160,7 @@ blueprint:
               mode: slider
         zone_8_online_sensor:
           name: Sekcja 8 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -1168,7 +1168,7 @@ blueprint:
                 - domain: binary_sensor
         zone_8_battery_sensor:
           name: Sekcja 8 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -1182,7 +1182,7 @@ blueprint:
       input:
         zone_9_valve:
           name: Sekcja 9 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -1191,13 +1191,13 @@ blueprint:
                 - domain: switch
         zone_9_name:
           name: Sekcja 9 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 9
           selector:
             text:
         zone_9_soil_type:
           name: Sekcja 9 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -1207,19 +1207,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_9_plant_type:
-          name: Sekcja 9 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 9 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -1235,7 +1235,7 @@ blueprint:
                   value: shrubs
         zone_9_sprinkler_profile:
           name: Sekcja 9 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -1247,13 +1247,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -1261,13 +1261,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_9_custom_rate_mm_h:
-          name: Sekcja 9 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 9 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -1278,7 +1278,7 @@ blueprint:
               mode: box
         zone_9_runtime_adjustment_percent:
           name: Sekcja 9 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -1289,7 +1289,7 @@ blueprint:
               mode: slider
         zone_9_online_sensor:
           name: Sekcja 9 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -1297,7 +1297,7 @@ blueprint:
                 - domain: binary_sensor
         zone_9_battery_sensor:
           name: Sekcja 9 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -1311,7 +1311,7 @@ blueprint:
       input:
         zone_10_valve:
           name: Sekcja 10 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -1320,13 +1320,13 @@ blueprint:
                 - domain: switch
         zone_10_name:
           name: Sekcja 10 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 10
           selector:
             text:
         zone_10_soil_type:
           name: Sekcja 10 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -1336,19 +1336,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_10_plant_type:
-          name: Sekcja 10 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 10 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -1364,7 +1364,7 @@ blueprint:
                   value: shrubs
         zone_10_sprinkler_profile:
           name: Sekcja 10 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -1376,13 +1376,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -1390,13 +1390,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_10_custom_rate_mm_h:
-          name: Sekcja 10 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 10 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -1407,7 +1407,7 @@ blueprint:
               mode: box
         zone_10_runtime_adjustment_percent:
           name: Sekcja 10 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -1418,7 +1418,7 @@ blueprint:
               mode: slider
         zone_10_online_sensor:
           name: Sekcja 10 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -1426,7 +1426,7 @@ blueprint:
                 - domain: binary_sensor
         zone_10_battery_sensor:
           name: Sekcja 10 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -1440,7 +1440,7 @@ blueprint:
       input:
         zone_11_valve:
           name: Sekcja 11 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -1449,13 +1449,13 @@ blueprint:
                 - domain: switch
         zone_11_name:
           name: Sekcja 11 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 11
           selector:
             text:
         zone_11_soil_type:
           name: Sekcja 11 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -1465,19 +1465,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_11_plant_type:
-          name: Sekcja 11 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 11 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -1493,7 +1493,7 @@ blueprint:
                   value: shrubs
         zone_11_sprinkler_profile:
           name: Sekcja 11 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -1505,13 +1505,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -1519,13 +1519,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_11_custom_rate_mm_h:
-          name: Sekcja 11 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 11 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -1536,7 +1536,7 @@ blueprint:
               mode: box
         zone_11_runtime_adjustment_percent:
           name: Sekcja 11 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -1547,7 +1547,7 @@ blueprint:
               mode: slider
         zone_11_online_sensor:
           name: Sekcja 11 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -1555,7 +1555,7 @@ blueprint:
                 - domain: binary_sensor
         zone_11_battery_sensor:
           name: Sekcja 11 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -1569,7 +1569,7 @@ blueprint:
       input:
         zone_12_valve:
           name: Sekcja 12 - encja
-          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcje na wyliczony czas i zatrzyma ja po zakonczeniu."
+          description: "Encja sekcji Rain Bird RC2 albo dowolna encja valve/switch, np. Sonoff, Shelly lub ESPHome. Automatyzacja uruchomi sekcję na wyliczony czas i zatrzyma ją po zakończeniu."
           default: ""
           selector:
             entity:
@@ -1578,13 +1578,13 @@ blueprint:
                 - domain: switch
         zone_12_name:
           name: Sekcja 12 - nazwa
-          description: Czytelna nazwa sekcji widoczna w sladowaniu automatyzacji i ulatwiajaca rozpoznanie obszaru podlewania.
+          description: Czytelna nazwa sekcji widoczna w śladach automatyzacji i ułatwiająca rozpoznanie obszaru podlewania.
           default: Sekcja 12
           selector:
             text:
         zone_12_soil_type:
           name: Sekcja 12 - rodzaj gleby
-          description: Wybierz najblizszy opis ziemi w ogrodzie. Lekkie gleby szybciej traca wode, a humus i czarnoziem dluzej ja magazynuja.
+          description: Wybierz najbliższy opis ziemi w ogrodzie. Lekkie gleby szybciej tracą wodę, a humus i czarnoziem dłużej ją magazynują.
           default: loam
           selector:
             select:
@@ -1594,19 +1594,19 @@ blueprint:
                   value: sand
                 - label: Lekka ogrodowa
                   value: sandy_loam
-                - label: Zwykla ziemia ogrodowa
+                - label: Zwykła ziemia ogrodowa
                   value: loam
-                - label: Humusowa / prochniczna
+                - label: Humusowa / próchniczna
                   value: humus
                 - label: Czarnoziem / czarna ziemia
                   value: chernozem
-                - label: Gliniasta / ciezka
+                - label: Gliniasta / ciężka
                   value: clay_loam
-                - label: Bardzo ciezka / zbita glina
+                - label: Bardzo ciężka / zbita glina
                   value: clay
         zone_12_plant_type:
-          name: Sekcja 12 - co rosnie
-          description: Okresla bazowe zapotrzebowanie na wode. Warzywa najwiecej, trawa srednio, krzewy zwykle mniej.
+          name: Sekcja 12 - co rośnie
+          description: Określa bazowe zapotrzebowanie na wodę. Warzywa najwięcej, trawa średnio, krzewy zwykle mniej.
           default: grass
           selector:
             select:
@@ -1622,7 +1622,7 @@ blueprint:
                   value: shrubs
         zone_12_sprinkler_profile:
           name: Sekcja 12 - zraszacze
-          description: Profil ustawia opad instalacji w mm/h. Im wiekszy opad zraszaczy, tym krotszy wyliczony czas podlewania.
+          description: Profil ustawia opad instalacji w mm/h. Im większy opad zraszaczy, tym krótszy wyliczony czas podlewania.
           default: rainbird_rotor
           selector:
             select:
@@ -1634,13 +1634,13 @@ blueprint:
                   value: rainbird_1800_spray
                 - label: Rain Bird R-VAN - dysze rotacyjne
                   value: rainbird_rvan
-                - label: Rain Bird XF - linia kroplujaca
+                - label: Rain Bird XF - linia kroplująca
                   value: rainbird_xf_drip
-                - label: Rain Bird - rotory ogolne
+                - label: Rain Bird - rotory ogólne
                   value: rainbird_rotor
-                - label: Rain Bird - spray ogolny
+                - label: Rain Bird - spray ogólny
                   value: rainbird_spray
-                - label: Rain Bird - linia kroplujaca ogolna
+                - label: Rain Bird - linia kroplująca ogólna
                   value: rainbird_drip
                 - label: Hunter - rotory
                   value: hunter_rotor
@@ -1648,13 +1648,13 @@ blueprint:
                   value: hunter_mp_rotator
                 - label: Hunter - spray/statyczne
                   value: hunter_spray
-                - label: Hunter - linia kroplujaca
+                - label: Hunter - linia kroplująca
                   value: hunter_drip
-                - label: Wlasny opad zraszaczy
+                - label: Własny opad zraszaczy
                   value: custom
         zone_12_custom_rate_mm_h:
-          name: Sekcja 12 - wlasny opad zraszaczy
-          description: Uzywane tylko przy profilu "Wlasny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jezeli znasz go z testu kubeczkowego albo dokumentacji.
+          name: Sekcja 12 - własny opad zraszaczy
+          description: Używane tylko przy profilu "Własny opad zraszaczy". Wpisz rzeczywisty opad sekcji w mm/h, jeżeli znasz go z testu kubeczkowego albo dokumentacji.
           default: 12
           selector:
             number:
@@ -1665,7 +1665,7 @@ blueprint:
               mode: box
         zone_12_runtime_adjustment_percent:
           name: Sekcja 12 - korekta czasu
-          description: Reczna korekta czasu pracy tej sekcji. 100% = bez zmian, wiecej wydluza podlewanie, mniej skraca. Bilans wody odejmuje wode faktycznie podana, wiec korekta zmienia ilosc wody w jednym podlewaniu, a nie laczna ilosc wody - krotsze podlewanie bedzie czestsze, dluzsze rzadsze.
+          description: Ręczna korekta czasu pracy tej sekcji. 100% = bez zmian, więcej wydłuża podlewanie, mniej skraca. Bilans wody odejmuje wodę faktycznie podaną, więc korekta zmienia ilość wody w jednym podlewaniu, a nie łączną ilość wody - krótsze podlewanie będzie częstsze, dłuższe rzadsze.
           default: 100
           selector:
             number:
@@ -1676,7 +1676,7 @@ blueprint:
               mode: slider
         zone_12_online_sensor:
           name: Sekcja 12 - online
-          description: Opcjonalny binary_sensor online. Jesli jest ustawiony i ma stan off, sekcja zostanie pominieta.
+          description: Opcjonalny binary_sensor online. Jeśli jest ustawiony i ma stan off, sekcja zostanie pominięta.
           default: ""
           selector:
             entity:
@@ -1684,7 +1684,7 @@ blueprint:
                 - domain: binary_sensor
         zone_12_battery_sensor:
           name: Sekcja 12 - bateria
-          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominieta, gdy bateria spadnie ponizej progu z blokad pogodowych.
+          description: Opcjonalny sensor baterii sekcji. Sekcja zostanie pominięta, gdy bateria spadnie poniżej progu z blokad pogodowych.
           default: ""
           selector:
             entity:
@@ -1697,21 +1697,21 @@ blueprint:
       input:
         schedule_mode:
           name: Start podlewania
-          description: Stala godzina uzywa godzin ponizej. Tryb slonca startuje podlewanie wzgledem wschodu albo zachodu.
+          description: Stała godzina używa godzin poniżej. Tryb słońca startuje podlewanie względem wschodu albo zachodu.
           default: fixed_time
           selector:
             select:
               mode: dropdown
               options:
-                - label: Stala godzina
+                - label: Stała godzina
                   value: fixed_time
-                - label: Wzgledem wschodu slonca
+                - label: Względem wschodu słońca
                   value: sunrise
-                - label: Wzgledem zachodu slonca
+                - label: Względem zachodu słońca
                   value: sunset
         sun_event_offset_minutes:
-          name: Przesuniecie wzgledem slonca
-          description: Minuty wzgledem wschodu/zachodu. Wartosc ujemna = przed, dodatnia = po.
+          name: Przesunięcie względem słońca
+          description: Minuty względem wschodu/zachodu. Wartość ujemna = przed, dodatnia = po.
           default: -30
           selector:
             number:
@@ -1721,26 +1721,26 @@ blueprint:
               unit_of_measurement: min
               mode: slider
         primary_start_time:
-          name: Glowna godzina podlewania
-          description: Uzywana tylko przy trybie "Stala godzina".
+          name: Główna godzina podlewania
+          description: Używana tylko przy trybie "Stała godzina".
           default: "04:30:00"
           selector:
             time:
         backup_start_time:
-          name: Awaryjny start po pominietej godzinie
-          description: Uzywany tylko przy stalej godzinie, gdy HA nie wykonal glownego startu. Wymaga helpera nastepnego podlewania. Nie wykonuje drugiej decyzji po prawidlowej glownej probie.
+          name: Awaryjny start po pominiętej godzinie
+          description: Używany tylko przy stałej godzinie, gdy HA nie wykonał głównego startu. Wymaga helpera następnego podlewania. Nie wykonuje drugiej decyzji po prawidłowej głównej próbie.
           default: "05:30:00"
           selector:
             time:
         enable_backup_time:
-          name: Wlacz awaryjny start
-          description: Dotyczy tylko stalej godziny i wymaga helpera nastepnego podlewania. Zapobiega utracie cyklu po restarcie HA, ale nie tworzy drugiego komunikatu tego samego dnia.
+          name: Włącz awaryjny start
+          description: Dotyczy tylko stałej godziny i wymaga helpera następnego podlewania. Zapobiega utracie cyklu po restarcie HA, ale nie tworzy drugiego komunikatu tego samego dnia.
           default: false
           selector:
             boolean:
         enable_condition_checks:
-          name: Wlacz dodatkowe przeliczenia
-          description: O tych godzinach automatyzacja realnie pobiera pogode i przelicza potrzebe podlewania, ale nie otwiera sekcji. Aktualizuje helper nastepnego podlewania i opcjonalnie Logbook, bez powiadomien HA.
+          name: Włącz dodatkowe przeliczenia
+          description: O tych godzinach automatyzacja realnie pobiera pogodę i przelicza potrzebę podlewania, ale nie otwiera sekcji. Aktualizuje helper następnego podlewania i opcjonalnie Logbook, bez powiadomień HA.
           default: true
           selector:
             boolean:
@@ -1769,8 +1769,8 @@ blueprint:
           selector:
             time:
         season_start_month:
-          name: Miesiac startu sezonu
-          description: Pierwszy miesiac, w ktorym automatyzacja moze podlewac. Poza sezonem sekcje nie sa uruchamiane.
+          name: Miesiąc startu sezonu
+          description: Pierwszy miesiąc, w którym automatyzacja może podlewać. Poza sezonem sekcje nie są uruchamiane.
           default: 4
           selector:
             number:
@@ -1779,8 +1779,8 @@ blueprint:
               step: 1
               mode: slider
         season_end_month:
-          name: Miesiac konca sezonu
-          description: Ostatni miesiac sezonu podlewania. Przyklad 4-10 oznacza podlewanie od kwietnia do pazdziernika.
+          name: Miesiąc końca sezonu
+          description: Ostatni miesiąc sezonu podlewania. Przykład 4-10 oznacza podlewanie od kwietnia do października.
           default: 10
           selector:
             number:
@@ -1790,7 +1790,7 @@ blueprint:
               mode: slider
         min_dose_mm:
           name: Minimalna dawka do startu
-          description: Jesli wyliczona dawka dla sekcji jest mniejsza, sekcja zostanie pominieta. Chroni przed bezsensownymi, bardzo krotkimi cyklami.
+          description: Jeśli wyliczona dawka dla sekcji jest mniejsza, sekcja zostanie pominięta. Chroni przed bezsensownymi, bardzo krótkimi cyklami.
           default: 3
           selector:
             number:
@@ -1801,7 +1801,7 @@ blueprint:
               mode: slider
         max_dose_mm:
           name: Maksymalna dawka jednego podlewania
-          description: Gorny limit wody na jedno podlewanie sekcji. Chroni przed przelaniem i zbyt dluga praca po kilku suchych dniach.
+          description: Górny limit wody na jedno podlewanie sekcji. Chroni przed przelaniem i zbyt długą pracą po kilku suchych dniach.
           default: 10
           selector:
             number:
@@ -1812,7 +1812,7 @@ blueprint:
               mode: slider
         min_runtime_minutes:
           name: Minimalny czas sekcji
-          description: Najkrotszy czas pracy sekcji, jesli podlewanie juz wystartuje. Pomaga utrzymac stabilna prace sekcji i instalacji.
+          description: Najkrótszy czas pracy sekcji, jeśli podlewanie już wystartuje. Pomaga utrzymać stabilną pracę sekcji i instalacji.
           default: 8
           selector:
             number:
@@ -1823,7 +1823,7 @@ blueprint:
               mode: slider
         max_runtime_minutes:
           name: Maksymalny czas sekcji
-          description: Najdluzszy dopuszczalny czas pracy jednej sekcji w jednym cyklu. Ogranicza ryzyko zbyt dlugiego podlewania.
+          description: Najdłuższy dopuszczalny czas pracy jednej sekcji w jednym cyklu. Ogranicza ryzyko zbyt długiego podlewania.
           default: 45
           selector:
             number:
@@ -1833,8 +1833,8 @@ blueprint:
               unit_of_measurement: min
               mode: slider
         zone_pause_seconds:
-          name: Przerwa miedzy sekcjami
-          description: Odstep po zamknieciu jednej sekcji przed startem kolejnej. Daje instalacji czas na ustabilizowanie cisnienia.
+          name: Przerwa między sekcjami
+          description: Odstęp po zamknięciu jednej sekcji przed startem kolejnej. Daje instalacji czas na ustabilizowanie ciśnienia.
           default: 15
           selector:
             number:
@@ -1850,8 +1850,8 @@ blueprint:
       collapsed: true
       input:
         max_forecast_rain_mm:
-          name: Prognozowany deszcz blokujacy
-          description: Jesli prognoza pokazuje co najmniej tyle mm deszczu, podlewanie zostanie pominiete.
+          name: Prognozowany deszcz blokujący
+          description: Jeśli prognoza pokazuje co najmniej tyle mm deszczu, podlewanie zostanie pominięte.
           default: 4
           selector:
             number:
@@ -1861,8 +1861,8 @@ blueprint:
               unit_of_measurement: mm
               mode: slider
         max_rain_probability_percent:
-          name: Prawdopodobienstwo deszczu blokujace
-          description: Podlewanie zostanie zablokowane, gdy szansa deszczu przekroczy ten prog i prognoza pokazuje co najmniej 1 mm opadu.
+          name: Prawdopodobieństwo deszczu blokujące
+          description: Podlewanie zostanie zablokowane, gdy szansa deszczu przekroczy ten próg i prognoza pokazuje co najmniej 1 mm opadu.
           default: 80
           selector:
             number:
@@ -1872,8 +1872,8 @@ blueprint:
               unit_of_measurement: "%"
               mode: slider
         rain_credit_percent:
-          name: Ile deszczu odjac od dawki
-          description: Ile procent nowego, zmierzonego deszczu zapisac jako wode dostarczona glebie. Prognoza moze odlozyc start, ale nie jest odejmowana od bilansu, dopoki opad nie zostanie zmierzony. 80% uwzglednia typowe straty.
+          name: Ile deszczu odjąć od dawki
+          description: Ile procent nowego, zmierzonego deszczu zapisać jako wodę dostarczoną glebie. Prognoza może odłożyć start, ale nie jest odejmowana od bilansu, dopóki opad nie zostanie zmierzony. 80% uwzględnia typowe straty.
           default: 80
           selector:
             number:
@@ -1884,7 +1884,7 @@ blueprint:
               mode: slider
         min_temperature_c:
           name: Minimalna temperatura
-          description: Ponizej tej temperatury podlewanie nie wystartuje. Chroni rosliny i instalacje przy zimnych porankach.
+          description: Poniżej tej temperatury podlewanie nie wystartuje. Chroni rośliny i instalacje przy zimnych porankach.
           default: 8
           selector:
             number:
@@ -1894,8 +1894,8 @@ blueprint:
               unit_of_measurement: C
               mode: slider
         hot_temperature_c:
-          name: Temperatura upalu
-          description: Od tej temperatury automatyzacja lekko zwieksza dawke wody, bo parowanie jest wieksze.
+          name: Temperatura upału
+          description: Od tej temperatury automatyzacja lekko zwiększa dawkę wody, bo parowanie jest większe.
           default: 28
           selector:
             number:
@@ -1906,7 +1906,7 @@ blueprint:
               mode: slider
         max_wind:
           name: Maksymalny wiatr
-          description: Limit w km/h. Predkosc z encji w m/s, mph lub wezlach jest automatycznie przeliczana. Powyzej limitu podlewanie zostanie pominiete, zeby woda nie byla znoszona poza sekcje.
+          description: Limit w km/h. Prędkość z encji w m/s, mph lub węzłach jest automatycznie przeliczana. Powyżej limitu podlewanie zostanie pominięte, żeby woda nie była znoszona poza sekcje.
           default: 35
           selector:
             number:
@@ -1917,7 +1917,7 @@ blueprint:
               mode: slider
         min_battery_percent:
           name: Minimalna bateria sekcji
-          description: Jesli sekcja ma sensor baterii i bateria jest ponizej tego progu, sekcja zostanie pominieta.
+          description: Jeśli sekcja ma sensor baterii i bateria jest poniżej tego progu, sekcja zostanie pominięta.
           default: 20
           selector:
             number:
@@ -1927,8 +1927,8 @@ blueprint:
               unit_of_measurement: "%"
               mode: slider
         soil_moisture_block_percent:
-          name: Wilgotnosc gleby blokujaca podlewanie
-          description: Uzywane tylko po wybraniu sensora wilgotnosci gleby. Po osiagnieciu tego progu czujnik bezposrednio blokuje cykl, tak jak profesjonalny sterownik oparty na wilgotnosci. Prog ustaw zgodnie z kalibracja swojego sensora.
+          name: Wilgotność gleby blokująca podlewanie
+          description: Używane tylko po wybraniu sensora wilgotności gleby. Po osiągnięciu tego progu czujnik bezpośrednio blokuje cykl, tak jak profesjonalny sterownik oparty na wilgotności. Próg ustaw zgodnie z kalibracją swojego sensora.
           default: 70
           selector:
             number:
@@ -1938,8 +1938,8 @@ blueprint:
               unit_of_measurement: "%"
               mode: slider
         irrigation_efficiency_percent:
-          name: Sprawnosc instalacji
-          description: Uwzglednia straty instalacji, nierowny opad i parowanie. Nizsza wartosc wydluza podlewanie; 70-85% jest typowe.
+          name: Sprawność instalacji
+          description: Uwzględnia straty instalacji, nierówny opad i parowanie. Niższa wartość wydłuża podlewanie; 70-85% jest typowe.
           default: 75
           selector:
             number:
@@ -1955,28 +1955,28 @@ blueprint:
       collapsed: true
       input:
         enable_irrigation_logs:
-          name: Wlacz logbook.log
+          name: Włącz logbook.log
           description: Dodaje wpisy do Logbooka HA. Obejmuje start cyklu, pomijanie z powodem, start/koniec sekcji oraz przerwanie przez deszcz.
           default: false
           selector:
             boolean:
         create_persistent_notification:
-          name: Tworz powiadomienie persistent_notification
-          description: Pokazuje powiadomienia tylko przy starcie podlewania, koncu z czasem sekcji, pominieciu albo przerwaniu z krotkim powodem.
+          name: Twórz powiadomienie persistent_notification
+          description: Pokazuje powiadomienia tylko przy starcie podlewania, końcu z czasem sekcji, pominięciu albo przerwaniu z krótkim powodem.
           default: false
           selector:
             boolean:
         next_watering_datetime:
-          name: Helper - nastepne podlewanie
-          description: Opcjonalny input_datetime z data i godzina. Automatyzacja zapisze w nim szacowany termin nastepnego podlewania po kazdym sprawdzeniu cyklu.
+          name: Helper - następne podlewanie
+          description: Opcjonalny input_datetime z datą i godziną. Automatyzacja zapisze w nim szacowany termin następnego podlewania po każdym sprawdzeniu cyklu.
           default: ""
           selector:
             entity:
               filter:
                 - domain: input_datetime
         water_balance_helper:
-          name: Helper - trwaly bilans wody
-          description: Zalecany input_text zapisujacy bilans ET, zmierzonego deszczu i wykonanego podlewania osobno dla wszystkich sekcji. Utworz helper Tekst z maksymalna dlugoscia 255 znakow. Gdy zapis nie miescilby sie w limicie helpera, podlewanie jest wstrzymane z czytelnym powodem. Bez helpera dziala tryb zgodnosci oparty na historii pracy sekcji, ktora raportuje tylko Rain Bird RC2; przy sekcjach switch/valve helper jest wymagany.
+          name: Helper - trwały bilans wody
+          description: Zalecany input_text zapisujący bilans ET, zmierzonego deszczu i wykonanego podlewania osobno dla wszystkich sekcji. Utwórz helper Tekst z maksymalną długością 255 znaków. Gdy zapis nie mieściłby się w limicie helpera, podlewanie jest wstrzymane z czytelnym powodem. Bez helpera działa tryb zgodności oparty na historii pracy sekcji, która raportuje tylko Rain Bird RC2; przy sekcjach switch/valve helper jest wymagany.
           default: ""
           selector:
             entity:
@@ -2301,12 +2301,12 @@ variables:
        or ((trigger_is_condition_check | bool) and (enable_condition_checks | bool)) }}
 
 actions:
-  - alias: Kontrola bezpieczenstwa zaworow
+  - alias: Kontrola bezpieczeństwa zaworów
     if:
       - condition: template
         value_template: "{{ trigger_id in safety_trigger_ids }}"
     then:
-      - alias: Wyznacz sekcje switch/valve bez wlasnego limitu czasu w sterowniku
+      - alias: Wyznacz sekcje switch/valve bez własnego limitu czasu w sterowniku
         variables:
           safety_sections: >-
             {% set controller_timed = integration_entities('rainbird_rc2') + integration_entities('rainbird') %}
@@ -2320,7 +2320,7 @@ actions:
               {% set changed = as_datetime(this.last_changed | default('', true) | string, none) if this is defined else none %}
               {{ changed is not none and (now() - changed).total_seconds() < 120 }}
             {% endif %}
-      - alias: Po starcie HA poczekaj, az sekcje beda dostepne
+      - alias: Po starcie HA poczekaj, aż sekcje będą dostępne
         if:
           - condition: template
             value_template: "{{ trigger_id == 'ha_start' and safety_sections | count > 0 }}"
@@ -2328,7 +2328,7 @@ actions:
           - wait_template: "{{ safety_sections | select('is_state', 'unavailable') | list | count == 0 }}"
             timeout: "00:03:00"
             continue_on_timeout: true
-      - alias: Wybierz sekcje do zamkniecia
+      - alias: Wybierz sekcje do zamknięcia
         variables:
           safety_watchdog_limit_minutes: "{{ (max_runtime_minutes | int(45)) + 5 }}"
           safety_close_now: >-
@@ -2349,7 +2349,7 @@ actions:
               []
             {% endif %}
           safety_unavailable: "{{ safety_sections | select('is_state', 'unavailable') | list }}"
-      - alias: Zamknij sekcje i potwierdz zamkniecie
+      - alias: Zamknij sekcje i potwierdź zamknięcie
         if:
           - condition: template
             value_template: "{{ (safety_close_now | count) + (safety_unknown | count) > 0 }}"
@@ -2392,11 +2392,11 @@ actions:
                 {% if trigger_id == 'ha_start' %}
                   Po starcie Home Assistanta
                 {% elif trigger_id == 'automation_reloaded' %}
-                  Po przeladowaniu automatyzacji podlewania
+                  Po przeładowaniu automatyzacji podlewania
                 {% else %}
-                  Nadzor czasu pracy: sekcja byla wlaczona dluzej niz {{ safety_watchdog_limit_minutes }} min (maksymalny czas sekcji + 5 min), wiec
+                  Nadzór czasu pracy: sekcja była włączona dłużej niż {{ safety_watchdog_limit_minutes }} min (maksymalny czas sekcji + 5 min), więc
                 {% endif %}
-          - alias: Powiadom o zamknieciu sekcji
+          - alias: Powiadom o zamknięciu sekcji
             if:
               - condition: template
                 value_template: "{{ (safety_closed | count) + (safety_not_closed | count) > 0 }}"
@@ -2404,40 +2404,40 @@ actions:
               - action: persistent_notification.create
                 data:
                   title: >-
-                    {{ 'Inteligentne podlewanie - ALARM' if safety_not_closed | count > 0 else 'Inteligentne podlewanie - zamknieto sekcje' }}
+                    {{ 'Inteligentne podlewanie - ALARM' if safety_not_closed | count > 0 else 'Inteligentne podlewanie - zamknięto sekcje' }}
                   message: |-
                     {%- if safety_not_closed | count > 0 %}
-                    **Status:** sekcje nie potwierdzily zamkniecia
+                    **Status:** sekcje nie potwierdziły zamknięcia
 
-                    {{ safety_event_text | trim }} automatyzacja probowala zamknac otwarte sekcje 3 razy, ale nie dostala potwierdzenia.
+                    {{ safety_event_text | trim }} automatyzacja próbowała zamknąć otwarte sekcje 3 razy, ale nie dostała potwierdzenia.
 
-                    **Sprawdz recznie**
+                    **Sprawdź ręcznie**
                     {%- for e in safety_not_closed %}
                     - {{ e }}: stan {{ states(e) }}
                     {%- endfor %}
                     {%- else %}
-                    **Status:** zamknieto otwarte sekcje
+                    **Status:** zamknięto otwarte sekcje
 
-                    {{ safety_event_text | trim }} automatyzacja zamknela sekcje, ktore pozostaly otwarte.
+                    {{ safety_event_text | trim }} automatyzacja zamknęła sekcje, które pozostały otwarte.
                     {%- endif %}
                     {%- if safety_closed | count > 0 %}
 
-                    **Zamkniete**
+                    **Zamknięte**
                     {%- for e in safety_closed %}
                     - {{ e }}
                     {%- endfor %}
                     {%- endif %}
                     {%- if safety_unavailable | count > 0 %}
 
-                    **Niedostepne - nie mozna sprawdzic**
+                    **Niedostępne - nie można sprawdzić**
                     {%- for e in safety_unavailable %}
                     - {{ e }}
                     {%- endfor %}
                     {%- endif %}
 
-                    Jesli przerwano trwajacy przebieg, bilans wody tej sekcji nie zostal pomniejszony; podlewanie wroci przy nastepnym zaplanowanym cyklu.
+                    Jeśli przerwano trwający przebieg, bilans wody tej sekcji nie został pomniejszony; podlewanie wróci przy następnym zaplanowanym cyklu.
                   notification_id: smart_irrigation_valve_alarm
-          - alias: Zaloguj kontrole zaworow
+          - alias: Zaloguj kontrolę zaworów
             if:
               - condition: template
                 value_template: "{{ enable_irrigation_logs | bool }}"
@@ -2446,18 +2446,18 @@ actions:
                 data:
                   name: Inteligentne podlewanie
                   message: >-
-                    Kontrola zaworow ({{ trigger_id }}).
-                    Zamkniete: {{ safety_closed | join(', ') if safety_closed | count > 0 else 'brak' }}.
-                    Bez potwierdzenia zamkniecia: {{ safety_not_closed | join(', ') if safety_not_closed | count > 0 else 'brak' }}.
-                    Wyslano OFF do sekcji o stanie unknown: {{ safety_unknown | join(', ') if safety_unknown | count > 0 else 'brak' }}.
-                    Niedostepne: {{ safety_unavailable | join(', ') if safety_unavailable | count > 0 else 'brak' }}.
-      - stop: "Kontrola bezpieczenstwa zaworow zakonczona."
+                    Kontrola zaworów ({{ trigger_id }}).
+                    Zamknięte: {{ safety_closed | join(', ') if safety_closed | count > 0 else 'brak' }}.
+                    Bez potwierdzenia zamknięcia: {{ safety_not_closed | join(', ') if safety_not_closed | count > 0 else 'brak' }}.
+                    Wysłano OFF do sekcji o stanie unknown: {{ safety_unknown | join(', ') if safety_unknown | count > 0 else 'brak' }}.
+                    Niedostępne: {{ safety_unavailable | join(', ') if safety_unavailable | count > 0 else 'brak' }}.
+      - stop: "Kontrola bezpieczeństwa zaworów zakończona."
 
   - alias: Harmonogram startu pasuje
     condition: template
     value_template: "{{ schedule_trigger_ok | bool }}"
 
-  - alias: Pobierz prognoze dzienna
+  - alias: Pobierz prognozę dzienną
     action: weather.get_forecasts
     continue_on_error: true
     target:
@@ -2473,7 +2473,7 @@ actions:
         {% set fc = daily_forecast if daily_forecast is defined and daily_forecast is mapping else {} %}
         {{ fc.get(forecast_weather_entity, {}).get('forecast', []) | count > 0 }}
 
-  - alias: Wylicz pogode i wspolne warunki
+  - alias: Wylicz pogodę i wspólne warunki
     variables:
       meteofusion_native: >-
         {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
@@ -2492,11 +2492,11 @@ actions:
       meteofusion_status_pl: >-
         {% set names = {
           'ready': 'gotowy',
-          'degraded': 'obnizona jakosc',
+          'degraded': 'obniżona jakość',
           'stale': 'nieaktualne dane',
           'unknown': 'nieznany',
-          'unavailable': 'niedostepny',
-          'not_used': 'nieuzywany'
+          'unavailable': 'niedostępny',
+          'not_used': 'nieużywany'
         } %}
         {{ names.get(meteofusion_status | trim, meteofusion_status | trim) }}
       meteofusion_confidence: >-
@@ -2537,21 +2537,21 @@ actions:
         {% set names = {
           'clear-night': 'bezchmurna noc',
           'cloudy': 'pochmurno',
-          'exceptional': 'warunki wyjatkowe',
-          'fog': 'mgla',
+          'exceptional': 'warunki wyjątkowe',
+          'fog': 'mgła',
           'hail': 'grad',
           'lightning': 'burza',
           'lightning-rainy': 'burza z deszczem',
-          'partlycloudy': 'czesciowe zachmurzenie',
+          'partlycloudy': 'częściowe zachmurzenie',
           'pouring': 'ulewny deszcz',
           'rainy': 'deszcz',
-          'snowy': 'snieg',
-          'snowy-rainy': 'snieg z deszczem',
-          'sunny': 'slonecznie',
+          'snowy': 'śnieg',
+          'snowy-rainy': 'śnieg z deszczem',
+          'sunny': 'słonecznie',
           'windy': 'wietrznie',
           'windy-variant': 'wietrznie z zachmurzeniem',
           'unknown': 'nieznany',
-          'unavailable': 'niedostepny'
+          'unavailable': 'niedostępny'
         } %}
         {{ names.get(condition, condition) }}
       forecast_condition_pl: >-
@@ -2559,21 +2559,21 @@ actions:
         {% set names = {
           'clear-night': 'bezchmurna noc',
           'cloudy': 'pochmurno',
-          'exceptional': 'warunki wyjatkowe',
-          'fog': 'mgla',
+          'exceptional': 'warunki wyjątkowe',
+          'fog': 'mgła',
           'hail': 'grad',
           'lightning': 'burza',
           'lightning-rainy': 'burza z deszczem',
-          'partlycloudy': 'czesciowe zachmurzenie',
+          'partlycloudy': 'częściowe zachmurzenie',
           'pouring': 'ulewny deszcz',
           'rainy': 'deszcz',
-          'snowy': 'snieg',
-          'snowy-rainy': 'snieg z deszczem',
-          'sunny': 'slonecznie',
+          'snowy': 'śnieg',
+          'snowy-rainy': 'śnieg z deszczem',
+          'sunny': 'słonecznie',
           'windy': 'wietrznie',
           'windy-variant': 'wietrznie z zachmurzeniem',
           'unknown': 'nieznany',
-          'unavailable': 'niedostepny'
+          'unavailable': 'niedostępny'
         } %}
         {{ names.get(condition, condition) }}
       forecast_temperature: >-
@@ -2599,7 +2599,7 @@ actions:
         {% else %}
           {{ fc[0].precipitation_probability | default(0, true) | int(0) if fc | count > 0 else 0 }}
         {% endif %}
-      forecast_window_label: "{{ 'najblizsze 24 h' if (meteofusion_native | bool) else 'prognoza dzienna' }}"
+      forecast_window_label: "{{ 'najbliższe 24 h' if (meteofusion_native | bool) else 'prognoza dzienna' }}"
       current_rain_mm: >-
         {% set e = rain_amount_sensor | default('', true) %}
         {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
@@ -2737,7 +2737,7 @@ actions:
         {% endif %}
       weather_source_summary: >-
         {% if meteofusion_native | bool %}
-          MeteoFusion HA, pewnosc {{ meteofusion_confidence | float(0) | round(1) }}%, status {{ meteofusion_status_pl | trim }}, ET0 {{ reference_et_mm | float(0) | round(2) }} mm/d
+          MeteoFusion HA, pewność {{ meteofusion_confidence | float(0) | round(1) }}%, status {{ meteofusion_status_pl | trim }}, ET0 {{ reference_et_mm | float(0) | round(2) }} mm/d
         {% else %}
           {{ state_attr(forecast_weather_entity, 'friendly_name') | default(forecast_weather_entity, true) }}, ET0 {{ reference_et_mm | float(0) | round(2) }} mm/d
         {% endif %}
@@ -2746,7 +2746,7 @@ actions:
         {% set credit = 0 if raw_credit < 0 else 1 if raw_credit > 1 else raw_credit %}
         {{ ((current_rain_mm | float(0)) * credit) | round(1) }}
 
-  - alias: Zaktualizuj trwaly bilans wody
+  - alias: Zaktualizuj trwały bilans wody
     variables:
       water_balance_enabled: >-
         {{ water_balance_helper | default('', true) | length > 0 }}
@@ -2858,7 +2858,7 @@ actions:
                and states(water_balance_helper) != 'unavailable'
                and (water_balance_payload_length | int(0)) <= (water_balance_helper_max | int(0))) }}
 
-  - alias: Zapisz trwaly bilans w helperze
+  - alias: Zapisz trwały bilans w helperze
     choose:
       - conditions:
           - condition: template
@@ -2870,7 +2870,7 @@ actions:
             data:
               value: "{{ water_balance_payload | trim }}"
 
-  - alias: Zaloguj przerwe w aktualizacji bilansu
+  - alias: Zaloguj przerwę w aktualizacji bilansu
     if:
       - condition: template
         value_template: >-
@@ -2883,21 +2883,21 @@ actions:
           name: Inteligentne podlewanie
           message: >-
             {% if water_balance_new_season | bool %}
-              Nowy sezon podlewania: bilans wody liczony od zera od poczatku sezonu (miesiac {{ season_start_month }}).
+              Nowy sezon podlewania: bilans wody liczony od zera od początku sezonu (miesiąc {{ season_start_month }}).
             {% else %}
-              Bilans wody nie byl aktualizowany przez {{ water_balance_raw_elapsed_days | float(0) | round(1) }} dni
-              (automatyzacja wylaczona albo Home Assistant nie dzialal). Doliczono ewapotranspiracje tylko za 7 dni.
+              Bilans wody nie był aktualizowany przez {{ water_balance_raw_elapsed_days | float(0) | round(1) }} dni
+              (automatyzacja wyłączona albo Home Assistant nie działał). Doliczono ewapotranspirację tylko za 7 dni.
             {% endif %}
 
-  - alias: Wylicz ostrzezenie o braku pomiaru opadu
+  - alias: Wylicz ostrzeżenie o braku pomiaru opadu
     variables:
       rain_measurement_warning: >-
         {% if (water_balance_enabled | bool) and (water_balance_measured_rain_available | bool)
               and not (water_balance_rain_source_ok | bool) %}
-          Zrodlo opadu jest teraz niedostepne - bilans zachowal poprzedni stan opadu i nie odjal nowego deszczu.
+          Źródło opadu jest teraz niedostępne - bilans zachował poprzedni stan opadu i nie odjął nowego deszczu.
         {% endif %}
 
-  - alias: Wylicz powod pominiecia podlewania
+  - alias: Wylicz powód pominięcia podlewania
     variables:
       zones_non_rc2: >-
         {{ [zone_1_valve, zone_2_valve, zone_3_valve, zone_4_valve, zone_5_valve, zone_6_valve,
@@ -2908,47 +2908,47 @@ actions:
            and states(rain_binary_sensor) in ['unknown', 'unavailable'] }}
       irrigation_skip_reason: >-
         {% if not (season_ok | bool) %}
-          Poza sezonem podlewania. Aktywny sezon to miesiace {{ season_start_month }}-{{ season_end_month }}.
+          Poza sezonem podlewania. Aktywny sezon to miesiące {{ season_start_month }}-{{ season_end_month }}.
         {% elif (min_dose_mm | float(3)) > (max_dose_mm | float(10)) %}
-          Minimalna dawka do startu ({{ min_dose_mm }} mm) jest wieksza od maksymalnej dawki jednego podlewania ({{ max_dose_mm }} mm). Popraw progi w sekcji "Harmonogram, sezon i progi".
+          Minimalna dawka do startu ({{ min_dose_mm }} mm) jest większa od maksymalnej dawki jednego podlewania ({{ max_dose_mm }} mm). Popraw progi w sekcji "Harmonogram, sezon i progi".
         {% elif (water_balance_enabled | bool) and (states[water_balance_helper] is none or states(water_balance_helper) == 'unavailable') %}
-          Helper bilansu wody {{ water_balance_helper }} nie istnieje albo jest niedostepny. Utworz helper Tekst o maksymalnej dlugosci 255 znakow albo wybierz istniejacy.
+          Helper bilansu wody {{ water_balance_helper }} nie istnieje albo jest niedostępny. Utwórz helper Tekst o maksymalnej długości 255 znaków albo wybierz istniejący.
         {% elif (water_balance_enabled | bool) and not (water_balance_helper_ok | bool) %}
-          Helper bilansu wody {{ water_balance_helper }} ma limit {{ water_balance_helper_max }} znakow, a zapis bilansu wymaga {{ water_balance_payload_length }}. Ustaw maksymalna dlugosc helpera na 255 znakow.
+          Helper bilansu wody {{ water_balance_helper }} ma limit {{ water_balance_helper_max }} znaków, a zapis bilansu wymaga {{ water_balance_payload_length }}. Ustaw maksymalną długość helpera na 255 znaków.
         {% elif not (water_balance_enabled | bool) and zones_non_rc2 | count > 0 %}
-          Wybierz "Helper - trwaly bilans wody". Sekcje {{ zones_non_rc2 | join(', ') }} nie raportuja historii pracy, wiec bez helpera nie da sie policzyc ich zapotrzebowania na wode.
+          Wybierz "Helper - trwały bilans wody". Sekcje {{ zones_non_rc2 | join(', ') }} nie raportują historii pracy, więc bez helpera nie da się policzyć ich zapotrzebowania na wodę.
         {% elif (water_balance_enabled | bool) and not (water_balance_measured_rain_available | bool) %}
-          Brak zrodla opadu: bilans wody nie wie o deszczu, wiec podlewanie jest wstrzymane. Wybierz "Opad zmierzony" w sekcji opcjonalnych sensorow albo wlacz "Korzystaj z danych MeteoFusion HA".
+          Brak źródła opadu: bilans wody nie wie o deszczu, więc podlewanie jest wstrzymane. Wybierz "Opad zmierzony" w sekcji opcjonalnych sensorów albo włącz "Korzystaj z danych MeteoFusion HA".
         {% elif not (daily_forecast_available | bool) %}
-          Encja {{ forecast_weather_entity }} nie udostepnila prognozy dziennej (weather.get_forecasts, type daily). Wybierz encje pogody z prognoza dzienna.
+          Encja {{ forecast_weather_entity }} nie udostępniła prognozy dziennej (weather.get_forecasts, type daily). Wybierz encję pogody z prognozą dzienną.
         {% elif (use_meteofusion_data | bool) and not (meteofusion_contract_available | bool) %}
-          Wlaczono korzystanie z MeteoFusion HA, ale wybrana encja {{ forecast_weather_entity }} nie udostepnia kontraktu smart_service.weather.v1. Wybierz encje weather z MeteoFusion albo wylacz te opcje.
+          Włączono korzystanie z MeteoFusion HA, ale wybrana encja {{ forecast_weather_entity }} nie udostępnia kontraktu smart_service.weather.v1. Wybierz encję weather z MeteoFusion albo wyłącz tę opcję.
         {% elif (meteofusion_native | bool) and not (meteofusion_quality_ok | bool) %}
-          Dane MeteoFusion sa zbyt malo wiarygodne. Status: {{ meteofusion_status_pl | trim }}, pewnosc: {{ meteofusion_confidence | float(0) | round(1) }}%, zrodla: {{ meteofusion_source_count | int(0) }}, wiek danych stacji: {{ meteofusion_station_age_minutes | float(0) | round(1) }} min.
+          Dane MeteoFusion są zbyt mało wiarygodne. Status: {{ meteofusion_status_pl | trim }}, pewność: {{ meteofusion_confidence | float(0) | round(1) }}%, źródła: {{ meteofusion_source_count | int(0) }}, wiek danych stacji: {{ meteofusion_station_age_minutes | float(0) | round(1) }} min.
         {% elif not (weather_data_ok | bool) %}
           Brak wiarygodnych danych pogodowych. Aktualny stan: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}.
         {% elif not (weather_ok | bool) %}
           Pogoda blokuje podlewanie. Aktualny stan: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}.
         {% elif rain_sensor_unavailable | bool %}
-          Czujnik deszczu {{ rain_binary_sensor }} jest niedostepny (stan {{ states(rain_binary_sensor) }}), podlewanie wstrzymane dla bezpieczenstwa. Sprawdz czujnik albo usun go z konfiguracji.
+          Czujnik deszczu {{ rain_binary_sensor }} jest niedostępny (stan {{ states(rain_binary_sensor) }}), podlewanie wstrzymane dla bezpieczeństwa. Sprawdź czujnik albo usuń go z konfiguracji.
         {% elif not (rain_sensor_ok | bool) %}
           {% if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
             Czujnik deszczu jest aktywny: {{ rain_binary_sensor }} ma stan {{ states(rain_binary_sensor) }}.
           {% elif meteofusion_lightning_near | bool %}
-            MeteoFusion wykrywa burze w poblizu lokalnej stacji.
+            MeteoFusion wykrywa burzę w pobliżu lokalnej stacji.
           {% else %}
             MeteoFusion wykrywa aktualny deszcz: {{ meteofusion_rain_rate | float(0) | round(2) }} mm/h.
           {% endif %}
         {% elif not (soil_moisture_ok | bool) %}
-          Gleba jest wystarczajaco wilgotna: {{ soil_moisture_percent | float(0) | round(1) }}%, prog blokady {{ soil_moisture_block_percent | float(70) | round(0) }}%.
+          Gleba jest wystarczająco wilgotna: {{ soil_moisture_percent | float(0) | round(1) }}%, próg blokady {{ soil_moisture_block_percent | float(70) | round(0) }}%.
         {% elif not (forecast_rain_ok | bool) %}
-          Prognoza deszczu ({{ forecast_window_label }}) blokuje podlewanie: {{ forecast_precipitation | float(0) }} mm i {{ forecast_precipitation_probability | int(0) }}% prawdopodobienstwa.
+          Prognoza deszczu ({{ forecast_window_label }}) blokuje podlewanie: {{ forecast_precipitation | float(0) }} mm i {{ forecast_precipitation_probability | int(0) }}% prawdopodobieństwa.
         {% elif not (temp_available | bool) %}
-          Brak aktualnej temperatury: {{ temperature_source_entity if temperature_source_entity | default('', true) | length > 0 else current_weather_entity }} nie podaje wartosci, a encja {{ current_weather_entity }} nie ma atrybutu temperature. Podlewanie wstrzymane dla bezpieczenstwa przed przymrozkiem.
+          Brak aktualnej temperatury: {{ temperature_source_entity if temperature_source_entity | default('', true) | length > 0 else current_weather_entity }} nie podaje wartości, a encja {{ current_weather_entity }} nie ma atrybutu temperature. Podlewanie wstrzymane dla bezpieczeństwa przed przymrozkiem.
         {% elif not (temp_ok | bool) %}
           Temperatura jest za niska: {{ temp_c | float(0) | round(1) }} C, minimum to {{ min_temperature_c }} C.
         {% elif not (wind_available | bool) %}
-          Brak pomiaru wiatru: {{ wind_source_entity }} nie podaje wartosci, a encja {{ current_weather_entity }} nie ma atrybutu wind_speed. Podlewanie wstrzymane.
+          Brak pomiaru wiatru: {{ wind_source_entity }} nie podaje wartości, a encja {{ current_weather_entity }} nie ma atrybutu wind_speed. Podlewanie wstrzymane.
         {% elif not (wind_ok | bool) %}
           Wiatr jest za mocny: {{ wind_value | float(0) | round(1) }}, limit to {{ max_wind }}.
         {% else %}{% endif %}
@@ -2965,7 +2965,7 @@ actions:
             data:
               timestamp: "{{ next_schedule_timestamp | int }}"
 
-  - alias: Zaloguj pominiecie calego podlewania
+  - alias: Zaloguj pominięcie całego podlewania
     choose:
       - conditions:
           - condition: template
@@ -2974,9 +2974,9 @@ actions:
           - action: logbook.log
             data:
               name: Inteligentne podlewanie
-              message: "Pominieto podlewanie. {{ irrigation_skip_reason | trim }}"
+              message: "Pominięto podlewanie. {{ irrigation_skip_reason | trim }}"
 
-  - alias: Powiadom o pominieciu calego podlewania
+  - alias: Powiadom o pominięciu całego podlewania
     choose:
       - conditions:
           - condition: template
@@ -2986,13 +2986,13 @@ actions:
             data:
               title: Inteligentne podlewanie
               message: |-
-                **Status:** pominieto podlewanie
+                **Status:** pominięto podlewanie
 
-                **Powod**
+                **Powód**
                 {{ irrigation_skip_reason | trim }}
 
                 **Pogoda**
-                - Zrodlo: {{ weather_source_summary | trim }}
+                - Źródło: {{ weather_source_summary | trim }}
                 - Aktualnie: {{ current_weather_condition_pl }}
                 - Prognoza: {{ forecast_condition_pl }}
                 - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
@@ -3002,19 +3002,19 @@ actions:
                 - Temperatura: {{ temp_c | float(0) | round(1) }} C
                 - Wiatr: {{ wind_value | float(0) | round(1) }}
 
-                **Nastepny termin**
+                **Następny termin**
                 {{ (next_schedule_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}
               notification_id: smart_irrigation_last_event
 
-  - alias: Zatrzymaj gdy podlewanie pominiete
+  - alias: Zatrzymaj gdy podlewanie pominięte
     choose:
       - conditions:
           - condition: template
             value_template: "{{ irrigation_skip_reason | trim | length > 0 }}"
         sequence:
-          - stop: "Pominieto podlewanie: {{ irrigation_skip_reason | trim }}"
+          - stop: "Pominięto podlewanie: {{ irrigation_skip_reason | trim }}"
 
-  - alias: Wylicz decyzje calego cyklu podlewania
+  - alias: Wylicz decyzję całego cyklu podlewania
     variables:
       irrigation_cycle_needed: |-
         {%- set zones = [
@@ -3117,7 +3117,7 @@ actions:
           {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type, 'profile': zone_11_sprinkler_profile, 'custom_rate': zone_11_custom_rate_mm_h},
           {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type, 'profile': zone_12_sprinkler_profile, 'custom_rate': zone_12_custom_rate_mm_h}
         ] -%}
-        {%- set ns = namespace(due='', highest='brak wlaczonych sekcji z encja', highest_deficit=-1, highest_target=0) -%}
+        {%- set ns = namespace(due='', highest='brak włączonych sekcji z encją', highest_deficit=-1, highest_target=0) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
           {%- set soil = zone.soil_type -%}
           {%- set available_water_mm_m = 55 if soil == 'sand' else 115 if soil == 'sandy_loam' else 170 if soil == 'humus' else 180 if soil == 'chernozem' else 155 if soil == 'clay_loam' else 120 if soil == 'clay' else 150 -%}
@@ -3143,14 +3143,14 @@ actions:
             {%- set ns.highest_target = target -%}
             {%- set missing = target - deficit -%}
             {%- set missing = 0 if missing < 0 else missing -%}
-            {%- set ns.highest = 'najblizej startu jest sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): potrzeba jeszcze ok. ' ~ (missing | round(1)) ~ ' mm' -%}
+            {%- set ns.highest = 'najbliżej startu jest sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): potrzeba jeszcze ok. ' ~ (missing | round(1)) ~ ' mm' -%}
           {%- endif -%}
           {%- if deficit >= target and ns.due | length == 0 -%}
-            {%- set ns.due = 'cykl zaplanowala sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '), deficyt ' ~ (deficit | round(1)) ~ ' mm, prog ' ~ (target | round(1)) ~ ' mm' -%}
+            {%- set ns.due = 'cykl zaplanowała sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '), deficyt ' ~ (deficit | round(1)) ~ ' mm, próg ' ~ (target | round(1)) ~ ' mm' -%}
           {%- endif -%}
         {%- endfor -%}
         {%- if ns.due | length > 0 -%}
-          {{ ns.due }}. Podlewane beda wszystkie wlaczone i gotowe sekcje.
+          {{ ns.due }}. Podlewane będą wszystkie włączone i gotowe sekcje.
         {%- else -%}
           Trawnik nie wymaga jeszcze podlewania. {{ ns.highest }}.
         {%- endif -%}
@@ -3230,7 +3230,7 @@ actions:
         {%- endif -%}
         {{ scheduled | int }}
 
-  - alias: Zapisz helper nastepnego podlewania
+  - alias: Zapisz helper następnego podlewania
     choose:
       - conditions:
           - condition: template
@@ -3252,14 +3252,14 @@ actions:
             data:
               name: Inteligentne podlewanie
               message: >-
-                {% set reason = irrigation_cycle_decision_reason | trim | replace('. Podlewane beda wszystkie wlaczone i gotowe sekcje.', '') %}
-                Kontrolne sprawdzenie warunkow.
+                {% set reason = irrigation_cycle_decision_reason | trim | replace('. Podlewane będą wszystkie włączone i gotowe sekcje.', '') %}
+                Kontrolne sprawdzenie warunków.
                 {% if irrigation_cycle_needed | bool %}
-                  Podlewanie jest potrzebne. {{ reason }}. Sekcje nie zostaly uruchomione, bo to tylko sprawdzenie kontrolne.
+                  Podlewanie jest potrzebne. {{ reason }}. Sekcje nie zostały uruchomione, bo to tylko sprawdzenie kontrolne.
                 {% else %}
                   Podlewanie nie jest jeszcze potrzebne. {{ reason }}
                 {% endif %}
-                Nastepny przewidywany termin: {{ (next_watering_estimated_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}.
+                Następny przewidywany termin: {{ (next_watering_estimated_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}.
 
   - alias: Zatrzymaj po kontrolnym przeliczeniu
     choose:
@@ -3269,7 +3269,7 @@ actions:
         sequence:
           - stop: "Kontrolne przeliczenie bez uruchamiania sekcji."
 
-  - alias: Zaloguj pominiecie cyklu bez potrzeby podlewania
+  - alias: Zaloguj pominięcie cyklu bez potrzeby podlewania
     choose:
       - conditions:
           - condition: template
@@ -3278,9 +3278,9 @@ actions:
           - action: logbook.log
             data:
               name: Inteligentne podlewanie
-              message: "Pominieto podlewanie. {{ irrigation_cycle_decision_reason | trim }}"
+              message: "Pominięto podlewanie. {{ irrigation_cycle_decision_reason | trim }}"
 
-  - alias: Powiadom o pominieciu cyklu bez potrzeby podlewania
+  - alias: Powiadom o pominięciu cyklu bez potrzeby podlewania
     choose:
       - conditions:
           - condition: template
@@ -3290,13 +3290,13 @@ actions:
             data:
               title: Inteligentne podlewanie
               message: |-
-                **Status:** pominieto podlewanie
+                **Status:** pominięto podlewanie
 
-                **Powod**
+                **Powód**
                 {{ irrigation_cycle_decision_reason | trim }}
 
                 **Pogoda**
-                - Zrodlo: {{ weather_source_summary | trim }}
+                - Źródło: {{ weather_source_summary | trim }}
                 - Aktualnie: {{ current_weather_condition_pl }}
                 - Prognoza: {{ forecast_condition_pl }}
                 - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
@@ -3306,7 +3306,7 @@ actions:
                 - Temperatura: {{ temp_c | float(0) | round(1) }} C
                 - Wiatr: {{ wind_value | float(0) | round(1) }}
 
-                **Nastepny termin**
+                **Następny termin**
                 {{ (next_watering_estimated_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}
               notification_id: smart_irrigation_last_event
 
@@ -3316,7 +3316,7 @@ actions:
           - condition: template
             value_template: "{{ not (irrigation_cycle_needed | bool) }}"
         sequence:
-          - stop: "Pominieto podlewanie: {{ irrigation_cycle_decision_reason | trim }}"
+          - stop: "Pominięto podlewanie: {{ irrigation_cycle_decision_reason | trim }}"
 
   - alias: Zaloguj start podlewania
     choose:
@@ -3328,16 +3328,16 @@ actions:
             data:
               name: Inteligentne podlewanie
               message: >-
-                Zaplanowano cykl podlewania dla wlaczonych sekcji. {{ irrigation_cycle_decision_reason | trim }}.
-                Najwieksza dawka cyklu {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm.
-                Zrodlo pogody: {{ weather_source_summary | trim }}.
+                Zaplanowano cykl podlewania dla włączonych sekcji. {{ irrigation_cycle_decision_reason | trim }}.
+                Największa dawka cyklu {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm.
+                Źródło pogody: {{ weather_source_summary | trim }}.
                 {{ rain_measurement_warning | trim }}
                 Prognoza opadu ({{ forecast_window_label }}) {{ forecast_precipitation | float(0) | round(1) }} mm,
                 szansa deszczu {{ forecast_precipitation_probability | int(0) }}%,
                 temperatura {{ temp_c | float(0) | round(1) }} C,
                 wiatr {{ wind_value | float(0) | round(1) }}.
 
-  - alias: Zapamietaj poczatek cyklu
+  - alias: Zapamiętaj początek cyklu
     variables:
       irrigation_cycle_started_at: "{{ now().isoformat() }}"
       start_notification_sent: false
@@ -3499,7 +3499,7 @@ actions:
                 {% if state_attr(section_rc2_connection_entity, 'is_shutdown') is not none %}, shutdown={{ state_attr(section_rc2_connection_entity, 'is_shutdown') }}{% endif %}
                 {% if state_attr(section_rc2_connection_entity, 'connection_state') is not none %}, connection_state={{ state_attr(section_rc2_connection_entity, 'connection_state') }}{% endif %}
               {% else %}
-                brak sensora polaczenia RC2
+                brak sensora połączenia RC2
               {% endif %}
             section_soil_factor: >-
               {% set soil = repeat.item.soil_type %}
@@ -3624,13 +3624,13 @@ actions:
               {% elif (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
                 Czujnik deszczu jest aktywny: {{ rain_binary_sensor }} ma stan {{ states(rain_binary_sensor) }}.
               {% elif (rain_binary_sensor | default('', true) | length > 0) and not is_state(rain_binary_sensor, 'off') %}
-                Czujnik deszczu {{ rain_binary_sensor }} jest niedostepny (stan {{ states(rain_binary_sensor) }}), sekcja wstrzymana dla bezpieczenstwa.
+                Czujnik deszczu {{ rain_binary_sensor }} jest niedostępny (stan {{ states(rain_binary_sensor) }}), sekcja wstrzymana dla bezpieczeństwa.
               {% elif section_live_rain | bool %}
-                MeteoFusion wykrywa aktualny deszcz albo burze w poblizu.
+                MeteoFusion wykrywa aktualny deszcz albo burzę w pobliżu.
               {% elif states(current_weather_entity) in bad_weather_states %}
                 Pogoda blokuje podlewanie. Aktualny stan: {{ current_weather_condition_pl }}.
               {% elif states(current_weather_entity) in ['unknown', 'unavailable'] %}
-                Dane pogodowe sa niedostepne. Aktualny stan: {{ states(current_weather_entity) }}.
+                Dane pogodowe są niedostępne. Aktualny stan: {{ states(current_weather_entity) }}.
               {% elif states(section_valve) not in ['closed', 'off', 'idle'] %}
                 Sekcja nie jest gotowa do startu. Aktualny stan: {{ states(section_valve) }}.
               {% elif repeat.item.online_sensor | default('', true) | length > 0 and not is_state(repeat.item.online_sensor, 'on') %}
@@ -3638,14 +3638,14 @@ actions:
               {% elif repeat.item.battery_sensor | default('', true) | length > 0 and (states(repeat.item.battery_sensor) | float(0)) < (min_battery_percent | float(20)) %}
                 Bateria sekcji za niska: {{ states(repeat.item.battery_sensor) }}%, minimum to {{ min_battery_percent }}%.
               {% elif (section_minutes | int(0)) <= 0 %}
-                Sekcja nie ma wyliczonego czasu pracy mimo zaplanowanego cyklu. Sprawdz opad zraszaczy i limity czasu.
+                Sekcja nie ma wyliczonego czasu pracy mimo zaplanowanego cyklu. Sprawdź opad zraszaczy i limity czasu.
               {% else %}{% endif %}
         - choose:
             - conditions:
                 - condition: template
                   value_template: "{{ section_ready | bool and (section_minutes | int(0)) > 0 }}"
               sequence:
-                - alias: Wyslij polecenie otwarcia sekcji
+                - alias: Wyślij polecenie otwarcia sekcji
                   choose:
                     - conditions:
                         - condition: template
@@ -3686,13 +3686,13 @@ actions:
                   wait_template: "{{ states(section_valve) in valve_active_states }}"
                   timeout: "00:01:00"
                   continue_on_timeout: true
-                - alias: Zapamietaj wynik otwarcia sekcji
+                - alias: Zapamiętaj wynik otwarcia sekcji
                   variables:
                     section_started: "{{ states(section_valve) in valve_active_states }}"
                     section_started_at: "{{ as_timestamp(now()) }}"
                     section_interrupted: false
                     section_interruption_reason: ""
-                - alias: Prowadz sekcje po potwierdzeniu otwarcia
+                - alias: Prowadź sekcję po potwierdzeniu otwarcia
                   if:
                     - condition: template
                       value_template: "{{ section_started | bool }}"
@@ -3712,7 +3712,7 @@ actions:
                                       data:
                                         title: Inteligentne podlewanie
                                         message: |-
-                                          **Status:** rozpoczeto podlewanie
+                                          **Status:** rozpoczęto podlewanie
 
                                           **Pierwsza sekcja**
                                           - Numer: {{ section_number }}
@@ -3724,7 +3724,7 @@ actions:
                                           {{ irrigation_cycle_decision_reason | trim }}
 
                                           **Pogoda**
-                                          - Zrodlo: {{ weather_source_summary | trim }}
+                                          - Źródło: {{ weather_source_summary | trim }}
                                           - Aktualnie: {{ current_weather_condition_pl }}
                                           - Prognoza: {{ forecast_condition_pl }}
                                           - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
@@ -3742,14 +3742,14 @@ actions:
                               data:
                                 name: "Podlewanie - {{ section_name }}"
                                 message: >-
-                                  Uruchomiono sekcje {{ section_number }} na {{ section_minutes | int(0) }} min.
-                                  Sterownik potwierdzil stan {{ states(section_valve) }}.
+                                  Uruchomiono sekcję {{ section_number }} na {{ section_minutes | int(0) }} min.
+                                  Sterownik potwierdził stan {{ states(section_valve) }}.
                                   Dawka {{ section_depth_mm | float(0) | round(1) }} mm,
                                   przewidywana dawka dostarczona przy limicie czasu {{ section_applied_depth_mm | float(0) | round(1) }} mm,
                                   deficyt sekcji {{ section_water_deficit_mm | float(0) | round(1) }} mm,
-                                  prog sekcji {{ section_target_depth_mm | float(0) | round(1) }} mm,
+                                  próg sekcji {{ section_target_depth_mm | float(0) | round(1) }} mm,
                                   opad zraszaczy {{ section_rate_mm_h | float(0) | round(1) }} mm/h.
-                    - alias: Monitoruj pogode i stabilnosc pracy sekcji
+                    - alias: Monitoruj pogodę i stabilność pracy sekcji
                       repeat:
                         while:
                           - condition: template
@@ -3774,7 +3774,7 @@ actions:
                         sequence:
                           - delay:
                               seconds: 15
-                    - alias: Sprawdz czy sekcja zostala przerwana
+                    - alias: Sprawdź czy sekcja została przerwana
                       variables:
                         section_interrupted: >-
                           {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
@@ -3808,15 +3808,15 @@ actions:
                             {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
                             {% set current = context.get('current', {}) if context is mapping else {} %}
                             {% if current.get('lightning_near', false) | bool %}
-                              MeteoFusion wykrywa burze w poblizu lokalnej stacji
+                              MeteoFusion wykrywa burzę w pobliżu lokalnej stacji
                             {% elif (current.get('rain_rate', 0) | float(0)) >= 0.2 %}
                               MeteoFusion wykrywa deszcz {{ current.get('rain_rate', 0) | float(0) | round(2) }} mm/h
                             {% elif states(current_weather_entity) in bad_weather_states %}
-                              pogoda zmienila sie na {{ current_weather_condition_pl }}
+                              pogoda zmieniła się na {{ current_weather_condition_pl }}
                             {% elif weather_lost %}
-                              dane pogodowe MeteoFusion sa niedostepne dluzej niz 5 min
+                              dane pogodowe MeteoFusion są niedostępne dłużej niż 5 min
                             {% else %}
-                              sterownik zamknal sekcje wyraznie przed uplywem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
+                              sterownik zamknął sekcję wyraźnie przed upływem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
                             {% endif %}
                           {% elif states(current_weather_entity) in bad_weather_states %}
                             {% set condition = states(current_weather_entity) | trim %}
@@ -3826,18 +3826,18 @@ actions:
                               'lightning-rainy': 'burza z deszczem',
                               'pouring': 'ulewny deszcz',
                               'rainy': 'deszcz',
-                              'snowy': 'snieg',
-                              'snowy-rainy': 'snieg z deszczem'
+                              'snowy': 'śnieg',
+                              'snowy-rainy': 'śnieg z deszczem'
                             } %}
-                            pogoda zmienila sie na {{ names.get(condition, condition) }}
+                            pogoda zmieniła się na {{ names.get(condition, condition) }}
                           {% elif weather_lost %}
-                            dane pogodowe sa niedostepne dluzej niz 5 min
+                            dane pogodowe są niedostępne dłużej niż 5 min
                           {% elif states(section_valve) not in valve_active_states %}
-                            sterownik zamknal sekcje wyraznie przed uplywem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
+                            sterownik zamknął sekcję wyraźnie przed upływem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
                           {% else %}
-                            deszcz albo zla pogoda
+                            deszcz albo zła pogoda
                           {% endif %}
-                - alias: Zamknij sekcje i potwierdz zamkniecie
+                - alias: Zamknij sekcję i potwierdź zamknięcie
                   repeat:
                     sequence:
                       - choose:
@@ -3868,7 +3868,7 @@ actions:
                     until:
                       - condition: template
                         value_template: "{{ states(section_valve) in valve_closed_states or repeat.index >= 3 }}"
-                - alias: Alarm gdy sekcja nie potwierdzila zamkniecia
+                - alias: Alarm gdy sekcja nie potwierdziła zamknięcia
                   if:
                     - condition: template
                       value_template: "{{ states(section_valve) not in valve_closed_states }}"
@@ -3877,7 +3877,7 @@ actions:
                       data:
                         title: Inteligentne podlewanie - ALARM
                         message: |-
-                          **Status:** sekcja nie potwierdzila zamkniecia
+                          **Status:** sekcja nie potwierdziła zamknięcia
 
                           **Sekcja**
                           - Numer: {{ section_number }}
@@ -3885,7 +3885,7 @@ actions:
                           - Encja: {{ section_valve }}
                           - Stan: {{ states(section_valve) }}
 
-                          Automatyzacja wyslala polecenie zamkniecia 3 razy co 30 s i nie dostala potwierdzenia. Sprawdz zawor recznie. Pozostale sekcje nie zostana uruchomione w tym cyklu.
+                          Automatyzacja wysłała polecenie zamknięcia 3 razy co 30 s i nie dostała potwierdzenia. Sprawdź zawór ręcznie. Pozostałe sekcje nie zostaną uruchomione w tym cyklu.
                         notification_id: smart_irrigation_valve_alarm
                     - choose:
                         - conditions:
@@ -3895,10 +3895,10 @@ actions:
                             - action: logbook.log
                               data:
                                 name: "Podlewanie - {{ section_name }}"
-                                message: "ALARM: sekcja {{ section_number }} ({{ section_valve }}) nie potwierdzila zamkniecia po 3 probach, stan {{ states(section_valve) }}. Cykl zatrzymany."
-                    - stop: "Sekcja {{ section_number }} nie potwierdzila zamkniecia."
+                                message: "ALARM: sekcja {{ section_number }} ({{ section_valve }}) nie potwierdziła zamknięcia po 3 próbach, stan {{ states(section_valve) }}. Cykl zatrzymany."
+                    - stop: "Sekcja {{ section_number }} nie potwierdziła zamknięcia."
                       error: true
-                - alias: Obsluz brak potwierdzenia otwarcia
+                - alias: Obsłuż brak potwierdzenia otwarcia
                   if:
                     - condition: template
                       value_template: "{{ not (section_started | bool) }}"
@@ -3911,13 +3911,13 @@ actions:
                             - action: logbook.log
                               data:
                                 name: "Podlewanie - {{ section_name }}"
-                                message: "Nie uruchomiono sekcji {{ section_number }}. Sterownik nie potwierdzil otwarcia w ciagu 60 s; wyslano i potwierdzono zamkniecie. Pozostale sekcje nie zostana uruchomione w tym cyklu."
+                                message: "Nie uruchomiono sekcji {{ section_number }}. Sterownik nie potwierdził otwarcia w ciągu 60 s; wysłano i potwierdzono zamknięcie. Pozostałe sekcje nie zostaną uruchomione w tym cyklu."
                     - variables:
                         cycle_aborted: true
                         cycle_abort_section: "{{ section_number | int }}"
                         cycle_abort_note: >-
-                          sekcja {{ section_number }} ({{ section_name }}, {{ section_valve }}) nie potwierdzila otwarcia w ciagu 60 s; zostala zamknieta, a kolejne sekcje nie byly uruchamiane.
-                - alias: Obsluz przerwanie sekcji
+                          sekcja {{ section_number }} ({{ section_name }}, {{ section_valve }}) nie potwierdziła otwarcia w ciągu 60 s; została zamknięta, a kolejne sekcje nie były uruchamiane.
+                - alias: Obsłuż przerwanie sekcji
                   if:
                     - condition: template
                       value_template: "{{ (section_started | bool) and (section_interrupted | bool) }}"
@@ -3954,7 +3954,7 @@ actions:
                             - action: logbook.log
                               data:
                                 name: Inteligentne podlewanie
-                                message: "Przerwano sekcje {{ section_number }}: {{ section_name }}. Powod: {{ section_interruption_reason | trim }}. Pozostale sekcje nie zostana uruchomione."
+                                message: "Przerwano sekcję {{ section_number }}: {{ section_name }}. Powód: {{ section_interruption_reason | trim }}. Pozostałe sekcje nie zostaną uruchomione."
                     - choose:
                         - conditions:
                             - condition: template
@@ -3964,27 +3964,27 @@ actions:
                               data:
                                 title: Inteligentne podlewanie
                                 message: |-
-                                  **Status:** zakonczono podlewanie przed czasem
+                                  **Status:** zakończono podlewanie przed czasem
 
                                   **Sekcja**
                                   - Numer: {{ section_number }}
                                   - Nazwa: {{ section_name }}
                                   - Encja: {{ section_valve }}
 
-                                  **Powod**
+                                  **Powód**
                                   {{ section_interruption_reason | trim }}
 
                                   **Wynik cyklu**
-                                  Sekcja zostala zamknieta (zamkniecie potwierdzone), a pozostale sekcje nie zostana uruchomione w tym cyklu.
+                                  Sekcja została zamknięta (zamknięcie potwierdzone), a pozostałe sekcje nie zostaną uruchomione w tym cyklu.
 
                                   **Pogoda**
-                                  - Zrodlo: {{ weather_source_summary | trim }}
+                                  - Źródło: {{ weather_source_summary | trim }}
                                   - Aktualnie: {{ current_weather_condition_pl }}
                                   - Prognoza: {{ forecast_condition_pl }}
                                   - Czujnik deszczu: {{ states(rain_binary_sensor) if (rain_binary_sensor | default('', true) | length > 0) else 'brak' }}
                                 notification_id: smart_irrigation_last_event
                     - stop: "Podlewanie przerwane: {{ section_interruption_reason | trim }}."
-                - alias: Rozlicz zakonczona sekcje
+                - alias: Rozlicz zakończoną sekcję
                   if:
                     - condition: template
                       value_template: "{{ section_started | bool }}"
@@ -4010,7 +4010,7 @@ actions:
                                 entity_id: "{{ water_balance_helper }}"
                               data:
                                 value: "{{ section_balance_payload | trim }}"
-                    - alias: Zapamietaj podlana sekcje do raportu
+                    - alias: Zapamiętaj podlaną sekcję do raportu
                       variables:
                         watered_sections: >-
                           {% set minutes = ((as_timestamp(now()) - (section_started_at | float(as_timestamp(now())))) / 60) | round(1) %}
@@ -4023,7 +4023,7 @@ actions:
                             - action: logbook.log
                               data:
                                 name: "Podlewanie - {{ section_name }}"
-                                message: "Zakonczono sekcje {{ section_number }} po zaplanowanym czasie {{ section_minutes | int(0) }} min. Zamkniecie potwierdzone, stan {{ states(section_valve) }}."
+                                message: "Zakończono sekcję {{ section_number }} po zaplanowanym czasie {{ section_minutes | int(0) }} min. Zamknięcie potwierdzone, stan {{ states(section_valve) }}."
                     - delay:
                         seconds: "{{ zone_pause_seconds | int(15) }}"
           default:
@@ -4035,9 +4035,9 @@ actions:
                     - action: logbook.log
                       data:
                         name: "Podlewanie - {{ section_name }}"
-                        message: "Pominieto sekcje {{ section_number }}. {{ section_skip_reason | trim }}"
+                        message: "Pominięto sekcję {{ section_number }}. {{ section_skip_reason | trim }}"
 
-  - alias: Wylicz termin po zakonczonym cyklu z bilansu
+  - alias: Wylicz termin po zakończonym cyklu z bilansu
     variables:
       next_watering_after_cycle_timestamp: |-
         {%- set zones = [
@@ -4089,7 +4089,7 @@ actions:
         {%- endif -%}
         {{ scheduled | int }}
 
-  - alias: Zapisz termin po zakonczonym cyklu
+  - alias: Zapisz termin po zakończonym cyklu
     choose:
       - conditions:
           - condition: template
@@ -4109,7 +4109,7 @@ actions:
           - action: logbook.log
             data:
               name: Inteligentne podlewanie
-              message: "Zakonczono cykl sprawdzania sekcji podlewania."
+              message: "Zakończono cykl sprawdzania sekcji podlewania."
 
   - alias: Wylicz podsumowanie cyklu
     variables:
@@ -4183,9 +4183,9 @@ actions:
             {%- set ns.lines = ns.lines + ['| Sekcja ' ~ zone.number ~ ' (' ~ (zone.name | replace('|', '/')) ~ ') | Podlano | ' ~ (actual_minutes | round(1)) ~ ' min, ok. ' ~ (actual_depth | round(1)) ~ ' mm |'] -%}
           {%- else -%}
             {%- if (cycle_aborted | bool) and (zone.number | int) == (cycle_abort_section | int) -%}
-              {%- set reason = 'sterownik nie potwierdzil otwarcia w ciagu 60 s; sekcja zostala zamknieta' -%}
+              {%- set reason = 'sterownik nie potwierdził otwarcia w ciągu 60 s; sekcja została zamknięta' -%}
             {%- elif (cycle_aborted | bool) and (zone.number | int) > (cycle_abort_section | int) -%}
-              {%- set reason = 'nie uruchomiono, bo cykl przerwano po bledzie startu sekcji ' ~ cycle_abort_section -%}
+              {%- set reason = 'nie uruchomiono, bo cykl przerwano po błędzie startu sekcji ' ~ cycle_abort_section -%}
             {%- elif valve | length == 0 -%}
               {%- set reason = 'brak encji sekcji' -%}
             {%- elif not controller_ready -%}
@@ -4194,14 +4194,14 @@ actions:
               {%- if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') -%}
                 {%- set reason = 'czujnik deszczu jest aktywny: ' ~ rain_binary_sensor ~ ' ma stan ' ~ states(rain_binary_sensor) -%}
               {%- else -%}
-                {%- set reason = 'MeteoFusion wykrywa aktualny deszcz lub burze w poblizu' -%}
+                {%- set reason = 'MeteoFusion wykrywa aktualny deszcz lub burzę w pobliżu' -%}
               {%- endif -%}
             {%- elif states(current_weather_entity) in bad_weather_states -%}
               {%- set reason = 'pogoda blokuje podlewanie: ' ~ current_weather_condition_pl -%}
             {%- elif states(current_weather_entity) in ['unknown', 'unavailable'] -%}
-              {%- set reason = 'dane pogodowe sa niedostepne: ' ~ states(current_weather_entity) -%}
+              {%- set reason = 'dane pogodowe są niedostępne: ' ~ states(current_weather_entity) -%}
             {%- elif states(valve) not in ['closed', 'off', 'idle'] -%}
-              {%- set reason = 'sekcja nie byla gotowa, stan: ' ~ states(valve) -%}
+              {%- set reason = 'sekcja nie była gotowa, stan: ' ~ states(valve) -%}
             {%- elif online | length > 0 and not is_state(online, 'on') -%}
               {%- set reason = 'sensor online ma stan ' ~ states(online) -%}
             {%- elif battery | length > 0 and (states(battery) | float(0)) < (min_battery_percent | float(20)) -%}
@@ -4209,22 +4209,22 @@ actions:
             {%- elif (minutes | int(0)) <= 0 -%}
               {%- set reason = 'brak wyliczonego czasu pracy sekcji mimo zaplanowanego cyklu' -%}
             {%- elif ready -%}
-              {%- set reason = 'sekcja wymagala podlewania, ale cykl nie zostal potwierdzony' -%}
+              {%- set reason = 'sekcja wymagała podlewania, ale cykl nie został potwierdzony' -%}
             {%- else -%}
-              {%- set reason = 'warunki sekcji nie pozwolily na start' -%}
+              {%- set reason = 'warunki sekcji nie pozwoliły na start' -%}
             {%- endif -%}
             {%- set ns.skipped = ns.skipped + 1 -%}
-            {%- set ns.lines = ns.lines + ['| Sekcja ' ~ zone.number ~ ' (' ~ (zone.name | replace('|', '/')) ~ ') | Pominieto | ' ~ (reason | replace('|', '/')) ~ ' |'] -%}
+            {%- set ns.lines = ns.lines + ['| Sekcja ' ~ zone.number ~ ' (' ~ (zone.name | replace('|', '/')) ~ ') | Pominięto | ' ~ (reason | replace('|', '/')) ~ ' |'] -%}
           {%- endif -%}
         {%- endfor -%}
         {%- if (cycle_aborted | bool) and ns.watered > 0 -%}
-          {%- set status = 'zakonczono podlewanie przed czasem' -%}
+          {%- set status = 'zakończono podlewanie przed czasem' -%}
         {%- elif cycle_aborted | bool -%}
-          {%- set status = 'nie udalo sie rozpoczac podlewania' -%}
+          {%- set status = 'nie udało się rozpocząć podlewania' -%}
         {%- elif ns.watered > 0 -%}
-          {%- set status = 'zakonczono podlewanie' -%}
+          {%- set status = 'zakończono podlewanie' -%}
         {%- else -%}
-          {%- set status = 'pominieto podlewanie' -%}
+          {%- set status = 'pominięto podlewanie' -%}
         {%- endif %}
         **Status:** {{ status }}
         {%- if cycle_aborted | bool %}
@@ -4235,11 +4235,11 @@ actions:
 
         **Podsumowanie**
         - Podlano sekcji: {{ ns.watered }}
-        - Pominieto sekcji: {{ ns.skipped }}
-        - Laczny czas: {{ ns.total }} min
+        - Pominięto sekcji: {{ ns.skipped }}
+        - Łączny czas: {{ ns.total }} min
 
         **Pogoda**
-        - Zrodlo: {{ weather_source_summary | trim }}
+        - Źródło: {{ weather_source_summary | trim }}
         - Aktualnie: {{ current_weather_condition_pl }}
         - Prognoza: {{ forecast_condition_pl }}
         - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
@@ -4251,11 +4251,11 @@ actions:
 
         **Sekcje**
 
-        | Sekcja | Wynik | Szczegoly |
+        | Sekcja | Wynik | Szczegóły |
         | --- | --- | --- |
         {{ ns.lines | join('\n') }}
 
-  - alias: Powiadom o koncu cyklu
+  - alias: Powiadom o końcu cyklu
     choose:
       - conditions:
           - condition: template

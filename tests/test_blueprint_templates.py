@@ -169,7 +169,7 @@ class WaterBalancePayloadTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.doc = _load_blueprint()
-        cls.balance = _action_variables(cls.doc, "Zaktualizuj trwaly bilans wody")
+        cls.balance = _action_variables(cls.doc, "Zaktualizuj trwały bilans wody")
 
     def _payload(self, saved: dict, rain_total: float) -> str:
         hass = FakeHass()
@@ -269,7 +269,7 @@ class SeasonBalanceTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.balance = _action_variables(_load_blueprint(), "Zaktualizuj trwaly bilans wody")
+        cls.balance = _action_variables(_load_blueprint(), "Zaktualizuj trwały bilans wody")
 
     def _render(self, name: str, context: dict) -> str:
         return _render(FakeHass(), self.balance[name], context)
@@ -341,7 +341,7 @@ class SkipReasonTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.doc = _load_blueprint()
-        cls.reason = _action_variables(cls.doc, "Wylicz powod pominiecia podlewania")
+        cls.reason = _action_variables(cls.doc, "Wylicz powód pominięcia podlewania")
 
     def _context(self, **overrides) -> dict:
         context = _zone_context()
@@ -394,7 +394,7 @@ class SkipReasonTests(unittest.TestCase):
     def test_plain_switch_without_balance_helper_is_blocked_with_reason(self) -> None:
         hass = FakeHass({})
         reason = self._reason(hass, water_balance_enabled=False, water_balance_helper="")
-        self.assertIn("Helper - trwaly bilans wody", reason)
+        self.assertIn("Helper - trwały bilans wody", reason)
         self.assertIn("switch.relay", reason)
 
     def test_helper_too_short_is_reported(self) -> None:
@@ -411,13 +411,13 @@ class SkipReasonTests(unittest.TestCase):
     def test_unavailable_rain_sensor_has_its_own_reason(self) -> None:
         hass = FakeHass({"input_text.balance": "{}", "binary_sensor.rain": "unavailable"})
         reason = self._reason(hass, rain_binary_sensor="binary_sensor.rain", rain_sensor_ok=False)
-        self.assertIn("niedostepny", reason)
+        self.assertIn("niedostępny", reason)
         self.assertNotIn("MeteoFusion", reason)
 
     def test_balance_helper_without_rain_source_is_blocked(self) -> None:
         hass = FakeHass({"input_text.balance": "{}"})
         reason = self._reason(hass, water_balance_measured_rain_available=False)
-        self.assertIn("Brak zrodla opadu", reason)
+        self.assertIn("Brak źródła opadu", reason)
         self.assertIn("MeteoFusion", reason)
 
     def test_rc2_without_helper_does_not_need_rain_source(self) -> None:
@@ -447,7 +447,7 @@ class WeatherFallbackTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.doc = _load_blueprint()
-        cls.weather = _action_variables(cls.doc, "Wylicz pogode i wspolne warunki")
+        cls.weather = _action_variables(cls.doc, "Wylicz pogodę i wspólne warunki")
 
     def test_unavailable_temperature_sensor_uses_current_weather_not_forecast_maximum(self) -> None:
         hass = FakeHass(
@@ -526,10 +526,10 @@ class ValveSafetyStructureTests(unittest.TestCase):
         self.assertIn("- opening", self.text)
 
     def test_close_is_always_sent_confirmed_and_retried(self) -> None:
-        start = self.text.index("alias: Zapamietaj wynik otwarcia sekcji")
-        close = self.text.index("alias: Zamknij sekcje i potwierdz zamkniecie", start)
-        alarm = self.text.index("alias: Alarm gdy sekcja nie potwierdzila zamkniecia", close)
-        failed_start = self.text.index("alias: Obsluz brak potwierdzenia otwarcia", alarm)
+        start = self.text.index("alias: Zapamiętaj wynik otwarcia sekcji")
+        close = self.text.index("alias: Zamknij sekcję i potwierdź zamknięcie", start)
+        alarm = self.text.index("alias: Alarm gdy sekcja nie potwierdziła zamknięcia", close)
+        failed_start = self.text.index("alias: Obsłuż brak potwierdzenia otwarcia", alarm)
         self.assertLess(start, close)
         block = self.text[close:alarm]
         self.assertIn("repeat.index >= 3", block)

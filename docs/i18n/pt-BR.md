@@ -6,24 +6,24 @@ Use esta página ao configurar o blueprint polonês no Home Assistant.
 
 | Rótulo em polonês | Português |
 | --- | --- |
-| Wspolne encje pogody i sensory | Entidades de clima e sensores compartilhados |
+| Wspólne encje pogody i sensory | Entidades de clima e sensores compartilhados |
 | Encja pogody do prognozy | Entidade de clima para previsão |
 | Korzystaj z danych MeteoFusion HA | Usar dados do MeteoFusion HA |
-| MeteoFusion - minimalna pewnosc prognozy | MeteoFusion - confiança mínima da previsão |
+| MeteoFusion - minimalna pewność prognozy | MeteoFusion - confiança mínima da previsão |
 | Opcjonalne sensory lokalne i nadpisania | Sensores locais e substituições opcionais |
 | Lokalna encja pogody | Entidade de clima local |
 | Czujnik deszczu | Sensor de chuva |
 | Opad zmierzony - najlepiej ostatnie 24 h | Chuva medida - de preferencia nas ultimas 24 h |
 | Temperatura ogrodu | Temperatura do jardim |
 | Wiatr | Vento |
-| UV / slonce | UV / sol |
+| UV / słońce | UV / sol |
 | Dzienne ET0 / ewapotranspiracja | ETo diária / evapotranspiração |
-| Wilgotnosc gleby | Umidade do solo |
-| Wilgotnosc gleby blokujaca podlewanie | Limite de umidade do solo que bloqueia a irrigacao |
-| Ustawienia ogolne | Configurações gerais |
+| Wilgotność gleby | Umidade do solo |
+| Wilgotność gleby blokująca podlewanie | Limite de umidade do solo que bloqueia a irrigacao |
+| Ustawienia ogólne | Configurações gerais |
 | Liczba sekcji | Número de zonas |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Enviar tempo calculado ao controlador Rain Bird |
-| Nadzor czasu pracy sekcji | Supervisão do tempo de rega da zona |
+| Nadzór czasu pracy sekcji | Supervisão do tempo de rega da zona |
 
 ## Configurações da zona
 
@@ -32,9 +32,9 @@ Use esta página ao configurar o blueprint polonês no Home Assistant.
 | Sekcja X - encja | Zona X - entidade |
 | Sekcja X - nazwa | Zona X - nome |
 | Sekcja X - rodzaj gleby | Zona X - tipo de solo |
-| Sekcja X - co rosnie | Zona X - plantas cultivadas |
+| Sekcja X - co rośnie | Zona X - plantas cultivadas |
 | Sekcja X - zraszacze | Zona X - aspersores |
-| Sekcja X - wlasny opad zraszaczy | Zona X - taxa de precipitação personalizada |
+| Sekcja X - własny opad zraszaczy | Zona X - taxa de precipitação personalizada |
 | Sekcja X - korekta czasu | Zona X - ajuste de duração |
 | Sekcja X - online | Zona X - sensor online |
 | Sekcja X - bateria | Zona X - sensor de bateria |
@@ -45,11 +45,11 @@ Use esta página ao configurar o blueprint polonês no Home Assistant.
 | --- | --- |
 | Piaszczysta / bardzo lekka | Arenoso / muito leve |
 | Lekka ogrodowa | Solo de jardim leve |
-| Zwykla ziemia ogrodowa | Solo de jardim comum |
-| Humusowa / prochniczna | Solo rico em húmus / composto |
+| Zwykła ziemia ogrodowa | Solo de jardim comum |
+| Humusowa / próchniczna | Solo rico em húmus / composto |
 | Czarnoziem / czarna ziemia | Chernozem / terra preta |
-| Gliniasta / ciezka | Argiloso / pesado |
-| Bardzo ciezka / zbita glina | Argila muito pesada / compactada |
+| Gliniasta / ciężka | Argiloso / pesado |
+| Bardzo ciężka / zbita glina | Argila muito pesada / compactada |
 
 ## Plantas
 
@@ -65,34 +65,34 @@ Use esta página ao configurar o blueprint polonês no Home Assistant.
 | Rótulo em polonês | Português |
 | --- | --- |
 | Start podlewania | Modo de início |
-| Glowna godzina podlewania | Hora de início |
-| Wzgledem wschodu slonca | Nascer do sol |
-| Wzgledem zachodu slonca | Pôr do sol |
-| Przesuniecie wzgledem slonca | Deslocamento em relação ao sol |
-| Awaryjny start po pominietej godzinie | Inicio de recuperacao apos perder o horario principal |
-| Miesiac startu sezonu | Mês de início da temporada |
-| Miesiac konca sezonu | Mês de fim da temporada |
+| Główna godzina podlewania | Hora de início |
+| Względem wschodu słońca | Nascer do sol |
+| Względem zachodu słońca | Pôr do sol |
+| Przesunięcie względem słońca | Deslocamento em relação ao sol |
+| Awaryjny start po pominiętej godzinie | Inicio de recuperacao apos perder o horario principal |
+| Miesiąc startu sezonu | Mês de início da temporada |
+| Miesiąc końca sezonu | Mês de fim da temporada |
 | Minimalna dawka do startu | Dose mínima para iniciar |
 | Maksymalna dawka jednego podlewania | Dose máxima por irrigação |
 | Minimalny czas sekcji | Duração mínima da zona |
 | Maksymalny czas sekcji | Duração máxima da zona |
-| Przerwa miedzy sekcjami | Pausa entre zonas |
-| Wlacz dodatkowe przeliczenia | Ativar recálculos adicionais |
-| Helper - nastepne podlewanie | Helper - próxima irrigação |
-| Helper - trwaly bilans wody | Helper - balanço hídrico persistente |
-| Wlacz logbook.log | Ativar logbook.log |
-| Tworz powiadomienie persistent_notification | Criar persistent_notification |
+| Przerwa między sekcjami | Pausa entre zonas |
+| Włącz dodatkowe przeliczenia | Ativar recálculos adicionais |
+| Helper - następne podlewanie | Helper - próxima irrigação |
+| Helper - trwały bilans wody | Helper - balanço hídrico persistente |
+| Włącz logbook.log | Ativar logbook.log |
+| Twórz powiadomienie persistent_notification | Criar persistent_notification |
 
 ## Bloqueios climáticos
 
 | Rótulo em polonês | Português |
 | --- | --- |
 | Blokady pogodowe | Bloqueios climáticos |
-| Prognozowany deszcz blokujacy | Chuva prevista que bloqueia a rega |
-| Prawdopodobienstwo deszczu blokujace | Probabilidade de chuva que bloqueia a rega |
-| Ile deszczu odjac od dawki | Parcela da chuva medida descontada |
+| Prognozowany deszcz blokujący | Chuva prevista que bloqueia a rega |
+| Prawdopodobieństwo deszczu blokujące | Probabilidade de chuva que bloqueia a rega |
+| Ile deszczu odjąć od dawki | Parcela da chuva medida descontada |
 | Minimalna temperatura | Temperatura mínima |
-| Temperatura upalu | Temperatura de calor |
+| Temperatura upału | Temperatura de calor |
 | Maksymalny wiatr | Vento máximo |
 | Minimalna bateria sekcji | Bateria mínima da zona |
-| Sprawnosc instalacji | Eficiência da instalação |
+| Sprawność instalacji | Eficiência da instalação |

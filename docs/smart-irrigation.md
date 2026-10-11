@@ -28,7 +28,7 @@ For every active section it calculates a water dose and runtime from:
 The blueprint uses a checkbook water-balance model. Daily plant water use is estimated as `ETc = ETo * Kc`. Newly measured effective rain and confirmed irrigation reduce the stored deficit. Soil type defines available water capacity, plant type defines root depth and allowed depletion, and watering starts when the modeled deficit reaches that section threshold. This is intentionally simpler than full FAO Penman-Monteith, but follows the same scheduling idea and works with normal Home Assistant weather data.
 
 Create one Home Assistant `input_text` helper, set its maximum length to `255`
-and select it as **Helper - trwaly bilans wody**. It stores compact JSON for all
+and select it as **Helper - trwały bilans wody**. It stores compact JSON for all
 sections. Do not edit its state manually. The first automation run initializes
 the balances at zero; later checks add elapsed ETo and subtract only new rain.
 This makes a rolling rain value safe: when an old storm leaves the 24-hour
@@ -56,7 +56,7 @@ used before the blueprint's fallback estimate. All manual weather sensors are
 placed in the collapsed **Opcjonalne sensory lokalne i nadpisania** section, so
 a MeteoFusion-only user can leave the whole section untouched.
 
-**MeteoFusion - minimalna pewnosc prognozy** defines the minimum accepted
+**MeteoFusion - minimalna pewność prognozy** defines the minimum accepted
 forecast confidence. Irrigation is also skipped when the MeteoFusion station
 data is stale, no forecast source is available or the weather contract is
 unavailable. The notification shows the source, confidence, status and ETo used
@@ -71,11 +71,11 @@ Available soil choices are intentionally written for normal garden use:
 
 - **Piaszczysta / bardzo lekka** - water drains quickly; irrigation may be needed sooner.
 - **Lekka ogrodowa** - fairly permeable garden soil.
-- **Zwykla ziemia ogrodowa** - default choice for most gardens.
-- **Humusowa / prochniczna** - fertile topsoil or compost-rich purchased garden soil.
+- **Zwykła ziemia ogrodowa** - default choice for most gardens.
+- **Humusowa / próchniczna** - fertile topsoil or compost-rich purchased garden soil.
 - **Czarnoziem / czarna ziemia** - dark fertile soil that usually stores water well.
-- **Gliniasta / ciezka** - heavier soil that keeps water longer.
-- **Bardzo ciezka / zbita glina** - very compact clay; water enters slowly and runoff risk is higher.
+- **Gliniasta / ciężka** - heavier soil that keeps water longer.
+- **Bardzo ciężka / zbita glina** - very compact clay; water enters slowly and runoff risk is higher.
 
 Model references:
 
@@ -101,7 +101,7 @@ Every close command is confirmed: the blueprint waits for `off/closed`, repeats 
 ## Valve safety
 
 - After a Home Assistant start the blueprint waits up to 3 minutes for its `switch`/`valve` sections to become available and closes every section that is on or open. The same check runs after this automation is saved or reloaded.
-- **Nadzor czasu pracy sekcji** (on by default) closes a `switch`/`valve` section that stays on longer than the maximum section runtime plus 5 minutes, regardless of who turned it on. Disable it only if you deliberately water manually for longer than that limit.
+- **Nadzór czasu pracy sekcji** (on by default) closes a `switch`/`valve` section that stays on longer than the maximum section runtime plus 5 minutes, regardless of who turned it on. Disable it only if you deliberately water manually for longer than that limit.
 - Rain Bird RC2 and Rain Bird sections are excluded from both checks, because the controller receives the runtime and stops the station itself.
 - Home Assistant can only close a valve while it runs. For relays such as Sonoff, Shelly or ESPHome also set a hardware limit in the device: Shelly **Auto OFF**, Sonoff **Inching**, or an ESPHome `on_turn_on` action with a `delay` followed by `switch.turn_off`.
 
@@ -109,7 +109,7 @@ If rain starts while a section is running, the weather changes to a blocking con
 
 ## Logs and notifications
 
-At the bottom of the blueprint you can enable **Wlacz logbook.log**. When enabled, Home Assistant Logbook receives entries for:
+At the bottom of the blueprint you can enable **Włącz logbook.log**. When enabled, Home Assistant Logbook receives entries for:
 
 - global watering skip reasons,
 - start of the watering check,
@@ -118,14 +118,14 @@ At the bottom of the blueprint you can enable **Wlacz logbook.log**. When enable
 - skipped section with reason,
 - interruption by rain or bad weather.
 
-You can also enable **Tworz powiadomienie persistent_notification**. There is one daily execution decision. If watering starts, the notification appears only after the first section confirms opening and is then replaced by the final result with per-section time and estimated applied depth. If watering does not start, one skipped result explains why. Condition-only checks never create notifications. A safety interruption becomes the final completed-before-time result instead of an extra intermediate message.
+You can also enable **Twórz powiadomienie persistent_notification**. There is one daily execution decision. If watering starts, the notification appears only after the first section confirms opening and is then replaced by the final result with per-section time and estimated applied depth. If watering does not start, one skipped result explains why. Condition-only checks never create notifications. A safety interruption becomes the final completed-before-time result instead of an extra intermediate message.
 
 ## Helpers
 
-Optionally create an `input_datetime` helper with date and time, then select it in **Helper - nastepne podlewanie**. The automation updates it after each check. If watering is blocked by season or weather, it stores the next scheduled check. If watering is not needed yet, it stores the first scheduled cycle after the calculated water need reaches the start threshold.
+Optionally create an `input_datetime` helper with date and time, then select it in **Helper - następne podlewanie**. The automation updates it after each check. If watering is blocked by season or weather, it stores the next scheduled check. If watering is not needed yet, it stores the first scheduled cycle after the calculated water need reaches the start threshold.
 
 For the persistent calculation, create a Text helper with maximum length `255`
-and select it in **Helper - trwaly bilans wody**. Only one helper is required for
+and select it in **Helper - trwały bilans wody**. Only one helper is required for
 all configured sections. The helper is required when any section is an ordinary
 `switch`/`valve`. If the helper is missing or its maximum length is too short for
 the stored balance, watering stops with a reason that names the helper.

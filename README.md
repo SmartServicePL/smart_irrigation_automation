@@ -30,7 +30,7 @@ Version 1.6.0 makes sure that no section stays open without a limit:
   reports open creates a separate alarm notification and stops the cycle;
 - after a Home Assistant restart, or after this automation is saved, open
   `switch`/`valve` sections are closed;
-- the new **Nadzor czasu pracy sekcji** input (on by default) closes a
+- the new **Nadzór czasu pracy sekcji** input (on by default) closes a
   `switch`/`valve` section left on longer than the maximum section runtime
   plus 5 minutes.
 
@@ -66,7 +66,7 @@ helper keep a compatibility calculation so an imported update does not disable
 them, but persistent operation is strongly recommended.
 
 Create one Home Assistant **Text** helper with a maximum length of `255`, then
-select it as **Helper - trwaly bilans wody**. The first run initializes a safe
+select it as **Helper - trwały bilans wody**. The first run initializes a safe
 zero balance and later checks build the real deficit automatically.
 
 ## New in 1.4.0: quiet daily decisions and corrected water balance
@@ -134,9 +134,9 @@ selected soil and plant type. If you have a daily ETo sensor, select it; otherwi
 the blueprint estimates ETo from temperature, UV/sun and wind.
 
 Soil selection uses garden-friendly names instead of geological labels:
-piaszczysta / bardzo lekka, lekka ogrodowa, zwykla ziemia ogrodowa,
-humusowa / prochniczna, czarnoziem / czarna ziemia, gliniasta / ciezka and
-bardzo ciezka / zbita glina. Existing configurations using the older technical
+piaszczysta / bardzo lekka, lekka ogrodowa, zwykła ziemia ogrodowa,
+humusowa / próchniczna, czarnoziem / czarna ziemia, gliniasta / ciężka and
+bardzo ciężka / zbita glina. Existing configurations using the older technical
 values remain compatible.
 
 For native Rain Bird RC2 switch entities, the blueprint automatically uses
@@ -187,7 +187,7 @@ is not yet needed it stores the first scheduled cycle after the modeled water
 need reaches the start threshold.
 
 For the calculation itself, create one `input_text` helper with maximum length
-`255` and select **Helper - trwaly bilans wody**. Do not edit its compact JSON
+`255` and select **Helper - trwały bilans wody**. Do not edit its compact JSON
 value manually. One helper stores all section balances.
 
 Documentation:
