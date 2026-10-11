@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.0
+
+- English (`smart_irrigation_en.yaml`) and German (`smart_irrigation_de.yaml`) versions of the blueprint, with their own import buttons and `source_url`. Field names and descriptions, option labels, notifications, Logbook entries and step names are translated; input keys, option values, triggers and template logic are identical to the Polish source.
+- The translated files are generated from the Polish blueprint with `tools/blueprint_i18n.py` and the catalog `i18n/smart_irrigation.yaml`. A test fails when a translation is missing, a generated file is out of date or a translated file differs from the source in anything other than text. Tests now also run on GitHub for every push.
+- Polish texts: "brak" in the valve check and the interruption notice is now "żadna sekcja" / "nie wybrano", the out-of-range section reason was corrected grammatically, and the planned-cycle reasons start with a capital letter.
+
 ## 1.8.0
 
 Weather sources:

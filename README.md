@@ -4,21 +4,46 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.8.0**
+Current version: **1.9.0**
 
 ## Import Blueprint
 
-[![Open your Home Assistant instance and import this blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSmartServicePL%2Fsmart_irrigation_automation%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsmart_irrigation_automation%2Fsmart_irrigation.yaml)
+The blueprint is available in three languages. They work the same way; only the
+texts in the Home Assistant editor, the notifications and the Logbook differ.
+Import the one in your language.
 
-Manual import URL:
+| Language | Import |
+| --- | --- |
+| English | [![Import the English blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSmartServicePL%2Fsmart_irrigation_automation%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsmart_irrigation_automation%2Fsmart_irrigation_en.yaml) |
+| Deutsch | [![Import the German blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSmartServicePL%2Fsmart_irrigation_automation%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsmart_irrigation_automation%2Fsmart_irrigation_de.yaml) |
+| Polski | [![Import the Polish blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSmartServicePL%2Fsmart_irrigation_automation%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsmart_irrigation_automation%2Fsmart_irrigation.yaml) |
+
+Manual import URLs:
 
 ```text
+https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprints/automation/smart_irrigation_automation/smart_irrigation_en.yaml
+https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprints/automation/smart_irrigation_automation/smart_irrigation_de.yaml
 https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml
 ```
+
+Switching the language later: import the other file, open your automation,
+choose **Edit in YAML** and change `use_blueprint.path` to the new file name
+(for example `SmartServicePL/smart_irrigation_en.yaml`). Inputs, helpers and
+behaviour are identical in all three files, so the inputs stay as they are.
 
 ## Donate
 
 [![Donate via Revolut](https://img.shields.io/badge/Donate-Revolut-0666EB?style=for-the-badge)](https://revolut.me/smartserwis)
+
+## New in 1.9.0: English and German blueprints
+
+- The blueprint is now also available in English (`smart_irrigation_en.yaml`)
+  and German (`smart_irrigation_de.yaml`), including all field descriptions,
+  notifications and Logbook entries.
+- The Polish file stays the source. The translated files are generated from it
+  with `tools/blueprint_i18n.py` and the catalog `i18n/smart_irrigation.yaml`;
+  a test fails when a translation is missing or when a translated file differs
+  from the source in anything other than text.
 
 ## New in 1.8.0: Home Assistant forecast with an optional weather station
 
@@ -202,10 +227,12 @@ Documentation:
 - [Translations and UI glossary](docs/i18n/README.md): English, German, Spanish,
   French, Italian, Dutch and Portuguese.
 
-Blueprint path:
+Blueprint paths:
 
 ```text
 blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml
+blueprints/automation/smart_irrigation_automation/smart_irrigation_en.yaml
+blueprints/automation/smart_irrigation_automation/smart_irrigation_de.yaml
 ```
 
 ## Requirements
