@@ -1,16 +1,19 @@
-﻿blueprint:
+blueprint:
   name: Inteligentne podlewanie ogrodu - 1 do 12 sekcji
   description: >
-    Wersja 1.5.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsluguje instalacje
+    Wersja 1.6.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsluguje instalacje
     Rain Bird RC2 oraz uklady mieszane z dodatkowymi zaworami lub przekaznikami
     Sonoff, Shelly i ESPHome. Wspolne sa encje pogodowe i opcjonalne posiadane
     sensory. Dla kazdej sekcji osobno ustawiasz nazwe, encje sekcji, rodzaj
     gleby, co rosnie, typ zraszaczy Rain Bird/Hunter, korekte czasu oraz
-    opcjonalne sensory online/baterii.
+    opcjonalne sensory online/baterii. Zamkniecie kazdej sekcji jest potwierdzane
+    i ponawiane, a po restarcie HA otwarte sekcje switch/valve sa zamykane.
+    Zwykle przekazniki warto dodatkowo zabezpieczyc sprzetowym limitem czasu
+    (Shelly "Auto OFF", Sonoff "Inching", ESPHome on_turn_on + delay).
   domain: automation
   author: Smart Service
   homeassistant:
-    min_version: 2025.1.0
+    min_version: 2025.4.0
   source_url: https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml
   input:
     weather_section:
@@ -57,7 +60,7 @@
                 - domain: weather
         rain_binary_sensor:
           name: Czujnik deszczu
-          description: Opcjonalny czujnik fizycznego deszczu. Gdy ma stan on, podlewanie nie wystartuje albo zostanie przerwane.
+          description: Opcjonalny czujnik fizycznego deszczu. Gdy ma stan on, podlewanie nie wystartuje albo zostanie przerwane. Gdy jest niedostepny, podlewanie jest wstrzymane dla bezpieczenstwa.
           default: ""
           selector:
             entity:
@@ -65,7 +68,7 @@
                 - domain: binary_sensor
         rain_amount_sensor:
           name: Opad zmierzony - najlepiej ostatnie 24 h
-          description: Sensor opadu w mm. Najlepszy jest opad kroczacy z ostatnich 24 h albo suma trwajacego zdarzenia deszczowego; sensor tylko dzienny moze pominac deszcz po polnocy. Wartosc jest odejmowana od bilansu. Puste = MeteoFusion HA uzyje rain_today.
+          description: Sensor opadu w mm. Najlepszy jest opad kroczacy z ostatnich 24 h albo suma trwajacego zdarzenia deszczowego; sensor tylko dzienny moze pominac deszcz po polnocy. Wartosc jest odejmowana od bilansu. Puste = MeteoFusion HA uzyje rain_today. Bez tego sensora i bez MeteoFusion HA zmierzony deszcz NIE zmniejsza bilansu wody; chroni wtedy tylko blokada pogody i prognozy. Gdy sensor jest chwilowo niedostepny, bilans nie zmienia zapamietanego opadu.
           default: ""
           selector:
             entity:
@@ -73,7 +76,7 @@
                 - domain: sensor
         temperature_source_entity:
           name: Temperatura ogrodu
-          description: Opcjonalny sensor temperatury w ogrodzie albo encja weather. Puste = uzyj MeteoFusion HA lub glownej encji weather. Niska temperatura blokuje podlewanie, upal zwieksza dawke.
+          description: Opcjonalny sensor temperatury w ogrodzie albo encja weather. Puste = uzyj MeteoFusion HA lub glownej encji weather. Niska temperatura blokuje podlewanie, upal zwieksza dawke. Gdy wybrany sensor jest niedostepny, uzywana jest aktualna temperatura z encji pogody; bez zadnej aktualnej temperatury podlewanie jest wstrzymane.
           default: ""
           selector:
             entity:
@@ -82,7 +85,7 @@
                 - domain: weather
         wind_source_entity:
           name: Wiatr
-          description: Opcjonalny sensor wiatru albo encja weather. Puste = uzyj MeteoFusion HA lub glownej encji weather. Zbyt mocny wiatr blokuje podlewanie, bo zraszacze tracilyby rownomiernosc.
+          description: Opcjonalny sensor wiatru albo encja weather. Puste = uzyj MeteoFusion HA lub glownej encji weather. Zbyt mocny wiatr blokuje podlewanie, bo zraszacze tracilyby rownomiernosc. Gdy wybrany sensor jest niedostepny, uzywany jest wiatr z encji pogody; jesli i tam go brakuje, podlewanie jest wstrzymane.
           default: ""
           selector:
             entity:
@@ -132,6 +135,12 @@
         send_runtime_to_switch:
           name: Przekazuj wyliczony czas do sterownika Rain Bird
           description: Dla Rain Bird RC2 automatyzacja zawsze uzywa rainbird_rc2.start_zone. To ustawienie wlacza przekazywanie czasu do starszej integracji Rain Bird przez rainbird.start_irrigation. Nie zmienia obslugi Sonoff, Shelly, ESPHome ani innych zwyklych encji switch/valve.
+          default: true
+          selector:
+            boolean:
+        valve_runtime_watchdog:
+          name: Nadzor czasu pracy sekcji
+          description: Zalecane. Zamyka sekcje switch/valve tej automatyzacji (poza Rain Bird RC2 i Rain Bird, ktore maja wlasny limit czasu w sterowniku), jesli jest wlaczona dluzej niz maksymalny czas sekcji + 5 min, niezaleznie od tego, kto ja wlaczyl. Chroni przed zalaniem po przerwanym przebiegu. Wylacz tylko wtedy, gdy celowo podlewasz recznie dluzej niz ten limit.
           default: true
           selector:
             boolean:
@@ -1967,19 +1976,36 @@
                 - domain: input_datetime
         water_balance_helper:
           name: Helper - trwaly bilans wody
-          description: Zalecany input_text zapisujacy bilans ET, zmierzonego deszczu i wykonanego podlewania osobno dla wszystkich sekcji. Utworz helper Tekst z maksymalna dlugoscia 255 znakow. Bez helpera dziala zachowany tryb zgodnosci oparty na historii sekcji, ale nie potrafi pamietac deszczu starszego niz wskazanie sensora.
+          description: Zalecany input_text zapisujacy bilans ET, zmierzonego deszczu i wykonanego podlewania osobno dla wszystkich sekcji. Utworz helper Tekst z maksymalna dlugoscia 255 znakow. Gdy zapis nie miescilby sie w limicie helpera, podlewanie jest wstrzymane z czytelnym powodem. Bez helpera dziala tryb zgodnosci oparty na historii pracy sekcji, ktora raportuje tylko Rain Bird RC2; przy sekcjach switch/valve helper jest wymagany.
           default: ""
           selector:
             entity:
               filter:
                 - domain: input_text
 
-mode: single
+mode: queued
+max: 10
 max_exceeded: silent
 
 trigger_variables:
   trigger_schedule_mode: !input schedule_mode
   trigger_sun_offset_minutes: !input sun_event_offset_minutes
+  trigger_zone_count: !input zone_count
+  trigger_max_runtime_minutes: !input max_runtime_minutes
+  trigger_valve_watchdog: !input valve_runtime_watchdog
+  trigger_valves:
+    - !input zone_1_valve
+    - !input zone_2_valve
+    - !input zone_3_valve
+    - !input zone_4_valve
+    - !input zone_5_valve
+    - !input zone_6_valve
+    - !input zone_7_valve
+    - !input zone_8_valve
+    - !input zone_9_valve
+    - !input zone_10_valve
+    - !input zone_11_valve
+    - !input zone_12_valve
 
 triggers:
   - trigger: time
@@ -2018,6 +2044,27 @@ triggers:
   - trigger: time
     id: condition_check_4
     at: !input condition_check_time_4
+  - trigger: homeassistant
+    id: ha_start
+    event: start
+  - trigger: event
+    id: automation_reloaded
+    event_type: automation_reloaded
+  - trigger: template
+    id: valve_watchdog
+    value_template: >-
+      {% if trigger_valve_watchdog | bool %}
+        {% set controller_timed = integration_entities('rainbird_rc2') + integration_entities('rainbird') %}
+        {% set limit = ((trigger_max_runtime_minutes | int(45)) + 5) * 60 %}
+        {% set watched = trigger_valves[:(trigger_zone_count | int(1))]
+             | select('string') | reject('eq', '') | reject('in', controller_timed) | list %}
+        {{ expand(watched)
+           | selectattr('state', 'in', ['on', 'open', 'opening'])
+           | selectattr('last_changed', 'lt', now() - timedelta(seconds=limit))
+           | list | count > 0 }}
+      {% else %}
+        false
+      {% endif %}
 
 variables:
   forecast_weather_entity: !input forecast_weather_entity
@@ -2178,6 +2225,20 @@ variables:
   create_persistent_notification: !input create_persistent_notification
   next_watering_datetime: !input next_watering_datetime
   water_balance_helper: !input water_balance_helper
+  valve_runtime_watchdog: !input valve_runtime_watchdog
+  valve_active_states:
+    - "on"
+    - open
+    - opening
+    - running
+  valve_closed_states:
+    - "off"
+    - closed
+    - idle
+  safety_trigger_ids:
+    - ha_start
+    - automation_reloaded
+    - valve_watchdog
   bad_weather_states:
     - rainy
     - pouring
@@ -2208,7 +2269,7 @@ variables:
     {% if schedule_mode == 'fixed_time' %}
       {% set first = as_timestamp(today_at(primary_start_time)) %}
       {% if first <= now_ts %}
-        {% set first = first + 86400 %}
+        {% set first = as_timestamp(today_at(primary_start_time) + timedelta(days=1)) %}
       {% endif %}
       {{ first | int }}
     {% else %}
@@ -2240,17 +2301,177 @@ variables:
        or ((trigger_is_condition_check | bool) and (enable_condition_checks | bool)) }}
 
 actions:
+  - alias: Kontrola bezpieczenstwa zaworow
+    if:
+      - condition: template
+        value_template: "{{ trigger_id in safety_trigger_ids }}"
+    then:
+      - alias: Wyznacz sekcje switch/valve bez wlasnego limitu czasu w sterowniku
+        variables:
+          safety_sections: >-
+            {% set controller_timed = integration_entities('rainbird_rc2') + integration_entities('rainbird') %}
+            {{ [zone_1_valve, zone_2_valve, zone_3_valve, zone_4_valve, zone_5_valve, zone_6_valve,
+                zone_7_valve, zone_8_valve, zone_9_valve, zone_10_valve, zone_11_valve, zone_12_valve][:(zone_count | int(1))]
+               | select('string') | reject('eq', '') | reject('in', controller_timed) | list }}
+          safety_reload_applies: >-
+            {% if trigger_id != 'automation_reloaded' %}
+              true
+            {% else %}
+              {% set changed = as_datetime(this.last_changed | default('', true) | string, none) if this is defined else none %}
+              {{ changed is not none and (now() - changed).total_seconds() < 120 }}
+            {% endif %}
+      - alias: Po starcie HA poczekaj, az sekcje beda dostepne
+        if:
+          - condition: template
+            value_template: "{{ trigger_id == 'ha_start' and safety_sections | count > 0 }}"
+        then:
+          - wait_template: "{{ safety_sections | select('is_state', 'unavailable') | list | count == 0 }}"
+            timeout: "00:03:00"
+            continue_on_timeout: true
+      - alias: Wybierz sekcje do zamkniecia
+        variables:
+          safety_watchdog_limit_minutes: "{{ (max_runtime_minutes | int(45)) + 5 }}"
+          safety_close_now: >-
+            {% if not (safety_reload_applies | bool) %}
+              []
+            {% elif trigger_id == 'valve_watchdog' %}
+              {{ expand(safety_sections)
+                 | selectattr('state', 'in', valve_active_states)
+                 | selectattr('last_changed', 'lt', now() - timedelta(minutes=safety_watchdog_limit_minutes | int(50)))
+                 | map(attribute='entity_id') | list }}
+            {% else %}
+              {{ expand(safety_sections) | selectattr('state', 'in', valve_active_states) | map(attribute='entity_id') | list }}
+            {% endif %}
+          safety_unknown: >-
+            {% if (safety_reload_applies | bool) and trigger_id in ['ha_start', 'automation_reloaded'] %}
+              {{ safety_sections | select('is_state', 'unknown') | list }}
+            {% else %}
+              []
+            {% endif %}
+          safety_unavailable: "{{ safety_sections | select('is_state', 'unavailable') | list }}"
+      - alias: Zamknij sekcje i potwierdz zamkniecie
+        if:
+          - condition: template
+            value_template: "{{ (safety_close_now | count) + (safety_unknown | count) > 0 }}"
+        then:
+          - repeat:
+              sequence:
+                - variables:
+                    safety_targets: >-
+                      {{ (safety_close_now | reject('is_state', valve_closed_states) | list)
+                         + (safety_unknown if repeat.index == 1 else []) }}
+                - if:
+                    - condition: template
+                      value_template: "{{ safety_targets | select('match', 'switch\\.') | list | count > 0 }}"
+                  then:
+                    - action: switch.turn_off
+                      continue_on_error: true
+                      target:
+                        entity_id: "{{ safety_targets | select('match', 'switch\\.') | list }}"
+                - if:
+                    - condition: template
+                      value_template: "{{ safety_targets | select('match', 'valve\\.') | list | count > 0 }}"
+                  then:
+                    - action: valve.close_valve
+                      continue_on_error: true
+                      target:
+                        entity_id: "{{ safety_targets | select('match', 'valve\\.') | list }}"
+                - wait_template: >-
+                    {{ safety_close_now | reject('is_state', valve_closed_states) | list | count == 0 }}
+                  timeout: "00:00:30"
+                  continue_on_timeout: true
+              until:
+                - condition: template
+                  value_template: >-
+                    {{ safety_close_now | reject('is_state', valve_closed_states) | list | count == 0
+                       or repeat.index >= 3 }}
+          - variables:
+              safety_not_closed: "{{ safety_close_now | reject('is_state', valve_closed_states) | list }}"
+              safety_closed: "{{ safety_close_now | select('is_state', valve_closed_states) | list }}"
+              safety_event_text: >-
+                {% if trigger_id == 'ha_start' %}
+                  Po starcie Home Assistanta
+                {% elif trigger_id == 'automation_reloaded' %}
+                  Po przeladowaniu automatyzacji podlewania
+                {% else %}
+                  Nadzor czasu pracy: sekcja byla wlaczona dluzej niz {{ safety_watchdog_limit_minutes }} min (maksymalny czas sekcji + 5 min), wiec
+                {% endif %}
+          - alias: Powiadom o zamknieciu sekcji
+            if:
+              - condition: template
+                value_template: "{{ (safety_closed | count) + (safety_not_closed | count) > 0 }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  title: >-
+                    {{ 'Inteligentne podlewanie - ALARM' if safety_not_closed | count > 0 else 'Inteligentne podlewanie - zamknieto sekcje' }}
+                  message: |-
+                    {%- if safety_not_closed | count > 0 %}
+                    **Status:** sekcje nie potwierdzily zamkniecia
+
+                    {{ safety_event_text | trim }} automatyzacja probowala zamknac otwarte sekcje 3 razy, ale nie dostala potwierdzenia.
+
+                    **Sprawdz recznie**
+                    {%- for e in safety_not_closed %}
+                    - {{ e }}: stan {{ states(e) }}
+                    {%- endfor %}
+                    {%- else %}
+                    **Status:** zamknieto otwarte sekcje
+
+                    {{ safety_event_text | trim }} automatyzacja zamknela sekcje, ktore pozostaly otwarte.
+                    {%- endif %}
+                    {%- if safety_closed | count > 0 %}
+
+                    **Zamkniete**
+                    {%- for e in safety_closed %}
+                    - {{ e }}
+                    {%- endfor %}
+                    {%- endif %}
+                    {%- if safety_unavailable | count > 0 %}
+
+                    **Niedostepne - nie mozna sprawdzic**
+                    {%- for e in safety_unavailable %}
+                    - {{ e }}
+                    {%- endfor %}
+                    {%- endif %}
+
+                    Jesli przerwano trwajacy przebieg, bilans wody tej sekcji nie zostal pomniejszony; podlewanie wroci przy nastepnym zaplanowanym cyklu.
+                  notification_id: smart_irrigation_valve_alarm
+          - alias: Zaloguj kontrole zaworow
+            if:
+              - condition: template
+                value_template: "{{ enable_irrigation_logs | bool }}"
+            then:
+              - action: logbook.log
+                data:
+                  name: Inteligentne podlewanie
+                  message: >-
+                    Kontrola zaworow ({{ trigger_id }}).
+                    Zamkniete: {{ safety_closed | join(', ') if safety_closed | count > 0 else 'brak' }}.
+                    Bez potwierdzenia zamkniecia: {{ safety_not_closed | join(', ') if safety_not_closed | count > 0 else 'brak' }}.
+                    Wyslano OFF do sekcji o stanie unknown: {{ safety_unknown | join(', ') if safety_unknown | count > 0 else 'brak' }}.
+                    Niedostepne: {{ safety_unavailable | join(', ') if safety_unavailable | count > 0 else 'brak' }}.
+      - stop: "Kontrola bezpieczenstwa zaworow zakonczona."
+
   - alias: Harmonogram startu pasuje
     condition: template
     value_template: "{{ schedule_trigger_ok | bool }}"
 
   - alias: Pobierz prognoze dzienna
     action: weather.get_forecasts
+    continue_on_error: true
     target:
       entity_id: !input forecast_weather_entity
     data:
       type: daily
     response_variable: daily_forecast
+
+  - alias: Zabezpiecz brak odpowiedzi prognozy
+    variables:
+      daily_forecast: "{{ daily_forecast if daily_forecast is defined and daily_forecast is mapping else {} }}"
+      daily_forecast_available: >-
+        {% set fc = daily_forecast if daily_forecast is defined and daily_forecast is mapping else {} %}
+        {{ fc.get(forecast_weather_entity, {}).get('forecast', []) | count > 0 }}
 
   - alias: Wylicz pogode i wspolne warunki
     variables:
@@ -2396,38 +2617,49 @@ actions:
         {% set e = temperature_source_entity | default('', true) %}
         {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
         {% set current = context.get('current', {}) if context is mapping else {} %}
+        {% set weather_now = state_attr(current_weather_entity, 'temperature') | float(-99) %}
         {% if e | length == 0 %}
           {% if (meteofusion_native | bool) and current.get('temperature') | is_number %}
-            {{ current.get('temperature') | float(forecast_temperature | float(0)) }}
+            {{ current.get('temperature') | float(-99) }}
           {% else %}
-            {{ state_attr(current_weather_entity, 'temperature') | float(forecast_temperature | float(0)) }}
+            {{ weather_now }}
           {% endif %}
         {% elif e.split('.')[0] == 'weather' %}
-          {{ state_attr(e, 'temperature') | float(forecast_temperature | float(0)) }}
+          {{ state_attr(e, 'temperature') | float(weather_now) }}
         {% else %}
-          {{ states(e) | float(forecast_temperature | float(0)) }}
+          {{ states(e) | float(weather_now) }}
         {% endif %}
+      temp_available: "{{ (temp_c | float(-99)) > -99 }}"
       wind_value: >-
         {% set e = wind_source_entity | default('', true) %}
         {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
         {% set current = context.get('current', {}) if context is mapping else {} %}
+        {% set w_raw = state_attr(current_weather_entity, 'wind_speed') %}
+        {% set w_unit = state_attr(current_weather_entity, 'wind_speed_unit') | default('km/h', true) | lower %}
+        {% if w_raw | is_number %}
+          {% set raw = w_raw | float(0) %}
+          {% set weather_now = (raw * 3.6) | round(2) if w_unit in ['m/s', 'mps'] else (raw * 1.609344) | round(2) if w_unit in ['mph', 'mi/h'] else (raw * 1.852) | round(2) if w_unit in ['kn', 'kt', 'knot', 'knots'] else raw %}
+        {% else %}
+          {% set weather_now = none %}
+        {% endif %}
         {% if e | length == 0 %}
           {% if (meteofusion_native | bool) and current.get('wind_speed') | is_number %}
             {{ current.get('wind_speed') | float(0) }}
           {% else %}
-            {% set raw = state_attr(current_weather_entity, 'wind_speed') | float(0) %}
-            {% set unit = state_attr(current_weather_entity, 'wind_speed_unit') | default('km/h', true) | lower %}
-            {{ (raw * 3.6) | round(2) if unit in ['m/s', 'mps'] else (raw * 1.609344) | round(2) if unit in ['mph', 'mi/h'] else (raw * 1.852) | round(2) if unit in ['kn', 'kt', 'knot', 'knots'] else raw }}
+            {{ weather_now if weather_now is not none else 0 }}
           {% endif %}
-        {% elif e.split('.')[0] == 'weather' %}
+        {% elif e.split('.')[0] == 'weather' and state_attr(e, 'wind_speed') | is_number %}
           {% set raw = state_attr(e, 'wind_speed') | float(0) %}
           {% set unit = state_attr(e, 'wind_speed_unit') | default('km/h', true) | lower %}
           {{ (raw * 3.6) | round(2) if unit in ['m/s', 'mps'] else (raw * 1.609344) | round(2) if unit in ['mph', 'mi/h'] else (raw * 1.852) | round(2) if unit in ['kn', 'kt', 'knot', 'knots'] else raw }}
-        {% else %}
+        {% elif e.split('.')[0] != 'weather' and states(e) | is_number %}
           {% set raw = states(e) | float(0) %}
           {% set unit = state_attr(e, 'unit_of_measurement') | default('km/h', true) | lower %}
           {{ (raw * 3.6) | round(2) if unit in ['m/s', 'mps'] else (raw * 1.609344) | round(2) if unit in ['mph', 'mi/h'] else (raw * 1.852) | round(2) if unit in ['kn', 'kt', 'knot', 'knots'] else raw }}
+        {% else %}
+          {{ weather_now if weather_now is not none else 999 }}
         {% endif %}
+      wind_available: "{{ (wind_value | float(999)) < 999 }}"
       sunlight_index: >-
         {% set e = sunlight_source_entity | default('', true) %}
         {% if e | length == 0 %}
@@ -2522,27 +2754,47 @@ actions:
         {% set raw = states(water_balance_helper) if (water_balance_enabled | bool) else '' %}
         {{ raw if raw.startswith('{') else '{}' }}
       water_balance_saved_valid: >-
-        {% set saved = water_balance_saved | from_json({}) %}
+        {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
         {{ (water_balance_enabled | bool)
            and saved is mapping
            and saved.get('v', 0) | int(0) == 1
            and saved.get('t', 0) | float(0) > 0
            and saved.get('z', []) is list
            and saved.get('z', []) | count >= 12 }}
-      water_balance_elapsed_days: >-
-        {% set saved = water_balance_saved | from_json({}) %}
+      water_balance_raw_elapsed_days: >-
+        {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
         {% set elapsed = (as_timestamp(now()) - (saved.get('t', 0) | float(0))) / 86400 if (water_balance_saved_valid | bool) else 0 %}
-        {{ 0 if elapsed < 0 else 3 if elapsed > 3 else elapsed | round(5) }}
+        {{ 0 if elapsed < 0 else elapsed | round(5) }}
+      water_balance_elapsed_days: >-
+        {% set elapsed = water_balance_raw_elapsed_days | float(0) %}
+        {{ 3 if elapsed > 3 else elapsed }}
       water_balance_measured_rain_available: >-
         {{ rain_amount_sensor | default('', true) | length > 0 or (meteofusion_native | bool) }}
+      water_balance_rain_source_ok: >-
+        {% set e = rain_amount_sensor | default('', true) %}
+        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
+        {% set current = context.get('current', {}) if context is mapping else {} %}
+        {% if e | length > 0 %}
+          {{ states(e) | is_number }}
+        {% elif meteofusion_native | bool %}
+          {{ current.get('rain_today') | is_number }}
+        {% else %}
+          false
+        {% endif %}
       water_balance_rain_total_mm: >-
-        {{ (current_rain_mm | float(0)) if (water_balance_measured_rain_available | bool) else 0 }}
+        {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
+        {% set previous = saved.get('r', 0) | float(0) if (water_balance_saved_valid | bool) else 0 %}
+        {% if water_balance_rain_source_ok | bool %}
+          {{ current_rain_mm | float(0) | round(1) }}
+        {% else %}
+          {{ previous | round(1) }}
+        {% endif %}
       water_balance_rain_increment_mm: >-
-        {% set saved = water_balance_saved | from_json({}) %}
+        {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
         {% set current = water_balance_rain_total_mm | float(0) %}
         {% set previous = saved.get('r', current) | float(current) if (water_balance_saved_valid | bool) else current %}
         {% set delta = current - previous %}
-        {{ delta | round(2) if delta > 0 else 0 }}
+        {{ delta | round(2) if delta > 0 and (water_balance_rain_source_ok | bool) else 0 }}
       effective_rain_increment_mm: >-
         {% set raw_credit = rain_credit_percent | float(80) / 100 %}
         {% set credit = 0 if raw_credit < 0 else 1 if raw_credit > 1 else raw_credit %}
@@ -2562,7 +2814,7 @@ actions:
           {'soil': zone_11_soil_type, 'plant': zone_11_plant_type},
           {'soil': zone_12_soil_type, 'plant': zone_12_plant_type}
         ] -%}
-        {%- set saved = water_balance_saved | from_json({}) -%}
+        {%- set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) -%}
         {%- set previous = saved.get('z', []) if (water_balance_saved_valid | bool) else [] -%}
         {%- set ns = namespace(values=[]) -%}
         {%- for zone in zones -%}
@@ -2575,19 +2827,27 @@ actions:
           {%- set old = previous[loop.index0] | float(0) if previous | count > loop.index0 else 0 -%}
           {%- set raw = old + (reference_et_mm | float(3.5)) * kc * (water_balance_elapsed_days | float(0)) - (effective_rain_increment_mm | float(0)) if (water_balance_saved_valid | bool) else 0 -%}
           {%- set value = 0 if raw < 0 else cap if raw > cap else raw -%}
-          {%- set ns.values = ns.values + [value | round(2)] -%}
+          {%- set ns.values = ns.values + [value | round(1)] -%}
         {%- endfor -%}
         {{ ns.values | to_json }}
       water_balance_deficits: >-
-        {{ water_balance_deficits_json | from_json([]) }}
+        {{ water_balance_deficits_json if water_balance_deficits_json is list else water_balance_deficits_json | from_json([]) }}
       water_balance_payload: >-
-        {"v":1,"t":{{ as_timestamp(now()) | int }},"r":{{ water_balance_rain_total_mm | float(0) | round(2) }},"z":{{ water_balance_deficits_json }} }
+        {"v":1,"t":{{ as_timestamp(now()) | int }},"r":{{ water_balance_rain_total_mm | float(0) | round(1) }},"z":{{ water_balance_deficits_json }}{{ "}" }}
+      water_balance_payload_length: "{{ water_balance_payload | string | trim | length }}"
+      water_balance_helper_max: >-
+        {{ state_attr(water_balance_helper, 'max') | int(0) if (water_balance_enabled | bool) else 0 }}
+      water_balance_helper_ok: >-
+        {{ not (water_balance_enabled | bool)
+           or (states[water_balance_helper] is not none
+               and states(water_balance_helper) != 'unavailable'
+               and (water_balance_payload_length | int(0)) <= (water_balance_helper_max | int(0))) }}
 
   - alias: Zapisz trwaly bilans w helperze
     choose:
       - conditions:
           - condition: template
-            value_template: "{{ water_balance_enabled | bool }}"
+            value_template: "{{ (water_balance_enabled | bool) and (water_balance_helper_ok | bool) }}"
         sequence:
           - action: input_text.set_value
             target:
@@ -2595,11 +2855,51 @@ actions:
             data:
               value: "{{ water_balance_payload | trim }}"
 
+  - alias: Zaloguj przerwe w aktualizacji bilansu
+    if:
+      - condition: template
+        value_template: >-
+          {{ (enable_irrigation_logs | bool) and (water_balance_enabled | bool)
+             and (water_balance_raw_elapsed_days | float(0)) > 3 }}
+    then:
+      - action: logbook.log
+        data:
+          name: Inteligentne podlewanie
+          message: >-
+            Bilans wody nie byl aktualizowany przez {{ water_balance_raw_elapsed_days | float(0) | round(1) }} dni
+            (automatyzacja wylaczona albo Home Assistant nie dzialal). Doliczono ewapotranspiracje tylko za 3 dni.
+
+  - alias: Wylicz ostrzezenie o braku pomiaru opadu
+    variables:
+      rain_measurement_warning: >-
+        {% if (water_balance_enabled | bool) and not (water_balance_measured_rain_available | bool) %}
+          Brak pomiaru opadu - bilans nie uwzglednia deszczu. Wybierz sensor opadu albo MeteoFusion HA.
+        {% elif (water_balance_enabled | bool) and not (water_balance_rain_source_ok | bool) %}
+          Zrodlo opadu jest teraz niedostepne - bilans zachowal poprzedni stan opadu i nie odjal nowego deszczu.
+        {% endif %}
+
   - alias: Wylicz powod pominiecia podlewania
     variables:
+      zones_non_rc2: >-
+        {{ [zone_1_valve, zone_2_valve, zone_3_valve, zone_4_valve, zone_5_valve, zone_6_valve,
+            zone_7_valve, zone_8_valve, zone_9_valve, zone_10_valve, zone_11_valve, zone_12_valve][:(zone_count | int(1))]
+           | select('string') | reject('eq', '') | reject('in', integration_entities('rainbird_rc2')) | list }}
+      rain_sensor_unavailable: >-
+        {{ rain_binary_sensor | default('', true) | length > 0
+           and states(rain_binary_sensor) in ['unknown', 'unavailable'] }}
       irrigation_skip_reason: >-
         {% if not (season_ok | bool) %}
           Poza sezonem podlewania. Aktywny sezon to miesiace {{ season_start_month }}-{{ season_end_month }}.
+        {% elif (min_dose_mm | float(3)) > (max_dose_mm | float(10)) %}
+          Minimalna dawka do startu ({{ min_dose_mm }} mm) jest wieksza od maksymalnej dawki jednego podlewania ({{ max_dose_mm }} mm). Popraw progi w sekcji "Harmonogram, sezon i progi".
+        {% elif (water_balance_enabled | bool) and (states[water_balance_helper] is none or states(water_balance_helper) == 'unavailable') %}
+          Helper bilansu wody {{ water_balance_helper }} nie istnieje albo jest niedostepny. Utworz helper Tekst o maksymalnej dlugosci 255 znakow albo wybierz istniejacy.
+        {% elif (water_balance_enabled | bool) and not (water_balance_helper_ok | bool) %}
+          Helper bilansu wody {{ water_balance_helper }} ma limit {{ water_balance_helper_max }} znakow, a zapis bilansu wymaga {{ water_balance_payload_length }}. Ustaw maksymalna dlugosc helpera na 255 znakow.
+        {% elif not (water_balance_enabled | bool) and zones_non_rc2 | count > 0 %}
+          Wybierz "Helper - trwaly bilans wody". Sekcje {{ zones_non_rc2 | join(', ') }} nie raportuja historii pracy, wiec bez helpera nie da sie policzyc ich zapotrzebowania na wode.
+        {% elif not (daily_forecast_available | bool) %}
+          Encja {{ forecast_weather_entity }} nie udostepnila prognozy dziennej (weather.get_forecasts, type daily). Wybierz encje pogody z prognoza dzienna.
         {% elif (use_meteofusion_data | bool) and not (meteofusion_contract_available | bool) %}
           Wlaczono korzystanie z MeteoFusion HA, ale wybrana encja {{ forecast_weather_entity }} nie udostepnia kontraktu smart_service.weather.v1. Wybierz encje weather z MeteoFusion albo wylacz te opcje.
         {% elif (meteofusion_native | bool) and not (meteofusion_quality_ok | bool) %}
@@ -2608,6 +2908,8 @@ actions:
           Brak wiarygodnych danych pogodowych. Aktualny stan: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}.
         {% elif not (weather_ok | bool) %}
           Pogoda blokuje podlewanie. Aktualny stan: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}.
+        {% elif rain_sensor_unavailable | bool %}
+          Czujnik deszczu {{ rain_binary_sensor }} jest niedostepny (stan {{ states(rain_binary_sensor) }}), podlewanie wstrzymane dla bezpieczenstwa. Sprawdz czujnik albo usun go z konfiguracji.
         {% elif not (rain_sensor_ok | bool) %}
           {% if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
             Czujnik deszczu jest aktywny: {{ rain_binary_sensor }} ma stan {{ states(rain_binary_sensor) }}.
@@ -2620,8 +2922,12 @@ actions:
           Gleba jest wystarczajaco wilgotna: {{ soil_moisture_percent | float(0) | round(1) }}%, prog blokady {{ soil_moisture_block_percent | float(70) | round(0) }}%.
         {% elif not (forecast_rain_ok | bool) %}
           Prognoza deszczu ({{ forecast_window_label }}) blokuje podlewanie: {{ forecast_precipitation | float(0) }} mm i {{ forecast_precipitation_probability | int(0) }}% prawdopodobienstwa.
+        {% elif not (temp_available | bool) %}
+          Brak aktualnej temperatury: {{ temperature_source_entity if temperature_source_entity | default('', true) | length > 0 else current_weather_entity }} nie podaje wartosci, a encja {{ current_weather_entity }} nie ma atrybutu temperature. Podlewanie wstrzymane dla bezpieczenstwa przed przymrozkiem.
         {% elif not (temp_ok | bool) %}
           Temperatura jest za niska: {{ temp_c | float(0) | round(1) }} C, minimum to {{ min_temperature_c }} C.
+        {% elif not (wind_available | bool) %}
+          Brak pomiaru wiatru: {{ wind_source_entity }} nie podaje wartosci, a encja {{ current_weather_entity }} nie ma atrybutu wind_speed. Podlewanie wstrzymane.
         {% elif not (wind_ok | bool) %}
           Wiatr jest za mocny: {{ wind_value | float(0) | round(1) }}, limit to {{ max_wind }}.
         {% else %}{% endif %}
@@ -2669,6 +2975,7 @@ actions:
                 - Aktualnie: {{ current_weather_condition_pl }}
                 - Prognoza: {{ forecast_condition_pl }}
                 - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
+                {% if rain_measurement_warning | trim | length > 0 %}- Uwaga: {{ rain_measurement_warning | trim }}{% endif %}
                 - Opad ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
                 - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
                 - Temperatura: {{ temp_c | float(0) | round(1) }} C
@@ -2887,12 +3194,18 @@ actions:
           {%- set attr = 'next_rising' if schedule_mode == 'sunrise' else 'next_setting' -%}
           {%- set scheduled = as_timestamp(state_attr('sun.sun', attr), as_timestamp(now())) + (sun_event_offset_minutes | int(0)) * 60 -%}
         {%- endif -%}
+        {%- set ns_day = namespace(offset=0) -%}
         {%- if scheduled <= as_timestamp(now()) -%}
+          {%- set ns_day.offset = 1 -%}
           {%- set scheduled = scheduled + 86400 -%}
         {%- endif -%}
         {%- if scheduled < candidate -%}
           {%- set add_days = ((candidate - scheduled) / 86400) | round(0, 'ceil') | int -%}
+          {%- set ns_day.offset = ns_day.offset + add_days -%}
           {%- set scheduled = scheduled + add_days * 86400 -%}
+        {%- endif -%}
+        {%- if schedule_mode == 'fixed_time' -%}
+          {%- set scheduled = as_timestamp(today_at(primary_start_time) + timedelta(days=ns_day.offset)) -%}
         {%- endif -%}
         {{ scheduled | int }}
 
@@ -2966,6 +3279,7 @@ actions:
                 - Aktualnie: {{ current_weather_condition_pl }}
                 - Prognoza: {{ forecast_condition_pl }}
                 - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
+                {% if rain_measurement_warning | trim | length > 0 %}- Uwaga: {{ rain_measurement_warning | trim }}{% endif %}
                 - Opad ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
                 - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
                 - Temperatura: {{ temp_c | float(0) | round(1) }} C
@@ -2996,6 +3310,7 @@ actions:
                 Zaplanowano cykl podlewania dla wlaczonych sekcji. {{ irrigation_cycle_decision_reason | trim }}.
                 Najwieksza dawka cyklu {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm.
                 Zrodlo pogody: {{ weather_source_summary | trim }}.
+                {{ rain_measurement_warning | trim }}
                 Prognoza opadu ({{ forecast_window_label }}) {{ forecast_precipitation | float(0) | round(1) }} mm,
                 szansa deszczu {{ forecast_precipitation_probability | int(0) }}%,
                 temperatura {{ temp_c | float(0) | round(1) }} C,
@@ -3005,6 +3320,10 @@ actions:
     variables:
       irrigation_cycle_started_at: "{{ now().isoformat() }}"
       start_notification_sent: false
+      watered_sections: []
+      cycle_aborted: false
+      cycle_abort_section: 0
+      cycle_abort_note: ""
 
   - alias: Podlej aktywne sekcje
     repeat:
@@ -3139,11 +3458,11 @@ actions:
             section_is_rc2: "{{ section_valve in integration_entities('rainbird_rc2') }}"
             section_rc2_connection_entity: >-
               {% if section_valve in integration_entities('rainbird_rc2') %}
-                {% set entry_id = state_attr(section_valve, 'config_entry_id') %}
+                {% set entry_id = config_entry_id(section_valve) %}
                 {% set ns = namespace(entity='') %}
                 {% for entity in integration_entities('rainbird_rc2') %}
                   {% if entity.startswith('binary_sensor.')
-                        and state_attr(entity, 'config_entry_id') == entry_id
+                        and config_entry_id(entity) == entry_id
                         and state_attr(entity, 'device_class') == 'connectivity' %}
                     {% set ns.entity = entity %}
                   {% endif %}
@@ -3254,11 +3573,19 @@ actions:
             section_applied_depth_mm: >-
               {% set effective_rate = (section_rate_mm_h | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 %}
               {{ ((section_minutes | float(0)) * effective_rate / 60) | round(1) }}
+            section_live_rain: >-
+              {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
+              {% set current = context.get('current', {}) if context is mapping else {} %}
+              {{ ((rain_binary_sensor | default('', true) | length > 0) and not is_state(rain_binary_sensor, 'off'))
+                 or ((meteofusion_native | bool)
+                     and ((current.get('rain_rate', 0) | float(0)) >= 0.2
+                          or (current.get('lightning_near', false) | bool))) }}
             section_ready: >-
               {{ section_enabled | bool
+                 and not (cycle_aborted | bool)
                  and section_valve | default('', true) | length > 0
                  and (section_controller_ready | bool)
-                 and (rain_sensor_ok | bool)
+                 and not (section_live_rain | bool)
                  and states(current_weather_entity) not in bad_weather_states
                  and states(current_weather_entity) not in ['unknown', 'unavailable']
                  and states(section_valve) in ['closed', 'off', 'idle']
@@ -3267,14 +3594,18 @@ actions:
             section_skip_reason: >-
               {% if not (section_enabled | bool) %}
                 Sekcja poza wybrana liczba sekcji.
+              {% elif cycle_aborted | bool %}
+                Cykl przerwany: {{ cycle_abort_note }}
               {% elif section_valve | default('', true) | length == 0 %}
                 Brak encji sekcji.
               {% elif not (section_controller_ready | bool) %}
                 Sterownik Rain Bird RC2 jest offline albo w stanie shutdown. {{ section_controller_status | trim }}.
               {% elif (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
                 Czujnik deszczu jest aktywny: {{ rain_binary_sensor }} ma stan {{ states(rain_binary_sensor) }}.
-              {% elif meteofusion_rain_now | bool %}
-                MeteoFusion wykrywa aktualny deszcz {{ meteofusion_rain_rate | float(0) | round(2) }} mm/h albo burze w poblizu.
+              {% elif (rain_binary_sensor | default('', true) | length > 0) and not is_state(rain_binary_sensor, 'off') %}
+                Czujnik deszczu {{ rain_binary_sensor }} jest niedostepny (stan {{ states(rain_binary_sensor) }}), sekcja wstrzymana dla bezpieczenstwa.
+              {% elif section_live_rain | bool %}
+                MeteoFusion wykrywa aktualny deszcz albo burze w poblizu.
               {% elif states(current_weather_entity) in bad_weather_states %}
                 Pogoda blokuje podlewanie. Aktualny stan: {{ current_weather_condition_pl }}.
               {% elif states(current_weather_entity) in ['unknown', 'unavailable'] %}
@@ -3293,7 +3624,8 @@ actions:
                 - condition: template
                   value_template: "{{ section_ready | bool and (section_minutes | int(0)) > 0 }}"
               sequence:
-                - choose:
+                - alias: Wyslij polecenie otwarcia sekcji
+                  choose:
                     - conditions:
                         - condition: template
                           value_template: "{{ section_valve in integration_entities('rainbird_rc2') }}"
@@ -3311,6 +3643,7 @@ actions:
                                and section_valve in integration_entities('rainbird') }}
                       sequence:
                         - action: rainbird.start_irrigation
+                          continue_on_error: true
                           target:
                             entity_id: "{{ section_valve }}"
                           data:
@@ -3320,315 +3653,363 @@ actions:
                           value_template: "{{ section_valve.split('.')[0] == 'switch' }}"
                       sequence:
                         - action: switch.turn_on
+                          continue_on_error: true
                           target:
                             entity_id: "{{ section_valve }}"
                   default:
                     - action: valve.open_valve
+                      continue_on_error: true
                       target:
                         entity_id: "{{ section_valve }}"
                 - alias: Poczekaj na potwierdzenie otwarcia sekcji
-                  wait_template: "{{ states(section_valve) in ['on', 'open', 'running'] }}"
-                  timeout: "00:00:20"
+                  wait_template: "{{ states(section_valve) in valve_active_states }}"
+                  timeout: "00:01:00"
                   continue_on_timeout: true
                 - alias: Zapamietaj wynik otwarcia sekcji
                   variables:
-                    section_started: >-
-                      {{ wait.completed | default(false)
-                         and states(section_valve) in ['on', 'open', 'running'] }}
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ not (section_started | bool) }}"
-                      sequence:
-                        - choose:
-                            - conditions:
-                                - condition: template
-                                  value_template: "{{ enable_irrigation_logs | bool }}"
-                              sequence:
-                                - action: logbook.log
-                                  data:
-                                    name: "Podlewanie - {{ section_name }}"
-                                    message: "Nie uruchomiono sekcji {{ section_number }}. Sterownik nie potwierdzil otwarcia; aktualny stan: {{ states(section_valve) }}."
-                        - choose:
-                            - conditions:
-                                - condition: template
-                                  value_template: "{{ create_persistent_notification | bool }}"
-                              sequence:
-                                - action: persistent_notification.create
-                                  data:
-                                    title: Inteligentne podlewanie
-                                    message: |-
-                                      **Status:** pominieto podlewanie
-
-                                      **Sekcja**
-                                      - Numer: {{ section_number }}
-                                      - Nazwa: {{ section_name }}
-                                      - Encja: {{ section_valve }}
-
-                                      **Powod**
-                                      Sterownik nie potwierdzil otwarcia wymaganej sekcji, dlatego cykl zostal bezpiecznie zatrzymany.
-
-                                      **Stan**
-                                      - Aktualny stan sekcji: {{ states(section_valve) }}
-                                      - Zaplanowany czas: {{ section_minutes | int(0) }} min
-                                    notification_id: smart_irrigation_last_event
-                        - stop: "Sekcja {{ section_number }} nie potwierdzila otwarcia."
-                - alias: Zapamietaj czas faktycznego startu
-                  variables:
+                    section_started: "{{ states(section_valve) in valve_active_states }}"
                     section_started_at: "{{ as_timestamp(now()) }}"
-                - alias: Powiadom po potwierdzeniu pierwszej uruchomionej sekcji
-                  choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ not (start_notification_sent | bool) }}"
-                      sequence:
-                        - choose:
-                            - conditions:
-                                - condition: template
-                                  value_template: "{{ create_persistent_notification | bool }}"
-                              sequence:
-                                - action: persistent_notification.create
-                                  data:
-                                    title: Inteligentne podlewanie
-                                    message: |-
-                                      **Status:** rozpoczeto podlewanie
+                    section_interrupted: false
+                    section_interruption_reason: ""
+                - alias: Prowadz sekcje po potwierdzeniu otwarcia
+                  if:
+                    - condition: template
+                      value_template: "{{ section_started | bool }}"
+                  then:
+                    - alias: Powiadom po potwierdzeniu pierwszej uruchomionej sekcji
+                      choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ not (start_notification_sent | bool) }}"
+                          sequence:
+                            - choose:
+                                - conditions:
+                                    - condition: template
+                                      value_template: "{{ create_persistent_notification | bool }}"
+                                  sequence:
+                                    - action: persistent_notification.create
+                                      data:
+                                        title: Inteligentne podlewanie
+                                        message: |-
+                                          **Status:** rozpoczeto podlewanie
 
-                                      **Pierwsza sekcja**
-                                      - Numer: {{ section_number }}
-                                      - Nazwa: {{ section_name }}
-                                      - Czas: {{ section_minutes | int(0) }} min
-                                      - Stan sterownika: {{ states(section_valve) }}
+                                          **Pierwsza sekcja**
+                                          - Numer: {{ section_number }}
+                                          - Nazwa: {{ section_name }}
+                                          - Czas: {{ section_minutes | int(0) }} min
+                                          - Stan sterownika: {{ states(section_valve) }}
 
-                                      **Plan cyklu**
-                                      {{ irrigation_cycle_decision_reason | trim }}
+                                          **Plan cyklu**
+                                          {{ irrigation_cycle_decision_reason | trim }}
 
-                                      **Pogoda**
-                                      - Zrodlo: {{ weather_source_summary | trim }}
-                                      - Aktualnie: {{ current_weather_condition_pl }}
-                                      - Prognoza: {{ forecast_condition_pl }}
-                                      - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
-                                      - Opad prognozowany ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
-                                    notification_id: smart_irrigation_last_event
-                        - variables:
-                            start_notification_sent: true
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ enable_irrigation_logs | bool }}"
-                      sequence:
-                        - action: logbook.log
-                          data:
-                            name: "Podlewanie - {{ section_name }}"
-                            message: >-
-                              Uruchomiono sekcje {{ section_number }} na {{ section_minutes | int(0) }} min.
-                              Sterownik potwierdzil stan {{ states(section_valve) }}.
-                              Dawka {{ section_depth_mm | float(0) | round(1) }} mm,
-                              przewidywana dawka dostarczona przy limicie czasu {{ section_applied_depth_mm | float(0) | round(1) }} mm,
-                              deficyt sekcji {{ section_water_deficit_mm | float(0) | round(1) }} mm,
-                              prog sekcji {{ section_target_depth_mm | float(0) | round(1) }} mm,
-                              opad zraszaczy {{ section_rate_mm_h | float(0) | round(1) }} mm/h.
-                - alias: Monitoruj pogode i stabilnosc pracy sekcji
-                  repeat:
-                    while:
-                      - condition: template
-                        value_template: >-
-                          {% set elapsed = as_timestamp(now()) - (section_started_at | float(as_timestamp(now()))) %}
-                          {% set planned = (section_minutes | int(1)) * 60 %}
+                                          **Pogoda**
+                                          - Zrodlo: {{ weather_source_summary | trim }}
+                                          - Aktualnie: {{ current_weather_condition_pl }}
+                                          - Prognoza: {{ forecast_condition_pl }}
+                                          - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
+                                          {% if rain_measurement_warning | trim | length > 0 %}- Uwaga: {{ rain_measurement_warning | trim }}{% endif %}
+                                          - Opad prognozowany ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
+                                        notification_id: smart_irrigation_last_event
+                            - variables:
+                                start_notification_sent: true
+                    - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ enable_irrigation_logs | bool }}"
+                          sequence:
+                            - action: logbook.log
+                              data:
+                                name: "Podlewanie - {{ section_name }}"
+                                message: >-
+                                  Uruchomiono sekcje {{ section_number }} na {{ section_minutes | int(0) }} min.
+                                  Sterownik potwierdzil stan {{ states(section_valve) }}.
+                                  Dawka {{ section_depth_mm | float(0) | round(1) }} mm,
+                                  przewidywana dawka dostarczona przy limicie czasu {{ section_applied_depth_mm | float(0) | round(1) }} mm,
+                                  deficyt sekcji {{ section_water_deficit_mm | float(0) | round(1) }} mm,
+                                  prog sekcji {{ section_target_depth_mm | float(0) | round(1) }} mm,
+                                  opad zraszaczy {{ section_rate_mm_h | float(0) | round(1) }} mm/h.
+                    - alias: Monitoruj pogode i stabilnosc pracy sekcji
+                      repeat:
+                        while:
+                          - condition: template
+                            value_template: >-
+                              {% set elapsed = as_timestamp(now()) - (section_started_at | float(as_timestamp(now()))) %}
+                              {% set planned = (section_minutes | int(1)) * 60 %}
+                              {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
+                              {% set current = context.get('current', {}) if context is mapping else {} %}
+                              {% set meteofusion_rain_active =
+                                 (meteofusion_native | bool)
+                                 and ((current.get('rain_rate', 0) | float(0)) >= 0.2
+                                      or (current.get('lightning_near', false) | bool)) %}
+                              {% set rain_active =
+                                 ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
+                                 or meteofusion_rain_active %}
+                              {% set w = states[current_weather_entity] %}
+                              {% set weather_lost = w is none
+                                 or (w.state in ['unknown', 'unavailable'] and (now() - w.last_changed).total_seconds() > 300) %}
+                              {% set weather_bad = states(current_weather_entity) in bad_weather_states or weather_lost %}
+                              {% set valve_running = states(section_valve) in valve_active_states %}
+                              {{ elapsed < planned and not rain_active and not weather_bad and valve_running }}
+                        sequence:
+                          - delay:
+                              seconds: 15
+                    - alias: Sprawdz czy sekcja zostala przerwana
+                      variables:
+                        section_interrupted: >-
                           {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
                           {% set current = context.get('current', {}) if context is mapping else {} %}
                           {% set meteofusion_rain_active =
                              (meteofusion_native | bool)
                              and ((current.get('rain_rate', 0) | float(0)) >= 0.2
                                   or (current.get('lightning_near', false) | bool)) %}
-                          {% set rain_active =
+                          {% set w = states[current_weather_entity] %}
+                          {% set weather_lost = w is none
+                             or (w.state in ['unknown', 'unavailable'] and (now() - w.last_changed).total_seconds() > 300) %}
+                          {% set weather_interrupted =
                              ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
-                             or meteofusion_rain_active %}
-                          {% set weather_bad = states(current_weather_entity) in bad_weather_states or states(current_weather_entity) in ['unknown', 'unavailable'] %}
-                          {% set valve_running = states(section_valve) in ['on', 'open', 'running'] %}
-                          {{ elapsed < planned and not rain_active and not weather_bad and valve_running }}
+                             or meteofusion_rain_active
+                             or states(current_weather_entity) in bad_weather_states
+                             or weather_lost %}
+                          {% set elapsed = as_timestamp(now()) - (section_started_at | float(as_timestamp(now()))) %}
+                          {% set planned = (section_minutes | int(1)) * 60 %}
+                          {% set stop_grace = [120, (planned * 0.08) | int] | max %}
+                          {% set valve_stopped_early =
+                             states(section_valve) not in valve_active_states
+                             and elapsed < (planned - stop_grace) %}
+                          {{ weather_interrupted or valve_stopped_early }}
+                        section_interruption_reason: >-
+                          {% set w = states[current_weather_entity] %}
+                          {% set weather_lost = w is none
+                             or (w.state in ['unknown', 'unavailable'] and (now() - w.last_changed).total_seconds() > 300) %}
+                          {% if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
+                            czujnik deszczu {{ rain_binary_sensor }} jest aktywny
+                          {% elif meteofusion_native | bool %}
+                            {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
+                            {% set current = context.get('current', {}) if context is mapping else {} %}
+                            {% if current.get('lightning_near', false) | bool %}
+                              MeteoFusion wykrywa burze w poblizu lokalnej stacji
+                            {% elif (current.get('rain_rate', 0) | float(0)) >= 0.2 %}
+                              MeteoFusion wykrywa deszcz {{ current.get('rain_rate', 0) | float(0) | round(2) }} mm/h
+                            {% elif states(current_weather_entity) in bad_weather_states %}
+                              pogoda zmienila sie na {{ current_weather_condition_pl }}
+                            {% elif weather_lost %}
+                              dane pogodowe MeteoFusion sa niedostepne dluzej niz 5 min
+                            {% else %}
+                              sterownik zamknal sekcje wyraznie przed uplywem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
+                            {% endif %}
+                          {% elif states(current_weather_entity) in bad_weather_states %}
+                            {% set condition = states(current_weather_entity) | trim %}
+                            {% set names = {
+                              'hail': 'grad',
+                              'lightning': 'burza',
+                              'lightning-rainy': 'burza z deszczem',
+                              'pouring': 'ulewny deszcz',
+                              'rainy': 'deszcz',
+                              'snowy': 'snieg',
+                              'snowy-rainy': 'snieg z deszczem'
+                            } %}
+                            pogoda zmienila sie na {{ names.get(condition, condition) }}
+                          {% elif weather_lost %}
+                            dane pogodowe sa niedostepne dluzej niz 5 min
+                          {% elif states(section_valve) not in valve_active_states %}
+                            sterownik zamknal sekcje wyraznie przed uplywem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
+                          {% else %}
+                            deszcz albo zla pogoda
+                          {% endif %}
+                - alias: Zamknij sekcje i potwierdz zamkniecie
+                  repeat:
                     sequence:
-                      - delay:
-                          seconds: 15
-                - alias: Sprawdz czy sekcja zostala przerwana
-                  variables:
-                    section_interrupted: >-
-                      {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-                      {% set current = context.get('current', {}) if context is mapping else {} %}
-                      {% set meteofusion_rain_active =
-                         (meteofusion_native | bool)
-                         and ((current.get('rain_rate', 0) | float(0)) >= 0.2
-                              or (current.get('lightning_near', false) | bool)) %}
-                      {% set weather_interrupted =
-                         ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
-                         or meteofusion_rain_active
-                         or states(current_weather_entity) in bad_weather_states
-                         or states(current_weather_entity) in ['unknown', 'unavailable'] %}
-                      {% set elapsed = as_timestamp(now()) - (section_started_at | float(as_timestamp(now()))) %}
-                      {% set planned = (section_minutes | int(1)) * 60 %}
-                      {% set stop_grace = [120, (planned * 0.08) | int] | max %}
-                      {% set valve_stopped_early =
-                         states(section_valve) not in ['on', 'open', 'running']
-                         and elapsed < (planned - stop_grace) %}
-                      {{ weather_interrupted or valve_stopped_early }}
-                    section_interruption_reason: >-
-                      {% if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
-                        czujnik deszczu {{ rain_binary_sensor }} jest aktywny
-                      {% elif meteofusion_native | bool %}
-                        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-                        {% set current = context.get('current', {}) if context is mapping else {} %}
-                        {% if current.get('lightning_near', false) | bool %}
-                          MeteoFusion wykrywa burze w poblizu lokalnej stacji
-                        {% elif (current.get('rain_rate', 0) | float(0)) >= 0.2 %}
-                          MeteoFusion wykrywa deszcz {{ current.get('rain_rate', 0) | float(0) | round(2) }} mm/h
-                        {% elif states(current_weather_entity) in bad_weather_states %}
-                          pogoda zmienila sie na {{ current_weather_condition_pl }}
-                        {% elif states(current_weather_entity) in ['unknown', 'unavailable'] %}
-                          dane pogodowe MeteoFusion staly sie niedostepne
-                        {% else %}
-                          sterownik zamknal sekcje wyraznie przed uplywem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
-                        {% endif %}
-                      {% elif states(current_weather_entity) in bad_weather_states %}
-                        {% set condition = states(current_weather_entity) | trim %}
-                        {% set names = {
-                          'hail': 'grad',
-                          'lightning': 'burza',
-                          'lightning-rainy': 'burza z deszczem',
-                          'pouring': 'ulewny deszcz',
-                          'rainy': 'deszcz',
-                          'snowy': 'snieg',
-                          'snowy-rainy': 'snieg z deszczem'
-                        } %}
-                        pogoda zmienila sie na {{ names.get(condition, condition) }}
-                      {% elif states(current_weather_entity) in ['unknown', 'unavailable'] %}
-                        dane pogodowe staly sie niedostepne
-                      {% elif states(section_valve) not in ['on', 'open', 'running'] %}
-                        sterownik zamknal sekcje wyraznie przed uplywem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
-                      {% else %}
-                        deszcz albo zla pogoda
-                      {% endif %}
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ section_valve in integration_entities('rainbird_rc2') }}"
-                      sequence:
-                        - action: rainbird_rc2.stop_zone
-                          data:
-                            station_entity: "{{ section_valve }}"
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ section_valve.split('.')[0] == 'switch' }}"
-                      sequence:
-                        - action: switch.turn_off
-                          target:
-                            entity_id: "{{ section_valve }}"
-                  default:
-                    - action: valve.close_valve
-                      target:
-                        entity_id: "{{ section_valve }}"
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ section_interrupted | bool }}"
-                      sequence:
-                        - choose:
-                            - conditions:
-                                - condition: template
-                                  value_template: "{{ water_balance_enabled | bool }}"
-                              sequence:
-                                - variables:
-                                    interrupted_balance_payload: |-
-                                      {%- set saved = states(water_balance_helper) | from_json({}) -%}
-                                      {%- set previous = saved.get('z', water_balance_deficits) if saved is mapping else water_balance_deficits -%}
-                                      {%- set elapsed_minutes = ((as_timestamp(now()) - (section_started_at | float(as_timestamp(now())))) / 60) -%}
-                                      {%- set actual_minutes = 0 if elapsed_minutes < 0 else (section_minutes | float(0)) if elapsed_minutes > (section_minutes | float(0)) else elapsed_minutes -%}
-                                      {%- set effective_rate = (section_rate_mm_h | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 -%}
-                                      {%- set applied = actual_minutes * effective_rate / 60 -%}
-                                      {%- set ns = namespace(values=[]) -%}
-                                      {%- for value in previous -%}
-                                        {%- set updated = (value | float(0)) - applied if loop.index == (section_number | int) else value | float(0) -%}
-                                        {%- set ns.values = ns.values + [0 if updated < 0 else updated | round(2)] -%}
-                                      {%- endfor -%}
-                                      {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(2) }},"z":{{ ns.values | to_json }} }
-                                - action: input_text.set_value
-                                  target:
-                                    entity_id: "{{ water_balance_helper }}"
-                                  data:
-                                    value: "{{ interrupted_balance_payload | trim }}"
-                        - choose:
-                            - conditions:
-                                - condition: template
-                                  value_template: "{{ enable_irrigation_logs | bool }}"
-                              sequence:
-                                - action: logbook.log
-                                  data:
-                                    name: Inteligentne podlewanie
-                                    message: "Przerwano sekcje {{ section_number }}: {{ section_name }}. Powod: {{ section_interruption_reason | trim }}. Pozostale sekcje nie zostana uruchomione."
-                        - choose:
-                            - conditions:
-                                - condition: template
-                                  value_template: "{{ create_persistent_notification | bool }}"
-                              sequence:
-                                - action: persistent_notification.create
-                                  data:
-                                    title: Inteligentne podlewanie
-                                    message: |-
-                                      **Status:** zakonczono podlewanie przed czasem
+                      - choose:
+                          - conditions:
+                              - condition: template
+                                value_template: "{{ section_valve in integration_entities('rainbird_rc2') }}"
+                            sequence:
+                              - action: rainbird_rc2.stop_zone
+                                continue_on_error: true
+                                data:
+                                  station_entity: "{{ section_valve }}"
+                          - conditions:
+                              - condition: template
+                                value_template: "{{ section_valve.split('.')[0] == 'switch' }}"
+                            sequence:
+                              - action: switch.turn_off
+                                continue_on_error: true
+                                target:
+                                  entity_id: "{{ section_valve }}"
+                        default:
+                          - action: valve.close_valve
+                            continue_on_error: true
+                            target:
+                              entity_id: "{{ section_valve }}"
+                      - wait_template: "{{ states(section_valve) in valve_closed_states }}"
+                        timeout: "00:00:30"
+                        continue_on_timeout: true
+                    until:
+                      - condition: template
+                        value_template: "{{ states(section_valve) in valve_closed_states or repeat.index >= 3 }}"
+                - alias: Alarm gdy sekcja nie potwierdzila zamkniecia
+                  if:
+                    - condition: template
+                      value_template: "{{ states(section_valve) not in valve_closed_states }}"
+                  then:
+                    - action: persistent_notification.create
+                      data:
+                        title: Inteligentne podlewanie - ALARM
+                        message: |-
+                          **Status:** sekcja nie potwierdzila zamkniecia
 
-                                      **Sekcja**
-                                      - Numer: {{ section_number }}
-                                      - Nazwa: {{ section_name }}
-                                      - Encja: {{ section_valve }}
+                          **Sekcja**
+                          - Numer: {{ section_number }}
+                          - Nazwa: {{ section_name }}
+                          - Encja: {{ section_valve }}
+                          - Stan: {{ states(section_valve) }}
 
-                                      **Powod**
-                                      {{ section_interruption_reason | trim }}
+                          Automatyzacja wyslala polecenie zamkniecia 3 razy co 30 s i nie dostala potwierdzenia. Sprawdz zawor recznie. Pozostale sekcje nie zostana uruchomione w tym cyklu.
+                        notification_id: smart_irrigation_valve_alarm
+                    - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ enable_irrigation_logs | bool }}"
+                          sequence:
+                            - action: logbook.log
+                              data:
+                                name: "Podlewanie - {{ section_name }}"
+                                message: "ALARM: sekcja {{ section_number }} ({{ section_valve }}) nie potwierdzila zamkniecia po 3 probach, stan {{ states(section_valve) }}. Cykl zatrzymany."
+                    - stop: "Sekcja {{ section_number }} nie potwierdzila zamkniecia."
+                      error: true
+                - alias: Obsluz brak potwierdzenia otwarcia
+                  if:
+                    - condition: template
+                      value_template: "{{ not (section_started | bool) }}"
+                  then:
+                    - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ enable_irrigation_logs | bool }}"
+                          sequence:
+                            - action: logbook.log
+                              data:
+                                name: "Podlewanie - {{ section_name }}"
+                                message: "Nie uruchomiono sekcji {{ section_number }}. Sterownik nie potwierdzil otwarcia w ciagu 60 s; wyslano i potwierdzono zamkniecie. Pozostale sekcje nie zostana uruchomione w tym cyklu."
+                    - variables:
+                        cycle_aborted: true
+                        cycle_abort_section: "{{ section_number | int }}"
+                        cycle_abort_note: >-
+                          sekcja {{ section_number }} ({{ section_name }}, {{ section_valve }}) nie potwierdzila otwarcia w ciagu 60 s; zostala zamknieta, a kolejne sekcje nie byly uruchamiane.
+                - alias: Obsluz przerwanie sekcji
+                  if:
+                    - condition: template
+                      value_template: "{{ (section_started | bool) and (section_interrupted | bool) }}"
+                  then:
+                    - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ (water_balance_enabled | bool) and (water_balance_helper_ok | bool) }}"
+                          sequence:
+                            - variables:
+                                interrupted_balance_payload: |-
+                                  {%- set saved = states(water_balance_helper) | from_json({}) -%}
+                                  {%- set previous = saved.get('z', water_balance_deficits) if saved is mapping else water_balance_deficits -%}
+                                  {%- set elapsed_minutes = ((as_timestamp(now()) - (section_started_at | float(as_timestamp(now())))) / 60) -%}
+                                  {%- set actual_minutes = 0 if elapsed_minutes < 0 else (section_minutes | float(0)) if elapsed_minutes > (section_minutes | float(0)) else elapsed_minutes -%}
+                                  {%- set effective_rate = (section_rate_mm_h | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 -%}
+                                  {%- set applied = actual_minutes * effective_rate / 60 -%}
+                                  {%- set ns = namespace(values=[]) -%}
+                                  {%- for value in previous -%}
+                                    {%- set updated = (value | float(0)) - applied if loop.index == (section_number | int) else value | float(0) -%}
+                                    {%- set ns.values = ns.values + [0 if updated < 0 else updated | round(1)] -%}
+                                  {%- endfor -%}
+                                  {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(1) }},"z":{{ ns.values | to_json }}{{ '}' }}
+                            - action: input_text.set_value
+                              target:
+                                entity_id: "{{ water_balance_helper }}"
+                              data:
+                                value: "{{ interrupted_balance_payload | trim }}"
+                    - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ enable_irrigation_logs | bool }}"
+                          sequence:
+                            - action: logbook.log
+                              data:
+                                name: Inteligentne podlewanie
+                                message: "Przerwano sekcje {{ section_number }}: {{ section_name }}. Powod: {{ section_interruption_reason | trim }}. Pozostale sekcje nie zostana uruchomione."
+                    - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ create_persistent_notification | bool }}"
+                          sequence:
+                            - action: persistent_notification.create
+                              data:
+                                title: Inteligentne podlewanie
+                                message: |-
+                                  **Status:** zakonczono podlewanie przed czasem
 
-                                      **Wynik cyklu**
-                                      Sekcja zostala bezpiecznie zamknieta, a pozostale sekcje nie zostana uruchomione w tym cyklu.
+                                  **Sekcja**
+                                  - Numer: {{ section_number }}
+                                  - Nazwa: {{ section_name }}
+                                  - Encja: {{ section_valve }}
 
-                                      **Pogoda**
-                                      - Zrodlo: {{ weather_source_summary | trim }}
-                                      - Aktualnie: {{ current_weather_condition_pl }}
-                                      - Prognoza: {{ forecast_condition_pl }}
-                                      - Czujnik deszczu: {{ states(rain_binary_sensor) if (rain_binary_sensor | default('', true) | length > 0) else 'brak' }}
-                                    notification_id: smart_irrigation_last_event
-                        - stop: "Podlewanie przerwane: {{ section_interruption_reason | trim }}."
-                - alias: Odejmij wykonane podlewanie od bilansu sekcji
-                  choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ water_balance_enabled | bool }}"
-                      sequence:
-                        - variables:
-                            section_balance_payload: |-
-                              {%- set saved = states(water_balance_helper) | from_json({}) -%}
-                              {%- set previous = saved.get('z', water_balance_deficits) if saved is mapping else water_balance_deficits -%}
-                              {%- set ns = namespace(values=[]) -%}
-                              {%- for value in previous -%}
-                                {%- set updated = (value | float(0)) - (section_applied_depth_mm | float(0)) if loop.index == (section_number | int) else value | float(0) -%}
-                                {%- set ns.values = ns.values + [0 if updated < 0 else updated | round(2)] -%}
-                              {%- endfor -%}
-                              {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(2) }},"z":{{ ns.values | to_json }} }
-                        - action: input_text.set_value
-                          target:
-                            entity_id: "{{ water_balance_helper }}"
-                          data:
-                            value: "{{ section_balance_payload | trim }}"
-                - choose:
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ enable_irrigation_logs | bool }}"
-                      sequence:
-                        - action: logbook.log
-                          data:
-                            name: "Podlewanie - {{ section_name }}"
-                            message: "Zakonczono sekcje {{ section_number }} po zaplanowanym czasie {{ section_minutes | int(0) }} min."
-                - delay:
-                    seconds: "{{ zone_pause_seconds | int(15) }}"
+                                  **Powod**
+                                  {{ section_interruption_reason | trim }}
+
+                                  **Wynik cyklu**
+                                  Sekcja zostala zamknieta (zamkniecie potwierdzone), a pozostale sekcje nie zostana uruchomione w tym cyklu.
+
+                                  **Pogoda**
+                                  - Zrodlo: {{ weather_source_summary | trim }}
+                                  - Aktualnie: {{ current_weather_condition_pl }}
+                                  - Prognoza: {{ forecast_condition_pl }}
+                                  - Czujnik deszczu: {{ states(rain_binary_sensor) if (rain_binary_sensor | default('', true) | length > 0) else 'brak' }}
+                                notification_id: smart_irrigation_last_event
+                    - stop: "Podlewanie przerwane: {{ section_interruption_reason | trim }}."
+                - alias: Rozlicz zakonczona sekcje
+                  if:
+                    - condition: template
+                      value_template: "{{ section_started | bool }}"
+                  then:
+                    - alias: Odejmij wykonane podlewanie od bilansu sekcji
+                      choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ (water_balance_enabled | bool) and (water_balance_helper_ok | bool) }}"
+                          sequence:
+                            - variables:
+                                section_balance_payload: |-
+                                  {%- set saved = states(water_balance_helper) | from_json({}) -%}
+                                  {%- set previous = saved.get('z', water_balance_deficits) if saved is mapping else water_balance_deficits -%}
+                                  {%- set ns = namespace(values=[]) -%}
+                                  {%- for value in previous -%}
+                                    {%- set updated = (value | float(0)) - (section_applied_depth_mm | float(0)) if loop.index == (section_number | int) else value | float(0) -%}
+                                    {%- set ns.values = ns.values + [0 if updated < 0 else updated | round(1)] -%}
+                                  {%- endfor -%}
+                                  {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(1) }},"z":{{ ns.values | to_json }}{{ '}' }}
+                            - action: input_text.set_value
+                              target:
+                                entity_id: "{{ water_balance_helper }}"
+                              data:
+                                value: "{{ section_balance_payload | trim }}"
+                    - alias: Zapamietaj podlana sekcje do raportu
+                      variables:
+                        watered_sections: >-
+                          {% set minutes = ((as_timestamp(now()) - (section_started_at | float(as_timestamp(now())))) / 60) | round(1) %}
+                          {{ watered_sections + [{'n': section_number | int, 'min': minutes, 'mm': section_applied_depth_mm | float(0) | round(1)}] }}
+                    - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ enable_irrigation_logs | bool }}"
+                          sequence:
+                            - action: logbook.log
+                              data:
+                                name: "Podlewanie - {{ section_name }}"
+                                message: "Zakonczono sekcje {{ section_number }} po zaplanowanym czasie {{ section_minutes | int(0) }} min. Zamkniecie potwierdzone, stan {{ states(section_valve) }}."
+                    - delay:
+                        seconds: "{{ zone_pause_seconds | int(15) }}"
           default:
             - choose:
                 - conditions:
                     - condition: template
-                      value_template: "{{ section_enabled | bool and (enable_irrigation_logs | bool) }}"
+                      value_template: "{{ section_enabled | bool and (enable_irrigation_logs | bool) and not (cycle_aborted | bool) }}"
                   sequence:
                     - action: logbook.log
                       data:
@@ -3675,9 +4056,15 @@ actions:
           {%- set attr = 'next_rising' if schedule_mode == 'sunrise' else 'next_setting' -%}
           {%- set scheduled = as_timestamp(state_attr('sun.sun', attr), as_timestamp(now())) + (sun_event_offset_minutes | int(0)) * 60 -%}
         {%- endif -%}
-        {%- if scheduled <= as_timestamp(now()) -%}{%- set scheduled = scheduled + 86400 -%}{%- endif -%}
+        {%- set ns_day = namespace(offset=0) -%}
+        {%- if scheduled <= as_timestamp(now()) -%}{%- set ns_day.offset = 1 -%}{%- set scheduled = scheduled + 86400 -%}{%- endif -%}
         {%- if scheduled < candidate -%}
-          {%- set scheduled = scheduled + (((candidate - scheduled) / 86400) | round(0, 'ceil') | int) * 86400 -%}
+          {%- set add_days = ((candidate - scheduled) / 86400) | round(0, 'ceil') | int -%}
+          {%- set ns_day.offset = ns_day.offset + add_days -%}
+          {%- set scheduled = scheduled + add_days * 86400 -%}
+        {%- endif -%}
+        {%- if schedule_mode == 'fixed_time' -%}
+          {%- set scheduled = as_timestamp(today_at(primary_start_time) + timedelta(days=ns_day.offset)) -%}
         {%- endif -%}
         {{ scheduled | int }}
 
@@ -3750,14 +4137,15 @@ actions:
           {%- set raw_minutes = ((depth | float(0)) / (effective_rate if effective_rate > 0 else 1)) * 60 * (zone.runtime_adjustment_percent | float(100)) / 100 -%}
           {%- set rounded_minutes = raw_minutes | round(0) | int -%}
           {%- set minutes = 0 if (depth | float(0)) < (min_dose_mm | float(3)) else (min_runtime_minutes | int(8)) if rounded_minutes < (min_runtime_minutes | int(8)) else (max_runtime_minutes | int(45)) if rounded_minutes > (max_runtime_minutes | int(45)) else rounded_minutes -%}
-          {%- set completed_this_cycle = last_ts > 0 and last_ts >= as_timestamp(irrigation_cycle_started_at, 0) -%}
-          {%- set actual_minutes = state_attr(valve, 'last_duration_minutes') | float(minutes) -%}
-          {%- set actual_depth = actual_minutes * effective_rate / 60 -%}
+          {%- set record = watered_sections | selectattr('n', 'eq', zone.number | int) | list | first | default(none) -%}
+          {%- set completed_this_cycle = record is not none -%}
+          {%- set actual_minutes = record.min | float(minutes) if completed_this_cycle else 0 -%}
+          {%- set actual_depth = record.mm | float(0) if completed_this_cycle else 0 -%}
           {%- set conn = namespace(entity='') -%}
           {%- if valve in integration_entities('rainbird_rc2') -%}
-            {%- set entry_id = state_attr(valve, 'config_entry_id') -%}
+            {%- set entry_id = config_entry_id(valve) -%}
             {%- for entity in integration_entities('rainbird_rc2') -%}
-              {%- if entity.startswith('binary_sensor.') and state_attr(entity, 'config_entry_id') == entry_id and state_attr(entity, 'device_class') == 'connectivity' -%}
+              {%- if entity.startswith('binary_sensor.') and config_entry_id(entity) == entry_id and state_attr(entity, 'device_class') == 'connectivity' -%}
                 {%- set conn.entity = entity -%}
               {%- endif -%}
             {%- endfor -%}
@@ -3773,7 +4161,11 @@ actions:
             {%- set ns.total = ns.total + (actual_minutes | round(0) | int) -%}
             {%- set ns.lines = ns.lines + ['| Sekcja ' ~ zone.number ~ ' (' ~ (zone.name | replace('|', '/')) ~ ') | Podlano | ' ~ (actual_minutes | round(1)) ~ ' min, ok. ' ~ (actual_depth | round(1)) ~ ' mm |'] -%}
           {%- else -%}
-            {%- if valve | length == 0 -%}
+            {%- if (cycle_aborted | bool) and (zone.number | int) == (cycle_abort_section | int) -%}
+              {%- set reason = 'sterownik nie potwierdzil otwarcia w ciagu 60 s; sekcja zostala zamknieta' -%}
+            {%- elif (cycle_aborted | bool) and (zone.number | int) > (cycle_abort_section | int) -%}
+              {%- set reason = 'nie uruchomiono, bo cykl przerwano po bledzie startu sekcji ' ~ cycle_abort_section -%}
+            {%- elif valve | length == 0 -%}
               {%- set reason = 'brak encji sekcji' -%}
             {%- elif not controller_ready -%}
               {%- set reason = 'sterownik Rain Bird RC2 offline/shutdown, ' ~ conn.entity ~ ' ma stan ' ~ states(conn.entity) -%}
@@ -3803,12 +4195,22 @@ actions:
             {%- set ns.skipped = ns.skipped + 1 -%}
             {%- set ns.lines = ns.lines + ['| Sekcja ' ~ zone.number ~ ' (' ~ (zone.name | replace('|', '/')) ~ ') | Pominieto | ' ~ (reason | replace('|', '/')) ~ ' |'] -%}
           {%- endif -%}
-        {%- endfor %}
-        {% if ns.watered > 0 %}
-        **Status:** zakonczono podlewanie
-        {% else %}
-        **Status:** pominieto podlewanie
-        {% endif %}
+        {%- endfor -%}
+        {%- if (cycle_aborted | bool) and ns.watered > 0 -%}
+          {%- set status = 'zakonczono podlewanie przed czasem' -%}
+        {%- elif cycle_aborted | bool -%}
+          {%- set status = 'nie udalo sie rozpoczac podlewania' -%}
+        {%- elif ns.watered > 0 -%}
+          {%- set status = 'zakonczono podlewanie' -%}
+        {%- else -%}
+          {%- set status = 'pominieto podlewanie' -%}
+        {%- endif %}
+        **Status:** {{ status }}
+        {%- if cycle_aborted | bool %}
+
+        **Uwaga**
+        Cykl przerwano: {{ cycle_abort_note | trim }}
+        {%- endif %}
 
         **Podsumowanie**
         - Podlano sekcji: {{ ns.watered }}
@@ -3820,6 +4222,7 @@ actions:
         - Aktualnie: {{ current_weather_condition_pl }}
         - Prognoza: {{ forecast_condition_pl }}
         - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
+        {% if rain_measurement_warning | trim | length > 0 %}- Uwaga: {{ rain_measurement_warning | trim }}{% endif %}
         - Opad ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
         - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
         - Temperatura: {{ temp_c | float(0) | round(1) }} C

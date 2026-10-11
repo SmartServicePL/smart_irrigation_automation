@@ -161,7 +161,7 @@ class NotificationFlowTests(unittest.TestCase):
         )
 
     def test_start_notification_follows_controller_confirmation(self) -> None:
-        confirmation = self.text.index("Zapamietaj czas faktycznego startu")
+        confirmation = self.text.index("Zapamietaj wynik otwarcia sekcji")
         notification = self.text.index(
             "Powiadom po potwierdzeniu pierwszej uruchomionej sekcji"
         )
