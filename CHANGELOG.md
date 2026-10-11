@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.7.0
+
+Water balance:
+
+- With the **Helper - trwały bilans wody** selected, one measured rain source is required: **Opad zmierzony** or MeteoFusion HA. Without it watering stops with a clear reason (in 1.6.0 this was only a warning), because rain would never reduce the balance.
+- After a break in balance updates (Home Assistant down or the automation disabled) evapotranspiration is added for at most 7 days (previously 3). A longer gap is written to the Logbook.
+- Outside the season the balance is kept at zero. A new season starts from zero on the first day of the season start month, so the first spring watering is not driven by a deficit accumulated over the winter. The season start is written to the Logbook.
+- The **korekta czasu** description explains that the balance subtracts the water actually applied: a shorter run means more frequent watering, a longer run less frequent watering.
+
+Texts:
+
+- All Polish names, descriptions, option labels, notifications, Logbook entries and step names now use Polish characters, and several sentences were corrected grammatically. Option values, input keys and identifiers are unchanged, so existing automations need no reconfiguration.
+- The Polish label column of the 7 translated UI guides matches the new labels.
+
+Behavior change for existing automations: an automation with the balance helper but without a rain amount sensor and without MeteoFusion HA stops watering until a rain source is selected.
+
 ## 1.6.0
 
 Valve safety:

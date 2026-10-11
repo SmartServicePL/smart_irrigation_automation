@@ -1,7 +1,7 @@
 blueprint:
   name: Inteligentne podlewanie ogrodu - 1 do 12 sekcji
   description: >
-    Wersja 1.6.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsługuje instalacje
+    Wersja 1.7.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsługuje instalacje
     Rain Bird RC2 oraz układy mieszane z dodatkowymi zaworami lub przekaźnikami
     Sonoff, Shelly i ESPHome. Wspólne są encje pogodowe i opcjonalne posiadane
     sensory. Dla każdej sekcji osobno ustawiasz nazwę, encję sekcji, rodzaj

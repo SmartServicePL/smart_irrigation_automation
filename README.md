@@ -4,7 +4,7 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.6.0**
+Current version: **1.7.0**
 
 ## Import Blueprint
 
@@ -19,6 +19,20 @@ https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprin
 ## Donate
 
 [![Donate via Revolut](https://img.shields.io/badge/Donate-Revolut-0666EB?style=for-the-badge)](https://revolut.me/smartserwis)
+
+## New in 1.7.0: required rain source, season reset and Polish characters
+
+- With the persistent balance helper, a measured rain source (a rain amount
+  sensor or MeteoFusion HA) is now required. Without it watering stops with a
+  readable reason, because the balance would not subtract rain.
+- After a break in updates, evapotranspiration is added for up to 7 days
+  (previously 3). Outside the season the balance stays at zero and each new
+  season starts from zero, so spring does not begin with a winter-sized deficit.
+- The runtime adjustment description explains its effect on the balance.
+- All Polish texts in the blueprint now use Polish characters. Option values are
+  unchanged, so existing automations keep their configuration.
+
+See the [changelog](CHANGELOG.md) for details.
 
 ## New in 1.6.0: valve safety and a working water balance
 

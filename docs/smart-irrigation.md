@@ -130,10 +130,22 @@ all configured sections. The helper is required when any section is an ordinary
 `switch`/`valve`. If the helper is missing or its maximum length is too short for
 the stored balance, watering stops with a reason that names the helper.
 
-Without a rain amount sensor and without MeteoFusion HA, measured rain does not
-reduce the balance; notifications show a warning in that case. When the selected
-rain sensor is temporarily unavailable, the balance keeps the last stored rain
-total and does not credit any new rain until the sensor returns.
+With the balance helper selected, one measured rain source is required: a rain
+amount sensor or MeteoFusion HA. Without either, watering stops with a reason,
+because the balance would not know about rain. When the selected rain sensor is
+temporarily unavailable, the balance keeps the last stored rain total, does not
+credit any new rain until the sensor returns, and notifications show a warning.
+
+Evapotranspiration is added for at most 7 days after a break in updates (Home
+Assistant down or the automation disabled); a longer gap is written to the
+Logbook. Outside the season the balance stays at zero, and a new season starts
+from zero on the first day of the season start month, so the first watering of
+spring is based on the weather since the season began, not on the whole winter.
+
+The section **runtime adjustment** changes how long one watering runs. The
+balance subtracts the water actually applied, so a shorter run means more
+frequent watering and a longer run less frequent watering; the total amount of
+water follows the plants' needs.
 
 ## Recommended setup
 
