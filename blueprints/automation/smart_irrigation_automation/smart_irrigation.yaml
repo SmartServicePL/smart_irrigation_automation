@@ -3,8 +3,8 @@ blueprint:
   description: >
     Wersja 1.7.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsługuje instalacje
     Rain Bird RC2 oraz układy mieszane z dodatkowymi zaworami lub przekaźnikami
-    Sonoff, Shelly i ESPHome. Wspólne są encje pogodowe i opcjonalne posiadane
-    sensory. Dla każdej sekcji osobno ustawiasz nazwę, encję sekcji, rodzaj
+    Sonoff, Shelly i ESPHome. Pogoda pochodzi z prognozy Home Assistant, a stacja
+    pogodowa jest opcjonalna. Dla każdej sekcji osobno ustawiasz nazwę, encję sekcji, rodzaj
     gleby, co rośnie, typ zraszaczy Rain Bird/Hunter, korektę czasu oraz
     opcjonalne sensory online/baterii. Zamknięcie każdej sekcji jest potwierdzane
     i ponawiane, a po restarcie HA otwarte sekcje switch/valve są zamykane.
@@ -22,37 +22,19 @@ blueprint:
       input:
         forecast_weather_entity:
           name: Encja pogody do prognozy
-          description: Weather używany do pobrania prognozy dziennej. Dla MeteoFusion HA automatyzacja dodatkowo i automatycznie użyje prognozy 24 h, dziennego ET0, deszczu z lokalnej stacji i danych o jakości prognozy.
+          description: Encja pogody z Home Assistant z prognozą dzienną (np. Met.no, OpenWeatherMap). Daje prognozę opadu, szansę deszczu i warunki pogodowe, a bez stacji pogodowej także aktualną temperaturę, wiatr i UV.
           selector:
             entity:
               filter:
                 - domain: weather
-        use_meteofusion_data:
-          name: Korzystaj z danych MeteoFusion HA
-          description: Włącz, gdy powyżej wybrano encję weather z integracji MeteoFusion HA. Nie musisz wtedy rozwijać sekcji opcjonalnych sensorów ani podawać lokalnej pogody, opadu, temperatury, wiatru, UV i ET0. Jeśli je wybierzesz, będą traktowane jako dokładniejsze dane lokalne i otrzymają pierwszeństwo.
-          default: false
-          selector:
-            boolean:
-        meteofusion_min_confidence_percent:
-          name: MeteoFusion - minimalna pewność prognozy
-          description: Używane tylko po włączeniu opcji "Korzystaj z danych MeteoFusion HA". Podlewanie zostanie pominięte, gdy jakość prognozy spadnie poniżej tego progu albo dane stacji będą nieaktualne.
-          default: 50
-          selector:
-            number:
-              min: 30
-              max: 90
-              step: 5
-              unit_of_measurement: "%"
-              mode: slider
 
     local_weather_overrides_section:
-      name: Opcjonalne sensory lokalne i nadpisania
+      name: Stacja pogodowa i czujniki (opcjonalnie)
       icon: mdi:weather-partly-rainy
-      collapsed: true
       input:
         current_weather_entity:
           name: Lokalna encja pogody
-          description: Opcjonalne nadpisanie aktualnego stanu pogody. Puste = użyj głównej encji prognozy. Dla MeteoFusion HA zwykle pozostaw puste.
+          description: Opcjonalne nadpisanie aktualnego stanu pogody. Puste = użyj głównej encji prognozy.
           default: ""
           selector:
             entity:
@@ -68,7 +50,7 @@ blueprint:
                 - domain: binary_sensor
         rain_amount_sensor:
           name: Opad zmierzony - najlepiej ostatnie 24 h
-          description: Sensor opadu w mm. Najlepszy jest opad kroczący z ostatnich 24 h albo suma trwającego zdarzenia deszczowego; sensor tylko dzienny może pominąć deszcz po północy. Wartość jest odejmowana od bilansu. Puste = MeteoFusion HA użyje rain_today. Przy wybranym helperze trwałego bilansu wody wymagane jest jedno źródło opadu - ten sensor albo MeteoFusion HA. Bez niego podlewanie jest wstrzymane, bo bilans nie wiedziałby o deszczu. Gdy sensor jest chwilowo niedostępny, bilans nie zmienia zapamiętanego opadu.
+          description: Sensor opadu w mm. Najlepszy jest opad kroczący z ostatnich 24 h albo suma trwającego zdarzenia deszczowego; sensor tylko dzienny może pominąć deszcz po północy. Wartość jest odejmowana od bilansu. Bez tego sensora opad do bilansu jest szacowany z prognozy dziennej encji pogody (raz na dobę, oznaczony w powiadomieniach jako szacunek z prognozy). Gdy sensor jest chwilowo niedostępny, bilans nie zmienia zapamiętanego opadu.
           default: ""
           selector:
             entity:
@@ -76,7 +58,7 @@ blueprint:
                 - domain: sensor
         temperature_source_entity:
           name: Temperatura ogrodu
-          description: Opcjonalny sensor temperatury w ogrodzie albo encja weather. Puste = użyj MeteoFusion HA lub głównej encji weather. Niska temperatura blokuje podlewanie, upał zwiększa dawkę. Gdy wybrany sensor jest niedostępny, używana jest aktualna temperatura z encji pogody; bez żadnej aktualnej temperatury podlewanie jest wstrzymane. Temperatura w °F jest automatycznie przeliczana na °C.
+          description: Opcjonalny sensor temperatury w ogrodzie albo encja weather. Puste = użyj głównej encji pogody. Niska temperatura blokuje podlewanie, upał zwiększa dawkę. Gdy wybrany sensor jest niedostępny, używana jest aktualna temperatura z encji pogody; bez żadnej aktualnej temperatury podlewanie jest wstrzymane. Temperatura w °F jest automatycznie przeliczana na °C.
           default: ""
           selector:
             entity:
@@ -85,7 +67,7 @@ blueprint:
                 - domain: weather
         wind_source_entity:
           name: Wiatr
-          description: Opcjonalny sensor wiatru albo encja weather. Puste = użyj MeteoFusion HA lub głównej encji weather. Zbyt mocny wiatr blokuje podlewanie, bo zraszacze traciłyby równomierność. Gdy wybrany sensor jest niedostępny, używany jest wiatr z encji pogody; jeśli i tam go brakuje, podlewanie jest wstrzymane.
+          description: Opcjonalny sensor wiatru albo encja weather. Puste = użyj głównej encji pogody. Zbyt mocny wiatr blokuje podlewanie, bo zraszacze traciłyby równomierność. Gdy wybrany sensor jest niedostępny, używany jest wiatr z encji pogody; jeśli i tam go brakuje, podlewanie jest wstrzymane.
           default: ""
           selector:
             entity:
@@ -103,7 +85,7 @@ blueprint:
                 - domain: weather
         reference_et_sensor:
           name: Dzienne ET0 / ewapotranspiracja
-          description: Opcjonalny sensor dziennej referencyjnej ewapotranspiracji w mm. Puste = użyj ET0 z MeteoFusion HA, a przy innej pogodzie oszacuj ET0 z temperatury, UV i wiatru.
+          description: Opcjonalny sensor dziennej referencyjnej ewapotranspiracji w mm. Puste = ET0 jest szacowane z temperatury, UV i wiatru.
           default: ""
           selector:
             entity:
@@ -1873,7 +1855,7 @@ blueprint:
               mode: slider
         rain_credit_percent:
           name: Ile deszczu odjąć od dawki
-          description: Ile procent nowego, zmierzonego deszczu zapisać jako wodę dostarczoną glebie. Prognoza może odłożyć start, ale nie jest odejmowana od bilansu, dopóki opad nie zostanie zmierzony. 80% uwzględnia typowe straty.
+          description: Ile procent nowego deszczu zapisać jako wodę dostarczoną glebie - zmierzonego przez stację albo, bez stacji, szacowanego z prognozy na miniony dzień. Prognoza na dziś i jutro tylko odkłada start. 80% uwzględnia typowe straty.
           default: 80
           selector:
             number:
@@ -1976,7 +1958,7 @@ blueprint:
                 - domain: input_datetime
         water_balance_helper:
           name: Helper - trwały bilans wody
-          description: Zalecany input_text zapisujący bilans ET, zmierzonego deszczu i wykonanego podlewania osobno dla wszystkich sekcji. Utwórz helper Tekst z maksymalną długością 255 znaków. Gdy zapis nie mieściłby się w limicie helpera, podlewanie jest wstrzymane z czytelnym powodem. Bez helpera działa tryb zgodności oparty na historii pracy sekcji, która raportuje tylko Rain Bird RC2; przy sekcjach switch/valve helper jest wymagany.
+          description: Zalecany input_text zapisujący bilans ET, deszczu (ze stacji albo szacunku z prognozy) i wykonanego podlewania osobno dla wszystkich sekcji. Utwórz helper Tekst z maksymalną długością 255 znaków. Gdy zapis nie mieściłby się w limicie helpera, podlewanie jest wstrzymane z czytelnym powodem. Bez helpera działa tryb zgodności oparty na historii pracy sekcji, która raportuje tylko Rain Bird RC2; przy sekcjach switch/valve helper jest wymagany.
           default: ""
           selector:
             entity:
@@ -2068,8 +2050,6 @@ triggers:
 
 variables:
   forecast_weather_entity: !input forecast_weather_entity
-  use_meteofusion_data: !input use_meteofusion_data
-  meteofusion_min_confidence_percent: !input meteofusion_min_confidence_percent
   current_weather_entity_input: !input current_weather_entity
   rain_binary_sensor: !input rain_binary_sensor
   rain_amount_sensor: !input rain_amount_sensor
@@ -2475,60 +2455,6 @@ actions:
 
   - alias: Wylicz pogodę i wspólne warunki
     variables:
-      meteofusion_native: >-
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {{ (use_meteofusion_data | bool)
-           and context is mapping
-           and context.get('schema') == 'smart_service.weather.v1'
-           and context.get('producer') == 'meteofusion' }}
-      meteofusion_contract_available: >-
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {{ context is mapping
-           and context.get('schema') == 'smart_service.weather.v1'
-           and context.get('producer') == 'meteofusion' }}
-      meteofusion_status: >-
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {{ context.get('status', 'unknown') if context is mapping else 'not_used' }}
-      meteofusion_status_pl: >-
-        {% set names = {
-          'ready': 'gotowy',
-          'degraded': 'obniżona jakość',
-          'stale': 'nieaktualne dane',
-          'unknown': 'nieznany',
-          'unavailable': 'niedostępny',
-          'not_used': 'nieużywany'
-        } %}
-        {{ names.get(meteofusion_status | trim, meteofusion_status | trim) }}
-      meteofusion_confidence: >-
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set quality = context.get('quality', {}) if context is mapping else {} %}
-        {{ quality.get('confidence', state_attr(forecast_weather_entity, 'confidence') | float(0)) | float(0) }}
-      meteofusion_source_count: >-
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set quality = context.get('quality', {}) if context is mapping else {} %}
-        {{ quality.get('source_count', state_attr(forecast_weather_entity, 'source_count') | int(0)) | int(0) }}
-      meteofusion_station_age_minutes: >-
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set quality = context.get('quality', {}) if context is mapping else {} %}
-        {{ quality.get('station_age_minutes', state_attr(forecast_weather_entity, 'station_age_minutes') | float(999)) | float(999) }}
-      meteofusion_quality_ok: >-
-        {{ not (meteofusion_native | bool)
-           or (meteofusion_status | trim not in ['stale', 'unknown', 'unavailable']
-               and (meteofusion_confidence | float(0)) >= (meteofusion_min_confidence_percent | float(50))
-               and (meteofusion_source_count | int(0)) >= 1
-               and (meteofusion_station_age_minutes | float(999)) <= 60) }}
-      meteofusion_rain_rate: >-
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set current = context.get('current', {}) if context is mapping else {} %}
-        {{ current.get('rain_rate', 0) | float(0) }}
-      meteofusion_lightning_near: >-
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set current = context.get('current', {}) if context is mapping else {} %}
-        {{ current.get('lightning_near', false) | bool }}
-      meteofusion_rain_now: >-
-        {{ (meteofusion_native | bool)
-           and ((meteofusion_rain_rate | float(0)) >= 0.2
-                or (meteofusion_lightning_near | bool)) }}
       forecast_condition: >-
         {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
         {{ fc[0].condition | default(states(forecast_weather_entity), true) if fc | count > 0 else states(forecast_weather_entity) }}
@@ -2585,35 +2511,19 @@ actions:
       forecast_precipitation: >-
         {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
         {% set fallback = state_attr(forecast_weather_entity, 'precipitation') | float(0) %}
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set next_24h = context.get('next_24h', {}) if context is mapping else {} %}
-        {% if (meteofusion_native | bool) and next_24h.get('precipitation_sum') | is_number %}
-          {{ next_24h.get('precipitation_sum') | float(0) }}
-        {% else %}
-          {% set raw = fc[0].precipitation | default(fallback, true) | float(fallback) if fc | count > 0 else fallback %}
-          {% set unit = state_attr(forecast_weather_entity, 'precipitation_unit') | default('mm', true) | lower %}
-          {{ (raw * 25.4) | round(2) if unit in ['in', 'inch', 'inches'] else raw }}
-        {% endif %}
+        {% set raw = fc[0].precipitation | default(fallback, true) | float(fallback) if fc | count > 0 else fallback %}
+        {% set unit = state_attr(forecast_weather_entity, 'precipitation_unit') | default('mm', true) | lower %}
+        {{ (raw * 25.4) | round(2) if unit in ['in', 'inch', 'inches'] else raw }}
       forecast_precipitation_probability: >-
         {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set next_24h = context.get('next_24h', {}) if context is mapping else {} %}
-        {% if (meteofusion_native | bool) and next_24h.get('precipitation_probability_max') | is_number %}
-          {{ next_24h.get('precipitation_probability_max') | int(0) }}
-        {% else %}
-          {{ fc[0].precipitation_probability | default(0, true) | int(0) if fc | count > 0 else 0 }}
-        {% endif %}
-      forecast_window_label: "{{ 'najbliższe 24 h' if (meteofusion_native | bool) else 'prognoza dzienna' }}"
+        {{ fc[0].precipitation_probability | default(0, true) | int(0) if fc | count > 0 else 0 }}
+      forecast_window_label: prognoza dzienna
       current_rain_mm: >-
         {% set e = rain_amount_sensor | default('', true) %}
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set current = context.get('current', {}) if context is mapping else {} %}
         {% if e | length > 0 and states(e) | is_number %}
           {% set raw = states(e) | float(0) %}
           {% set unit = state_attr(e, 'unit_of_measurement') | default('mm', true) | lower %}
           {{ (raw * 25.4) | round(2) if unit in ['in', 'inch', 'inches'] else raw }}
-        {% elif (meteofusion_native | bool) and current.get('rain_today') | is_number %}
-          {{ current.get('rain_today') | float(0) }}
         {% else %}
           {% set raw = state_attr(current_weather_entity, 'precipitation') | float(0) %}
           {% set unit = state_attr(current_weather_entity, 'precipitation_unit') | default('mm', true) | lower %}
@@ -2621,18 +2531,12 @@ actions:
         {% endif %}
       temp_c: >-
         {% set e = temperature_source_entity | default('', true) %}
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set current = context.get('current', {}) if context is mapping else {} %}
         {% set fahrenheit = ['°f', 'f'] %}
         {% set w_raw = state_attr(current_weather_entity, 'temperature') | float(none) %}
         {% set w_unit = state_attr(current_weather_entity, 'temperature_unit') | default('°C', true) | lower %}
         {% set weather_now = -99 if w_raw is none else ((w_raw - 32) * 5 / 9) | round(1) if w_unit in fahrenheit else w_raw %}
         {% if e | length == 0 %}
-          {% if (meteofusion_native | bool) and current.get('temperature') | is_number %}
-            {{ current.get('temperature') | float(-99) }}
-          {% else %}
-            {{ weather_now }}
-          {% endif %}
+          {{ weather_now }}
         {% else %}
           {% set is_weather = e.split('.')[0] == 'weather' %}
           {% set raw = (state_attr(e, 'temperature') if is_weather else states(e)) | float(none) %}
@@ -2642,8 +2546,6 @@ actions:
       temp_available: "{{ (temp_c | float(-99)) > -99 }}"
       wind_value: >-
         {% set e = wind_source_entity | default('', true) %}
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set current = context.get('current', {}) if context is mapping else {} %}
         {% set w_raw = state_attr(current_weather_entity, 'wind_speed') %}
         {% set w_unit = state_attr(current_weather_entity, 'wind_speed_unit') | default('km/h', true) | lower %}
         {% if w_raw | is_number %}
@@ -2653,11 +2555,7 @@ actions:
           {% set weather_now = none %}
         {% endif %}
         {% if e | length == 0 %}
-          {% if (meteofusion_native | bool) and current.get('wind_speed') | is_number %}
-            {{ current.get('wind_speed') | float(0) }}
-          {% else %}
-            {{ weather_now if weather_now is not none else 0 }}
-          {% endif %}
+          {{ weather_now if weather_now is not none else 0 }}
         {% elif e.split('.')[0] == 'weather' and state_attr(e, 'wind_speed') | is_number %}
           {% set raw = state_attr(e, 'wind_speed') | float(0) %}
           {% set unit = state_attr(e, 'wind_speed_unit') | default('km/h', true) | lower %}
@@ -2705,13 +2603,10 @@ actions:
            and forecast_condition not in severe_forecast_states }}
       weather_data_ok: >-
         {{ states(current_weather_entity) | trim not in ['unknown', 'unavailable', 'none', '']
-           and forecast_condition | trim not in ['unknown', 'unavailable', 'none', '']
-           and (not (use_meteofusion_data | bool) or (meteofusion_contract_available | bool))
-           and (meteofusion_quality_ok | bool) }}
+           and forecast_condition | trim not in ['unknown', 'unavailable', 'none', ''] }}
       rain_sensor_ok: >-
-        {{ (rain_binary_sensor | default('', true) | length == 0
-            or is_state(rain_binary_sensor, 'off'))
-           and not (meteofusion_rain_now | bool) }}
+        {{ rain_binary_sensor | default('', true) | length == 0
+           or is_state(rain_binary_sensor, 'off') }}
       forecast_rain_ok: >-
         {{ (forecast_precipitation | float(0) | round(1)) < (max_forecast_rain_mm | float(4))
            and not ((forecast_precipitation_probability | int(0)) >= (max_rain_probability_percent | int(80))
@@ -2730,12 +2625,8 @@ actions:
         {% if u < 2 %}0.9{% elif u <= 7 %}1{% else %}1.1{% endif %}
       reference_et_mm: >-
         {% set e = reference_et_sensor | default('', true) %}
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set et0 = context.get('daily_et0', []) if context is mapping else [] %}
         {% if e | length > 0 and states(e) | is_number %}
           {{ states(e) | float(0) }}
-        {% elif (meteofusion_native | bool) and et0 | count > 0 and et0[0].get('et0') | is_number %}
-          {{ et0[0].get('et0') | float(0) }}
         {% else %}
           {% set t = temp_c | float(0) %}
           {% set u = sunlight_index | float(5) %}
@@ -2746,11 +2637,7 @@ actions:
           {{ 0.5 if adjusted < 0.5 else 7.5 if adjusted > 7.5 else adjusted | round(2) }}
         {% endif %}
       weather_source_summary: >-
-        {% if meteofusion_native | bool %}
-          MeteoFusion HA, pewność {{ meteofusion_confidence | float(0) | round(1) }}%, status {{ meteofusion_status_pl | trim }}, ET0 {{ reference_et_mm | float(0) | round(2) }} mm/d
-        {% else %}
-          {{ state_attr(forecast_weather_entity, 'friendly_name') | default(forecast_weather_entity, true) }}, ET0 {{ reference_et_mm | float(0) | round(2) }} mm/d
-        {% endif %}
+        {{ state_attr(forecast_weather_entity, 'friendly_name') | default(forecast_weather_entity, true) }}, ET0 {{ reference_et_mm | float(0) | round(2) }} mm/d
       rain_credit_mm: >-
         {% set raw_credit = rain_credit_percent | float(80) / 100 %}
         {% set credit = 0 if raw_credit < 0 else 1 if raw_credit > 1 else raw_credit %}
@@ -2793,33 +2680,56 @@ actions:
           {% set elapsed = since_season if (water_balance_new_season | bool) else water_balance_raw_elapsed_days | float(0) %}
           {{ 0 if elapsed < 0 else 7 if elapsed > 7 else elapsed | round(5) }}
         {% endif %}
-      water_balance_measured_rain_available: >-
-        {{ rain_amount_sensor | default('', true) | length > 0 or (meteofusion_native | bool) }}
+      water_balance_rain_from_forecast: >-
+        {{ (water_balance_enabled | bool) and rain_amount_sensor | default('', true) | length == 0 }}
+      water_balance_day: "{{ now().strftime('%j') | int }}"
+      water_balance_saved_day: >-
+        {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
+        {{ (saved.get('t', 0) | float(0) | timestamp_custom('%j')) | int if (water_balance_saved_valid | bool) else 0 }}
+      water_balance_forecast_today_mm: >-
+        {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
+        {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
+        {% set today = now().strftime('%Y-%m-%d') %}
+        {% set ns = namespace(value=none) %}
+        {% for item in fc %}
+          {% if ns.value is none and (as_timestamp(item.get('datetime'), 0) | timestamp_custom('%Y-%m-%d')) == today %}
+            {% set ns.value = item.get('precipitation', 0) | float(0) %}
+          {% endif %}
+        {% endfor %}
+        {% set unit = state_attr(forecast_weather_entity, 'precipitation_unit') | default('mm', true) | lower %}
+        {% if ns.value is not none %}
+          {{ (ns.value * 25.4) | round(1) if unit in ['in', 'inch', 'inches'] else ns.value | round(1) }}
+        {% elif (water_balance_saved_valid | bool) and water_balance_saved_day | int(0) == water_balance_day | int(0) %}
+          {{ saved.get('p', 0) | float(0) | round(1) }}
+        {% else %}
+          0
+        {% endif %}
       water_balance_rain_source_ok: >-
         {% set e = rain_amount_sensor | default('', true) %}
-        {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-        {% set current = context.get('current', {}) if context is mapping else {} %}
         {% if e | length > 0 %}
           {{ states(e) | is_number }}
-        {% elif meteofusion_native | bool %}
-          {{ current.get('rain_today') | is_number }}
         {% else %}
-          false
+          {{ water_balance_rain_from_forecast | bool }}
         {% endif %}
       water_balance_rain_total_mm: >-
         {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
         {% set previous = saved.get('r', 0) | float(0) if (water_balance_saved_valid | bool) else 0 %}
-        {% if water_balance_rain_source_ok | bool %}
+        {% if (water_balance_rain_source_ok | bool) and not (water_balance_rain_from_forecast | bool) %}
           {{ current_rain_mm | float(0) | round(1) }}
         {% else %}
           {{ previous | round(1) }}
         {% endif %}
       water_balance_rain_increment_mm: >-
         {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
-        {% set current = water_balance_rain_total_mm | float(0) %}
-        {% set previous = saved.get('r', current) | float(current) if (water_balance_saved_valid | bool) else current %}
-        {% set delta = current - previous %}
-        {{ delta | round(2) if delta > 0 and (water_balance_rain_source_ok | bool) else 0 }}
+        {% if water_balance_rain_from_forecast | bool %}
+          {% set stored_day = water_balance_saved_day | int(0) %}
+          {{ saved.get('p', 0) | float(0) | round(2) if stored_day > 0 and stored_day != water_balance_day | int(0) else 0 }}
+        {% else %}
+          {% set current = water_balance_rain_total_mm | float(0) %}
+          {% set previous = saved.get('r', current) | float(current) if (water_balance_saved_valid | bool) else current %}
+          {% set delta = current - previous %}
+          {{ delta | round(2) if delta > 0 and (water_balance_rain_source_ok | bool) else 0 }}
+        {% endif %}
       effective_rain_increment_mm: >-
         {% set raw_credit = rain_credit_percent | float(80) / 100 %}
         {% set credit = 0 if raw_credit < 0 else 1 if raw_credit > 1 else raw_credit %}
@@ -2858,7 +2768,7 @@ actions:
       water_balance_deficits: >-
         {{ water_balance_deficits_json if water_balance_deficits_json is list else water_balance_deficits_json | from_json([]) }}
       water_balance_payload: >-
-        {"v":1,"t":{{ as_timestamp(now()) | int }},"r":{{ water_balance_rain_total_mm | float(0) | round(1) }},"z":{{ water_balance_deficits_json }}{{ "}" }}
+        {"v":1,"t":{{ as_timestamp(now()) | int }},{% if water_balance_rain_from_forecast | bool %}"p":{{ water_balance_forecast_today_mm | float(0) | round(1) }}{% else %}"r":{{ water_balance_rain_total_mm | float(0) | round(1) }}{% endif %},"z":{{ water_balance_deficits_json }}{{ "}" }}
       water_balance_payload_length: "{{ water_balance_payload | string | trim | length }}"
       water_balance_helper_max: >-
         {{ state_attr(water_balance_helper, 'max') | int(0) if (water_balance_enabled | bool) else 0 }}
@@ -2899,12 +2809,18 @@ actions:
               (automatyzacja wyłączona albo Home Assistant nie działał). Doliczono ewapotranspirację tylko za 7 dni.
             {% endif %}
 
-  - alias: Wylicz ostrzeżenie o braku pomiaru opadu
+  - alias: Wylicz opis opadu i ostrzeżenie o źródle opadu
     variables:
       rain_measurement_warning: >-
-        {% if (water_balance_enabled | bool) and (water_balance_measured_rain_available | bool)
+        {% if rain_amount_sensor | default('', true) | length > 0 and (water_balance_enabled | bool)
               and not (water_balance_rain_source_ok | bool) %}
           Źródło opadu jest teraz niedostępne - bilans zachował poprzedni stan opadu i nie odjął nowego deszczu.
+        {% endif %}
+      rain_summary_line: >-
+        {% if (water_balance_rain_from_forecast | bool) %}
+          Opad do bilansu: szacunek z prognozy (dziś {{ water_balance_forecast_today_mm | float(0) | round(1) }} mm, doliczony raz na dobę)
+        {% else %}
+          Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
         {% endif %}
 
   - alias: Wylicz powód pominięcia podlewania
@@ -2927,14 +2843,8 @@ actions:
           Helper bilansu wody {{ water_balance_helper }} ma limit {{ water_balance_helper_max }} znaków, a zapis bilansu wymaga {{ water_balance_payload_length }}. Ustaw maksymalną długość helpera na 255 znaków.
         {% elif not (water_balance_enabled | bool) and zones_non_rc2 | count > 0 %}
           Wybierz "Helper - trwały bilans wody". Sekcje {{ zones_non_rc2 | join(', ') }} nie raportują historii pracy, więc bez helpera nie da się policzyć ich zapotrzebowania na wodę.
-        {% elif (water_balance_enabled | bool) and not (water_balance_measured_rain_available | bool) %}
-          Brak źródła opadu: bilans wody nie wie o deszczu, więc podlewanie jest wstrzymane. Wybierz "Opad zmierzony" w sekcji opcjonalnych sensorów albo włącz "Korzystaj z danych MeteoFusion HA".
         {% elif not (daily_forecast_available | bool) %}
           Encja {{ forecast_weather_entity }} nie udostępniła prognozy dziennej (weather.get_forecasts, type daily). Wybierz encję pogody z prognozą dzienną.
-        {% elif (use_meteofusion_data | bool) and not (meteofusion_contract_available | bool) %}
-          Włączono korzystanie z MeteoFusion HA, ale wybrana encja {{ forecast_weather_entity }} nie udostępnia kontraktu smart_service.weather.v1. Wybierz encję weather z MeteoFusion albo wyłącz tę opcję.
-        {% elif (meteofusion_native | bool) and not (meteofusion_quality_ok | bool) %}
-          Dane MeteoFusion są zbyt mało wiarygodne. Status: {{ meteofusion_status_pl | trim }}, pewność: {{ meteofusion_confidence | float(0) | round(1) }}%, źródła: {{ meteofusion_source_count | int(0) }}, wiek danych stacji: {{ meteofusion_station_age_minutes | float(0) | round(1) }} min.
         {% elif not (weather_data_ok | bool) %}
           Brak wiarygodnych danych pogodowych. Aktualny stan: {{ current_weather_condition_pl }}, prognoza: {{ forecast_condition_pl }}.
         {% elif not (weather_ok | bool) %}
@@ -2942,13 +2852,7 @@ actions:
         {% elif rain_sensor_unavailable | bool %}
           Czujnik deszczu {{ rain_binary_sensor }} jest niedostępny (stan {{ states(rain_binary_sensor) }}), podlewanie wstrzymane dla bezpieczeństwa. Sprawdź czujnik albo usuń go z konfiguracji.
         {% elif not (rain_sensor_ok | bool) %}
-          {% if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
-            Czujnik deszczu jest aktywny: {{ rain_binary_sensor }} ma stan {{ states(rain_binary_sensor) }}.
-          {% elif meteofusion_lightning_near | bool %}
-            MeteoFusion wykrywa burzę w pobliżu lokalnej stacji.
-          {% else %}
-            MeteoFusion wykrywa aktualny deszcz: {{ meteofusion_rain_rate | float(0) | round(2) }} mm/h.
-          {% endif %}
+          Czujnik deszczu jest aktywny: {{ rain_binary_sensor }} ma stan {{ states(rain_binary_sensor) }}.
         {% elif not (soil_moisture_ok | bool) %}
           Gleba jest wystarczająco wilgotna: {{ soil_moisture_percent | float(0) | round(1) }}%, próg blokady {{ soil_moisture_block_percent | float(70) | round(0) }}%.
         {% elif not (forecast_rain_ok | bool) %}
@@ -3005,7 +2909,7 @@ actions:
                 - Źródło: {{ weather_source_summary | trim }}
                 - Aktualnie: {{ current_weather_condition_pl }}
                 - Prognoza: {{ forecast_condition_pl }}
-                - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
+                - {{ rain_summary_line | trim }}
                 {% if rain_measurement_warning | trim | length > 0 %}- Uwaga: {{ rain_measurement_warning | trim }}{% endif %}
                 - Opad ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
                 - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
@@ -3309,7 +3213,7 @@ actions:
                 - Źródło: {{ weather_source_summary | trim }}
                 - Aktualnie: {{ current_weather_condition_pl }}
                 - Prognoza: {{ forecast_condition_pl }}
-                - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
+                - {{ rain_summary_line | trim }}
                 {% if rain_measurement_warning | trim | length > 0 %}- Uwaga: {{ rain_measurement_warning | trim }}{% endif %}
                 - Opad ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
                 - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%
@@ -3605,12 +3509,7 @@ actions:
               {% set effective_rate = (section_rate_mm_h | float(12)) * (irrigation_efficiency_percent | float(75)) / 100 %}
               {{ ((section_minutes | float(0)) * effective_rate / 60) | round(1) }}
             section_live_rain: >-
-              {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-              {% set current = context.get('current', {}) if context is mapping else {} %}
-              {{ ((rain_binary_sensor | default('', true) | length > 0) and not is_state(rain_binary_sensor, 'off'))
-                 or ((meteofusion_native | bool)
-                     and ((current.get('rain_rate', 0) | float(0)) >= 0.2
-                          or (current.get('lightning_near', false) | bool))) }}
+              {{ (rain_binary_sensor | default('', true) | length > 0) and not is_state(rain_binary_sensor, 'off') }}
             section_ready: >-
               {{ section_enabled | bool
                  and not (cycle_aborted | bool)
@@ -3635,8 +3534,6 @@ actions:
                 Czujnik deszczu jest aktywny: {{ rain_binary_sensor }} ma stan {{ states(rain_binary_sensor) }}.
               {% elif (rain_binary_sensor | default('', true) | length > 0) and not is_state(rain_binary_sensor, 'off') %}
                 Czujnik deszczu {{ rain_binary_sensor }} jest niedostępny (stan {{ states(rain_binary_sensor) }}), sekcja wstrzymana dla bezpieczeństwa.
-              {% elif section_live_rain | bool %}
-                MeteoFusion wykrywa aktualny deszcz albo burzę w pobliżu.
               {% elif states(current_weather_entity) in bad_weather_states %}
                 Pogoda blokuje podlewanie. Aktualny stan: {{ current_weather_condition_pl }}.
               {% elif states(current_weather_entity) in ['unknown', 'unavailable'] %}
@@ -3737,7 +3634,7 @@ actions:
                                           - Źródło: {{ weather_source_summary | trim }}
                                           - Aktualnie: {{ current_weather_condition_pl }}
                                           - Prognoza: {{ forecast_condition_pl }}
-                                          - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
+                                          - {{ rain_summary_line | trim }}
                                           {% if rain_measurement_warning | trim | length > 0 %}- Uwaga: {{ rain_measurement_warning | trim }}{% endif %}
                                           - Opad prognozowany ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
                                         notification_id: smart_irrigation_last_event
@@ -3766,15 +3663,8 @@ actions:
                             value_template: >-
                               {% set elapsed = as_timestamp(now()) - (section_started_at | float(as_timestamp(now()))) %}
                               {% set planned = (section_minutes | int(1)) * 60 %}
-                              {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-                              {% set current = context.get('current', {}) if context is mapping else {} %}
-                              {% set meteofusion_rain_active =
-                                 (meteofusion_native | bool)
-                                 and ((current.get('rain_rate', 0) | float(0)) >= 0.2
-                                      or (current.get('lightning_near', false) | bool)) %}
                               {% set rain_active =
-                                 ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
-                                 or meteofusion_rain_active %}
+                                 (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
                               {% set w = states[current_weather_entity] %}
                               {% set weather_lost = w is none
                                  or (w.state in ['unknown', 'unavailable'] and (now() - w.last_changed).total_seconds() > 300) %}
@@ -3787,18 +3677,11 @@ actions:
                     - alias: Sprawdź czy sekcja została przerwana
                       variables:
                         section_interrupted: >-
-                          {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-                          {% set current = context.get('current', {}) if context is mapping else {} %}
-                          {% set meteofusion_rain_active =
-                             (meteofusion_native | bool)
-                             and ((current.get('rain_rate', 0) | float(0)) >= 0.2
-                                  or (current.get('lightning_near', false) | bool)) %}
                           {% set w = states[current_weather_entity] %}
                           {% set weather_lost = w is none
                              or (w.state in ['unknown', 'unavailable'] and (now() - w.last_changed).total_seconds() > 300) %}
                           {% set weather_interrupted =
                              ((rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on'))
-                             or meteofusion_rain_active
                              or states(current_weather_entity) in bad_weather_states
                              or weather_lost %}
                           {% set elapsed = as_timestamp(now()) - (section_started_at | float(as_timestamp(now()))) %}
@@ -3814,20 +3697,6 @@ actions:
                              or (w.state in ['unknown', 'unavailable'] and (now() - w.last_changed).total_seconds() > 300) %}
                           {% if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') %}
                             czujnik deszczu {{ rain_binary_sensor }} jest aktywny
-                          {% elif meteofusion_native | bool %}
-                            {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
-                            {% set current = context.get('current', {}) if context is mapping else {} %}
-                            {% if current.get('lightning_near', false) | bool %}
-                              MeteoFusion wykrywa burzę w pobliżu lokalnej stacji
-                            {% elif (current.get('rain_rate', 0) | float(0)) >= 0.2 %}
-                              MeteoFusion wykrywa deszcz {{ current.get('rain_rate', 0) | float(0) | round(2) }} mm/h
-                            {% elif states(current_weather_entity) in bad_weather_states %}
-                              pogoda zmieniła się na {{ current_weather_condition_pl }}
-                            {% elif weather_lost %}
-                              dane pogodowe MeteoFusion są niedostępne dłużej niż 5 min
-                            {% else %}
-                              sterownik zamknął sekcję wyraźnie przed upływem zaplanowanego czasu; aktualny stan: {{ states(section_valve) }}
-                            {% endif %}
                           {% elif states(current_weather_entity) in bad_weather_states %}
                             {% set condition = states(current_weather_entity) | trim %}
                             {% set names = {
@@ -4204,7 +4073,7 @@ actions:
               {%- if (rain_binary_sensor | default('', true) | length > 0) and is_state(rain_binary_sensor, 'on') -%}
                 {%- set reason = 'czujnik deszczu jest aktywny: ' ~ rain_binary_sensor ~ ' ma stan ' ~ states(rain_binary_sensor) -%}
               {%- else -%}
-                {%- set reason = 'MeteoFusion wykrywa aktualny deszcz lub burzę w pobliżu' -%}
+                {%- set reason = 'czujnik deszczu ' ~ rain_binary_sensor ~ ' jest niedostępny: ' ~ states(rain_binary_sensor) -%}
               {%- endif -%}
             {%- elif states(current_weather_entity) in bad_weather_states -%}
               {%- set reason = 'pogoda blokuje podlewanie: ' ~ current_weather_condition_pl -%}
@@ -4252,7 +4121,7 @@ actions:
         - Źródło: {{ weather_source_summary | trim }}
         - Aktualnie: {{ current_weather_condition_pl }}
         - Prognoza: {{ forecast_condition_pl }}
-        - Opad zmierzony: {{ current_rain_mm | float(0) | round(1) }} mm
+        - {{ rain_summary_line | trim }}
         {% if rain_measurement_warning | trim | length > 0 %}- Uwaga: {{ rain_measurement_warning | trim }}{% endif %}
         - Opad ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
         - Szansa deszczu: {{ forecast_precipitation_probability | int(0) }}%

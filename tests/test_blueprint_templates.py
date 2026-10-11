@@ -76,6 +76,22 @@ def _from_json(value, default=None):
         return default
 
 
+def _as_timestamp(value, default=None):
+    if isinstance(value, datetime):
+        return value.timestamp()
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value).timestamp()
+        except ValueError:
+            pass
+    return _float(value, default)
+
+
+def _timestamp_custom(value, fmt, local=True):
+    zone = None if local else timezone.utc
+    return datetime.fromtimestamp(float(value), zone).strftime(fmt)
+
+
 def _round(value, precision=0, method="common"):
     value = float(value)
     if method == "ceil":
@@ -116,6 +132,7 @@ class FakeHass:
             to_json=lambda v: json.dumps(v, separators=(",", ":")),
             is_number=_is_number,
             round=_round,
+            timestamp_custom=_timestamp_custom,
         )
         env.tests.update(
             is_number=_is_number,
@@ -128,8 +145,8 @@ class FakeHass:
             state_attr=self.state_attr,
             is_state=self.is_state,
             integration_entities=lambda domain: [],
-            as_timestamp=lambda v, d=None: _float(v, d) if not isinstance(v, datetime) else v.timestamp(),
-            now=lambda: datetime.fromtimestamp(NOW, timezone.utc),
+            as_timestamp=_as_timestamp,
+            now=lambda: datetime.fromtimestamp(NOW),
             timedelta=timedelta,
             none=None,
         )
@@ -233,7 +250,6 @@ class WaterBalancePayloadTests(unittest.TestCase):
         context = dict(
             rain_amount_sensor="sensor.rain_24h",
             forecast_weather_entity="weather.home",
-            meteofusion_native=False,
             water_balance_saved={"v": 1, "t": NOW, "r": 12.0, "z": [0] * 12},
             water_balance_saved_valid=True,
             current_rain_mm=0,
@@ -252,7 +268,6 @@ class WaterBalancePayloadTests(unittest.TestCase):
         context = dict(
             rain_amount_sensor="sensor.rain_24h",
             forecast_weather_entity="weather.home",
-            meteofusion_native=False,
             water_balance_saved={"v": 1, "t": NOW, "r": 12.0, "z": [0] * 12},
             water_balance_saved_valid=True,
             current_rain_mm=11,
@@ -261,6 +276,78 @@ class WaterBalancePayloadTests(unittest.TestCase):
         context["water_balance_rain_total_mm"] = _render(hass, self.balance["water_balance_rain_total_mm"], context)
         increment = _render(hass, self.balance["water_balance_rain_increment_mm"], context)
         self.assertEqual(float(increment), 0)
+
+
+@unittest.skipIf(jinja2 is None or yaml is None, "jinja2 and PyYAML are required")
+class ForecastRainEstimateTests(unittest.TestCase):
+    """Without a station rain sensor the daily forecast is booked once per day as an estimate."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.balance = _action_variables(_load_blueprint(), "Zaktualizuj trwały bilans wody")
+
+    def _render(self, name: str, context: dict, hass: FakeHass | None = None) -> str:
+        return _render(hass or FakeHass(), self.balance[name], context)
+
+    def _context(self, saved: dict, forecast: list) -> dict:
+        context = dict(
+            water_balance_enabled=True,
+            rain_amount_sensor="",
+            forecast_weather_entity="weather.home",
+            water_balance_saved=saved,
+            water_balance_saved_valid=True,
+            daily_forecast={"weather.home": {"forecast": forecast}},
+            current_rain_mm=0,
+        )
+        context["water_balance_rain_from_forecast"] = self._render("water_balance_rain_from_forecast", context)
+        context["water_balance_day"] = self._render("water_balance_day", context)
+        context["water_balance_saved_day"] = self._render("water_balance_saved_day", context)
+        return context
+
+    @staticmethod
+    def _iso(offset: int = 0) -> str:
+        return (datetime.fromtimestamp(NOW) + timedelta(days=offset)).replace(hour=12).isoformat()
+
+    def test_forecast_mode_only_without_station_sensor(self) -> None:
+        context = dict(water_balance_enabled=True, rain_amount_sensor="sensor.rain")
+        self.assertEqual(self._render("water_balance_rain_from_forecast", context), "False")
+        context["rain_amount_sensor"] = ""
+        self.assertEqual(self._render("water_balance_rain_from_forecast", context), "True")
+
+    def test_today_forecast_is_stored_and_not_credited_the_same_day(self) -> None:
+        saved = {"v": 1, "t": NOW, "z": [10] * 12, "p": 3.0}
+        context = self._context(saved, [{"datetime": self._iso(), "precipitation": 6.4}])
+        self.assertEqual(float(self._render("water_balance_forecast_today_mm", context)), 6.4)
+        context["water_balance_forecast_today_mm"] = 6.4
+        context["water_balance_rain_source_ok"] = self._render("water_balance_rain_source_ok", context)
+        context["water_balance_rain_total_mm"] = self._render("water_balance_rain_total_mm", context)
+        self.assertEqual(float(self._render("water_balance_rain_increment_mm", context)), 0)
+
+    def test_yesterday_forecast_is_credited_once_on_a_new_day(self) -> None:
+        saved = {"v": 1, "t": NOW - 86400, "z": [10] * 12, "p": 5.5}
+        context = self._context(saved, [{"datetime": self._iso(), "precipitation": 0.0}])
+        context["water_balance_rain_source_ok"] = self._render("water_balance_rain_source_ok", context)
+        context["water_balance_rain_total_mm"] = self._render("water_balance_rain_total_mm", context)
+        self.assertEqual(float(self._render("water_balance_rain_increment_mm", context)), 5.5)
+
+    def test_payload_keeps_forecast_and_day_and_fits_default_helper(self) -> None:
+        context = dict(
+            water_balance_rain_total_mm=0.0,
+            water_balance_deficits_json=json.dumps([90.0] * 12, separators=(",", ":")),
+            water_balance_rain_from_forecast=True,
+            water_balance_forecast_today_mm=99.9,
+        )
+        payload = self._render("water_balance_payload", context)
+        decoded = json.loads(payload)
+        self.assertEqual(decoded["p"], 99.9)
+        self.assertNotIn("r", decoded)
+        self.assertLessEqual(len(payload), 100, payload)
+
+    def test_inches_in_forecast_are_converted(self) -> None:
+        hass = FakeHass({}, {"weather.home": {"precipitation_unit": "in"}})
+        saved = {"v": 1, "t": NOW, "r": 0, "z": [0] * 12}
+        context = self._context(saved, [{"datetime": self._iso(), "precipitation": 0.5}])
+        self.assertEqual(float(self._render("water_balance_forecast_today_mm", context, hass)), 12.7)
 
 
 @unittest.skipIf(jinja2 is None or yaml is None, "jinja2 and PyYAML are required")
@@ -279,7 +366,7 @@ class SeasonBalanceTests(unittest.TestCase):
         return json.loads(self._render("water_balance_deficits_json", context))
 
     def test_season_start_timestamp(self) -> None:
-        now = datetime.fromtimestamp(NOW, timezone.utc)
+        now = datetime.fromtimestamp(NOW)
         first = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         same = dict(season_start_month=now.month, season_end_month=now.month)
         self.assertEqual(int(self._render("water_balance_season_start_ts", same)), int(first.timestamp()))
@@ -354,14 +441,9 @@ class SkipReasonTests(unittest.TestCase):
             water_balance_helper_ok=True,
             water_balance_helper_max=255,
             water_balance_payload_length=61,
-            water_balance_measured_rain_available=True,
             zone_count=1,
             zone_1_valve="switch.relay",
             daily_forecast_available=True,
-            use_meteofusion_data=False,
-            meteofusion_contract_available=False,
-            meteofusion_native=False,
-            meteofusion_quality_ok=True,
             weather_data_ok=True,
             weather_ok=True,
             rain_binary_sensor="",
@@ -412,24 +494,12 @@ class SkipReasonTests(unittest.TestCase):
         hass = FakeHass({"input_text.balance": "{}", "binary_sensor.rain": "unavailable"})
         reason = self._reason(hass, rain_binary_sensor="binary_sensor.rain", rain_sensor_ok=False)
         self.assertIn("niedostępny", reason)
-        self.assertNotIn("MeteoFusion", reason)
+        self.assertNotIn("aktywny", reason)
 
-    def test_balance_helper_without_rain_source_is_blocked(self) -> None:
+    def test_balance_helper_without_rain_sensor_is_not_blocked(self) -> None:
+        # Without a station the rain is estimated from the forecast, so there is no block.
         hass = FakeHass({"input_text.balance": "{}"})
-        reason = self._reason(hass, water_balance_measured_rain_available=False)
-        self.assertIn("Brak źródła opadu", reason)
-        self.assertIn("MeteoFusion", reason)
-
-    def test_rc2_without_helper_does_not_need_rain_source(self) -> None:
-        hass = FakeHass({})
-        reason = self._reason(
-            hass,
-            water_balance_enabled=False,
-            water_balance_helper="",
-            water_balance_measured_rain_available=False,
-            zone_1_valve="",
-        )
-        self.assertEqual(reason, "")
+        self.assertEqual(self._reason(hass, rain_amount_sensor=""), "")
 
     def test_missing_daily_forecast_is_reported(self) -> None:
         hass = FakeHass({"input_text.balance": "{}"})
@@ -458,7 +528,6 @@ class WeatherFallbackTests(unittest.TestCase):
             temperature_source_entity="sensor.garden_temperature",
             forecast_weather_entity="weather.home",
             current_weather_entity="weather.home",
-            meteofusion_native=False,
             forecast_temperature=14,
         )
         self.assertEqual(float(_render(hass, self.weather["temp_c"], context)), -1.0)
@@ -468,7 +537,6 @@ class WeatherFallbackTests(unittest.TestCase):
             temperature_source_entity="",
             forecast_weather_entity="weather.home",
             current_weather_entity="weather.home",
-            meteofusion_native=False,
         )
         weather = FakeHass({}, {"weather.home": {"temperature": 30, "temperature_unit": "°F"}})
         self.assertAlmostEqual(float(_render(weather, self.weather["temp_c"], context)), -1.1, places=1)
@@ -483,7 +551,6 @@ class WeatherFallbackTests(unittest.TestCase):
         hass = FakeHass({}, {"weather.home": {"precipitation_unit": "in"}})
         context = dict(
             forecast_weather_entity="weather.home",
-            meteofusion_native=False,
             daily_forecast={"weather.home": {"forecast": [{"precipitation": 0.5}]}},
         )
         self.assertEqual(float(_render(hass, self.weather["forecast_precipitation"], context)), 12.7)
@@ -494,7 +561,6 @@ class WeatherFallbackTests(unittest.TestCase):
             temperature_source_entity="sensor.garden_temperature",
             forecast_weather_entity="weather.home",
             current_weather_entity="weather.home",
-            meteofusion_native=False,
         )
         temp = _render(hass, self.weather["temp_c"], context)
         self.assertEqual(_render(hass, self.weather["temp_available"], {"temp_c": temp}), "False")
@@ -504,7 +570,6 @@ class WeatherFallbackTests(unittest.TestCase):
             wind_source_entity="sensor.garden_wind",
             forecast_weather_entity="weather.home",
             current_weather_entity="weather.home",
-            meteofusion_native=False,
         )
         with_weather = FakeHass(
             {"sensor.garden_wind": "unavailable"},
@@ -520,7 +585,6 @@ class WeatherFallbackTests(unittest.TestCase):
             wind_source_entity="",
             forecast_weather_entity="weather.home",
             current_weather_entity="weather.home",
-            meteofusion_native=False,
         )
         hass = FakeHass({}, {"weather.home": {}})
         self.assertEqual(float(_render(hass, self.weather["wind_value"], context)), 0.0)
