@@ -8,9 +8,7 @@ Usa questa pagina quando configuri il blueprint polacco in Home Assistant.
 | --- | --- |
 | Wspólne encje pogody i sensory | Entità meteo e sensori condivisi |
 | Encja pogody do prognozy | Entità meteo per le previsioni |
-| Korzystaj z danych MeteoFusion HA | Usa i dati MeteoFusion HA |
-| MeteoFusion - minimalna pewność prognozy | MeteoFusion - affidabilità minima delle previsioni |
-| Opcjonalne sensory lokalne i nadpisania | Sensori locali e sostituzioni opzionali |
+| Stacja pogodowa i czujniki (opcjonalnie) | Stazione meteo e sensori (opzionale) |
 | Lokalna encja pogody | Entità meteo locale |
 | Czujnik deszczu | Sensore pioggia |
 | Opad zmierzony - najlepiej ostatnie 24 h | Pioggia misurata - preferibilmente ultime 24 ore |

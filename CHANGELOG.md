@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.8.0
+
+Weather sources:
+
+- The blueprint is based on the Home Assistant weather forecast with an optional weather station. MeteoFusion support was removed completely: the **Korzystaj z danych MeteoFusion HA** switch, the forecast confidence threshold and all use of the MeteoFusion context (24-hour rain, ETo, station data, quality checks). Existing automations keep working; the old options are ignored and a MeteoFusion weather entity, if still selected, is used like any other weather entity.
+- The optional sensor section is renamed **Stacja pogodowa i czujniki (opcjonalnie)** and is expanded by default.
+
+Water balance:
+
+- Without a station rain amount sensor the persistent balance books the daily forecast rain of the past day once per day (at the first check of the next day) as an estimate. Notifications show "Opad do bilansu: szacunek z prognozy". With a station rain sensor measured rain is used as before.
+- The "Brak źródła opadu" block from 1.7.0 is removed, because without a station the forecast estimate is used.
+- In forecast mode the stored balance keeps the day's forecast instead of the station rain total and still fits the default 100-character Text helper.
+
 ## 1.7.0
 
 Water balance:

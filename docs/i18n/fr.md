@@ -8,9 +8,7 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | --- | --- |
 | Wspólne encje pogody i sensory | Entités météo et capteurs partagés |
 | Encja pogody do prognozy | Entité météo pour les prévisions |
-| Korzystaj z danych MeteoFusion HA | Utiliser les données MeteoFusion HA |
-| MeteoFusion - minimalna pewność prognozy | MeteoFusion - confiance minimale des prévisions |
-| Opcjonalne sensory lokalne i nadpisania | Capteurs locaux et remplacements facultatifs |
+| Stacja pogodowa i czujniki (opcjonalnie) | Station météo et capteurs (facultatif) |
 | Lokalna encja pogody | Entité météo locale |
 | Czujnik deszczu | Capteur de pluie |
 | Opad zmierzony - najlepiej ostatnie 24 h | Pluie mesuree - de preference sur les dernieres 24 h |

@@ -8,9 +8,7 @@ Use this page when configuring the Polish blueprint in Home Assistant.
 | --- | --- |
 | Wspólne encje pogody i sensory | Shared weather entities and sensors |
 | Encja pogody do prognozy | Forecast weather entity |
-| Korzystaj z danych MeteoFusion HA | Use MeteoFusion HA data |
-| MeteoFusion - minimalna pewność prognozy | MeteoFusion - minimum forecast confidence |
-| Opcjonalne sensory lokalne i nadpisania | Optional local sensors and overrides |
+| Stacja pogodowa i czujniki (opcjonalnie) | Weather station and sensors (optional) |
 | Lokalna encja pogody | Local weather entity |
 | Czujnik deszczu | Rain sensor |
 | Opad zmierzony - najlepiej ostatnie 24 h | Measured rain - preferably the last 24 h |

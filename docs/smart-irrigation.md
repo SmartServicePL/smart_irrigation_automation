@@ -18,7 +18,7 @@ For every active section it calculates a water dose and runtime from:
 - plant type: grass, flowers, vegetables or shrubs,
 - soil type, selected with simplified garden names,
 - sprinkler profile: detailed Rain Bird profiles, Hunter profiles or custom mm/h,
-- newly measured rain (forecast rain only delays the start and is never counted as water received),
+- new rain: measured by a station rain sensor or, without one, the daily forecast rain of the past day booked once as an estimate (forecast rain for today and later only delays the start),
 - daily reference evapotranspiration (ETo), or a fallback estimate from temperature, sunlight/UV and wind,
 - optional soil moisture,
 - irrigation efficiency and per-section runtime correction.
@@ -34,38 +34,26 @@ the balances at zero; later checks add elapsed ETo and subtract only new rain.
 This makes a rolling rain value safe: when an old storm leaves the 24-hour
 window, the saved soil-water credit remains in the balance.
 
-Forecast precipitation only delays a start. It is not subtracted from the
-balance until measured locally or reported as measured rain by MeteoFusion.
+Forecast precipitation for today and later only delays a start. With a station
+rain sensor only measured rain is subtracted. Without one, the forecast rain of
+the past day is subtracted once per day as an estimate.
 Existing automations without the helper keep a compatibility calculation, but
 they cannot remember rain beyond the sensor's own history window.
 
-If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. Without that sensor, the blueprint first uses MeteoFusion ETo when available; for other weather entities it estimates ETo from garden temperature, UV/sunlight and wind. A measured-rain override should preferably be a rolling 24-hour or current rain-event total. A sensor that resets at midnight represents only part of the water received since the previous irrigation.
+If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. Without that sensor, the blueprint estimates ETo from garden temperature, UV/sunlight and wind. A measured-rain override should preferably be a rolling 24-hour or current rain-event total. A sensor that resets at midnight represents only part of the water received since the previous irrigation.
 
-## MeteoFusion HA
+## Weather forecast and optional weather station
 
-Select the MeteoFusion weather entity in **Encja pogody do prognozy**, then
-enable **Korzystaj z danych MeteoFusion HA**. The blueprint validates the stable
-`smart_service.weather.v1` contract and uses the rolling 24-hour rain forecast,
-local rain rate and rain total, current station conditions, daily FAO-56 ETo and
-forecast-quality diagnostics.
-
-Manual sensor selections remain overrides. For example, a dedicated garden
-rain gauge can supply the measured rain amount while MeteoFusion supplies ETo
-and the next-24-hour forecast. If no ETo sensor is selected, MeteoFusion ETo is
-used before the blueprint's fallback estimate. All manual weather sensors are
-placed in the collapsed **Opcjonalne sensory lokalne i nadpisania** section, so
-a MeteoFusion-only user can leave the whole section untouched.
-
-**MeteoFusion - minimalna pewność prognozy** defines the minimum accepted
-forecast confidence. Irrigation is also skipped when the MeteoFusion station
-data is stale, no forecast source is available or the weather contract is
-unavailable. The notification shows the source, confidence, status and ETo used
-for the decision.
+Select any Home Assistant `weather` entity with a daily forecast as
+**Encja pogody do prognozy** (for example Met.no). A weather station is optional:
+in **Stacja pogodowa i czujniki (opcjonalnie)** you can select its temperature,
+wind, UV, rain amount and rain sensor, and selected sensors take priority over
+the weather entity.
 
 Rain in a daily forecast no longer blocks irrigation by its condition name
 alone. Normal rain is evaluated with the configured precipitation amount and
 probability limits. Forecast heavy rain, lightning, hail and snow remain unconditional
-safety blocks, and current rain from MeteoFusion interrupts an active section.
+safety blocks, and an active rain sensor interrupts a running section.
 
 Available soil choices are intentionally written for normal garden use:
 
@@ -130,10 +118,10 @@ all configured sections. The helper is required when any section is an ordinary
 `switch`/`valve`. If the helper is missing or its maximum length is too short for
 the stored balance, watering stops with a reason that names the helper.
 
-With the balance helper selected, one measured rain source is required: a rain
-amount sensor or MeteoFusion HA. Without either, watering stops with a reason,
-because the balance would not know about rain. When the selected rain sensor is
-temporarily unavailable, the balance keeps the last stored rain total, does not
+With a station rain amount sensor the balance subtracts measured rain. Without
+it, the daily forecast rain of the past day is subtracted once per day as an
+estimate, and notifications show "Opad do bilansu: szacunek z prognozy". When
+the selected rain sensor is temporarily unavailable, the balance keeps the last stored rain total, does not
 credit any new rain until the sensor returns, and notifications show a warning.
 
 Evapotranspiration is added for at most 7 days after a break in updates (Home
@@ -151,10 +139,9 @@ water follows the plants' needs.
 
 Use one automation instance for one hydraulic system or watering area. It may contain more than one controller type. Set **Liczba sekcji** to the real number of sections, up to 12. Fill only those sections; later sections may stay with defaults.
 
-For MeteoFusion HA, select its weather entity, enable **Korzystaj z danych
-MeteoFusion HA** and normally leave the complete optional sensor section empty.
-Select separate garden sensors only when they should override MeteoFusion for
-that measurement.
+Select a stable weather entity with a daily forecast. If you have a weather
+station, select at least its rolling 24-hour rain amount and rain sensor; add
+temperature, wind and UV when available.
 
 Good starting values:
 
