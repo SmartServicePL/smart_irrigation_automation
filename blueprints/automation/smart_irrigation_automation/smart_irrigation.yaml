@@ -76,7 +76,7 @@ blueprint:
                 - domain: sensor
         temperature_source_entity:
           name: Temperatura ogrodu
-          description: Opcjonalny sensor temperatury w ogrodzie albo encja weather. Puste = użyj MeteoFusion HA lub głównej encji weather. Niska temperatura blokuje podlewanie, upał zwiększa dawkę. Gdy wybrany sensor jest niedostępny, używana jest aktualna temperatura z encji pogody; bez żadnej aktualnej temperatury podlewanie jest wstrzymane.
+          description: Opcjonalny sensor temperatury w ogrodzie albo encja weather. Puste = użyj MeteoFusion HA lub głównej encji weather. Niska temperatura blokuje podlewanie, upał zwiększa dawkę. Gdy wybrany sensor jest niedostępny, używana jest aktualna temperatura z encji pogody; bez żadnej aktualnej temperatury podlewanie jest wstrzymane. Temperatura w °F jest automatycznie przeliczana na °C.
           default: ""
           selector:
             entity:
@@ -2579,7 +2579,9 @@ actions:
       forecast_temperature: >-
         {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
         {% set fallback = state_attr(forecast_weather_entity, 'temperature') | float(0) %}
-        {{ fc[0].temperature | default(fallback, true) | float(fallback) if fc | count > 0 else fallback }}
+        {% set raw = fc[0].temperature | default(fallback, true) | float(fallback) if fc | count > 0 else fallback %}
+        {% set unit = state_attr(forecast_weather_entity, 'temperature_unit') | default('°C', true) | lower %}
+        {{ ((raw - 32) * 5 / 9) | round(1) if unit in ['°f', 'f'] else raw }}
       forecast_precipitation: >-
         {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
         {% set fallback = state_attr(forecast_weather_entity, 'precipitation') | float(0) %}
@@ -2588,7 +2590,9 @@ actions:
         {% if (meteofusion_native | bool) and next_24h.get('precipitation_sum') | is_number %}
           {{ next_24h.get('precipitation_sum') | float(0) }}
         {% else %}
-          {{ fc[0].precipitation | default(fallback, true) | float(fallback) if fc | count > 0 else fallback }}
+          {% set raw = fc[0].precipitation | default(fallback, true) | float(fallback) if fc | count > 0 else fallback %}
+          {% set unit = state_attr(forecast_weather_entity, 'precipitation_unit') | default('mm', true) | lower %}
+          {{ (raw * 25.4) | round(2) if unit in ['in', 'inch', 'inches'] else raw }}
         {% endif %}
       forecast_precipitation_probability: >-
         {% set fc = daily_forecast.get(forecast_weather_entity, {}).get('forecast', []) %}
@@ -2611,23 +2615,29 @@ actions:
         {% elif (meteofusion_native | bool) and current.get('rain_today') | is_number %}
           {{ current.get('rain_today') | float(0) }}
         {% else %}
-          {{ state_attr(current_weather_entity, 'precipitation') | float(0) }}
+          {% set raw = state_attr(current_weather_entity, 'precipitation') | float(0) %}
+          {% set unit = state_attr(current_weather_entity, 'precipitation_unit') | default('mm', true) | lower %}
+          {{ (raw * 25.4) | round(2) if unit in ['in', 'inch', 'inches'] else raw }}
         {% endif %}
       temp_c: >-
         {% set e = temperature_source_entity | default('', true) %}
         {% set context = state_attr(forecast_weather_entity, 'smart_service_context') %}
         {% set current = context.get('current', {}) if context is mapping else {} %}
-        {% set weather_now = state_attr(current_weather_entity, 'temperature') | float(-99) %}
+        {% set fahrenheit = ['°f', 'f'] %}
+        {% set w_raw = state_attr(current_weather_entity, 'temperature') | float(none) %}
+        {% set w_unit = state_attr(current_weather_entity, 'temperature_unit') | default('°C', true) | lower %}
+        {% set weather_now = -99 if w_raw is none else ((w_raw - 32) * 5 / 9) | round(1) if w_unit in fahrenheit else w_raw %}
         {% if e | length == 0 %}
           {% if (meteofusion_native | bool) and current.get('temperature') | is_number %}
             {{ current.get('temperature') | float(-99) }}
           {% else %}
             {{ weather_now }}
           {% endif %}
-        {% elif e.split('.')[0] == 'weather' %}
-          {{ state_attr(e, 'temperature') | float(weather_now) }}
         {% else %}
-          {{ states(e) | float(weather_now) }}
+          {% set is_weather = e.split('.')[0] == 'weather' %}
+          {% set raw = (state_attr(e, 'temperature') if is_weather else states(e)) | float(none) %}
+          {% set unit = (state_attr(e, 'temperature_unit') if is_weather else state_attr(e, 'unit_of_measurement')) | default('°C', true) | lower %}
+          {{ weather_now if raw is none else ((raw - 32) * 5 / 9) | round(1) if unit in fahrenheit else raw }}
         {% endif %}
       temp_available: "{{ (temp_c | float(-99)) > -99 }}"
       wind_value: >-
@@ -3328,7 +3338,7 @@ actions:
             data:
               name: Inteligentne podlewanie
               message: >-
-                Zaplanowano cykl podlewania dla włączonych sekcji. {{ irrigation_cycle_decision_reason | trim }}.
+                Zaplanowano cykl podlewania dla włączonych sekcji. {{ irrigation_cycle_decision_reason | trim }}
                 Największa dawka cyklu {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm.
                 Źródło pogody: {{ weather_source_summary | trim }}.
                 {{ rain_measurement_warning | trim }}

@@ -9,6 +9,11 @@ Water balance:
 - Outside the season the balance is kept at zero. A new season starts from zero on the first day of the season start month, so the first spring watering is not driven by a deficit accumulated over the winter. The season start is written to the Logbook.
 - The **korekta czasu** description explains that the balance subtracts the water actually applied: a shorter run means more frequent watering, a longer run less frequent watering.
 
+Units:
+
+- Temperatures reported in °F (weather entity `temperature_unit` or sensor `unit_of_measurement`) are converted to °C. Previously 30 °F was treated as 30 °C, so the frost block never stopped watering on imperial installations and hot-weather and evapotranspiration estimates were inflated.
+- Forecast and current weather precipitation in inches is converted to millimetres, so the forecast rain block works with imperial weather entities (rain amount sensors in inches were already converted).
+
 Texts:
 
 - All Polish names, descriptions, option labels, notifications, Logbook entries and step names now use Polish characters, and several sentences were corrected grammatically. Option values, input keys and identifiers are unchanged, so existing automations need no reconfiguration.

@@ -463,6 +463,31 @@ class WeatherFallbackTests(unittest.TestCase):
         )
         self.assertEqual(float(_render(hass, self.weather["temp_c"], context)), -1.0)
 
+    def test_fahrenheit_weather_and_sensor_are_converted_to_celsius(self) -> None:
+        context = dict(
+            temperature_source_entity="",
+            forecast_weather_entity="weather.home",
+            current_weather_entity="weather.home",
+            meteofusion_native=False,
+        )
+        weather = FakeHass({}, {"weather.home": {"temperature": 30, "temperature_unit": "°F"}})
+        self.assertAlmostEqual(float(_render(weather, self.weather["temp_c"], context)), -1.1, places=1)
+        sensor = FakeHass(
+            {"sensor.garden_temperature": "50"},
+            {"sensor.garden_temperature": {"unit_of_measurement": "°F"}, "weather.home": {"temperature": 99}},
+        )
+        context["temperature_source_entity"] = "sensor.garden_temperature"
+        self.assertEqual(float(_render(sensor, self.weather["temp_c"], context)), 10.0)
+
+    def test_forecast_rain_in_inches_is_converted_to_mm(self) -> None:
+        hass = FakeHass({}, {"weather.home": {"precipitation_unit": "in"}})
+        context = dict(
+            forecast_weather_entity="weather.home",
+            meteofusion_native=False,
+            daily_forecast={"weather.home": {"forecast": [{"precipitation": 0.5}]}},
+        )
+        self.assertEqual(float(_render(hass, self.weather["forecast_precipitation"], context)), 12.7)
+
     def test_temperature_without_any_source_is_marked_missing(self) -> None:
         hass = FakeHass({"sensor.garden_temperature": "unavailable"}, {})
         context = dict(

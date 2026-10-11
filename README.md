@@ -29,6 +29,8 @@ https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprin
   (previously 3). Outside the season the balance stays at zero and each new
   season starts from zero, so spring does not begin with a winter-sized deficit.
 - The runtime adjustment description explains its effect on the balance.
+- Temperatures in °F and weather precipitation in inches are converted, so the
+  frost and rain-forecast blocks also work on imperial installations.
 - All Polish texts in the blueprint now use Polish characters. Option values are
   unchanged, so existing automations keep their configuration.
 
