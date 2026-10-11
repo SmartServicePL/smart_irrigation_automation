@@ -1,7 +1,7 @@
 blueprint:
   name: Inteligentne podlewanie ogrodu - 1 do 12 sekcji
   description: >
-    Wersja 1.8.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsługuje instalacje
+    Wersja 1.9.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsługuje instalacje
     Rain Bird RC2 oraz układy mieszane z dodatkowymi zaworami lub przekaźnikami
     Sonoff, Shelly i ESPHome. Pogoda pochodzi z prognozy Home Assistant, a stacja
     pogodowa jest opcjonalna. Dla każdej sekcji osobno ustawiasz nazwę, encję sekcji, rodzaj
@@ -2427,10 +2427,10 @@ actions:
                   name: Inteligentne podlewanie
                   message: >-
                     Kontrola zaworów ({{ trigger_id }}).
-                    Zamknięte: {{ safety_closed | join(', ') if safety_closed | count > 0 else 'brak' }}.
-                    Bez potwierdzenia zamknięcia: {{ safety_not_closed | join(', ') if safety_not_closed | count > 0 else 'brak' }}.
-                    Wysłano OFF do sekcji o stanie unknown: {{ safety_unknown | join(', ') if safety_unknown | count > 0 else 'brak' }}.
-                    Niedostępne: {{ safety_unavailable | join(', ') if safety_unavailable | count > 0 else 'brak' }}.
+                    Zamknięte: {{ safety_closed | join(', ') if safety_closed | count > 0 else 'żadna sekcja' }}.
+                    Bez potwierdzenia zamknięcia: {{ safety_not_closed | join(', ') if safety_not_closed | count > 0 else 'żadna sekcja' }}.
+                    Wysłano OFF do sekcji o stanie unknown: {{ safety_unknown | join(', ') if safety_unknown | count > 0 else 'żadna sekcja' }}.
+                    Niedostępne: {{ safety_unavailable | join(', ') if safety_unavailable | count > 0 else 'żadna sekcja' }}.
       - stop: "Kontrola bezpieczeństwa zaworów zakończona."
 
   - alias: Harmonogram startu pasuje
@@ -3031,7 +3031,7 @@ actions:
           {'number': 11, 'valve': zone_11_valve, 'name': zone_11_name, 'soil_type': zone_11_soil_type, 'plant_type': zone_11_plant_type, 'profile': zone_11_sprinkler_profile, 'custom_rate': zone_11_custom_rate_mm_h},
           {'number': 12, 'valve': zone_12_valve, 'name': zone_12_name, 'soil_type': zone_12_soil_type, 'plant_type': zone_12_plant_type, 'profile': zone_12_sprinkler_profile, 'custom_rate': zone_12_custom_rate_mm_h}
         ] -%}
-        {%- set ns = namespace(due='', highest='brak włączonych sekcji z encją', highest_deficit=-1, highest_target=0) -%}
+        {%- set ns = namespace(due='', highest='Brak włączonych sekcji z encją', highest_deficit=-1, highest_target=0) -%}
         {%- for zone in zones if (zone.number | int) <= (zone_count | int(1)) and (zone.valve | default('', true) | length > 0) -%}
           {%- set soil = zone.soil_type -%}
           {%- set available_water_mm_m = 55 if soil == 'sand' else 115 if soil == 'sandy_loam' else 170 if soil == 'humus' else 180 if soil == 'chernozem' else 155 if soil == 'clay_loam' else 120 if soil == 'clay' else 150 -%}
@@ -3057,10 +3057,10 @@ actions:
             {%- set ns.highest_target = target -%}
             {%- set missing = target - deficit -%}
             {%- set missing = 0 if missing < 0 else missing -%}
-            {%- set ns.highest = 'najbliżej startu jest sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): potrzeba jeszcze ok. ' ~ (missing | round(1)) ~ ' mm' -%}
+            {%- set ns.highest = 'Najbliżej startu jest sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '): potrzeba jeszcze ok. ' ~ (missing | round(1)) ~ ' mm' -%}
           {%- endif -%}
           {%- if deficit >= target and ns.due | length == 0 -%}
-            {%- set ns.due = 'cykl zaplanowała sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '), deficyt ' ~ (deficit | round(1)) ~ ' mm, próg ' ~ (target | round(1)) ~ ' mm' -%}
+            {%- set ns.due = 'Cykl zaplanowała sekcja ' ~ zone.number ~ ' (' ~ zone.name ~ '), deficyt ' ~ (deficit | round(1)) ~ ' mm, próg ' ~ (target | round(1)) ~ ' mm' -%}
           {%- endif -%}
         {%- endfor -%}
         {%- if ns.due | length > 0 -%}
@@ -3523,7 +3523,7 @@ actions:
                  and (repeat.item.battery_sensor | default('', true) | length == 0 or (states(repeat.item.battery_sensor) | float(0)) >= (min_battery_percent | float(20))) }}
             section_skip_reason: >-
               {% if not (section_enabled | bool) %}
-                Sekcja poza wybrana liczba sekcji.
+                Sekcja poza wybraną liczbą sekcji.
               {% elif cycle_aborted | bool %}
                 Cykl przerwany: {{ cycle_abort_note }}
               {% elif section_valve | default('', true) | length == 0 %}
@@ -3860,7 +3860,7 @@ actions:
                                   - Źródło: {{ weather_source_summary | trim }}
                                   - Aktualnie: {{ current_weather_condition_pl }}
                                   - Prognoza: {{ forecast_condition_pl }}
-                                  - Czujnik deszczu: {{ states(rain_binary_sensor) if (rain_binary_sensor | default('', true) | length > 0) else 'brak' }}
+                                  - Czujnik deszczu: {{ states(rain_binary_sensor) if (rain_binary_sensor | default('', true) | length > 0) else 'nie wybrano' }}
                                 notification_id: smart_irrigation_last_event
                     - stop: "Podlewanie przerwane: {{ section_interruption_reason | trim }}."
                 - alias: Rozlicz zakończoną sekcję
