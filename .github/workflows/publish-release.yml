@@ -25,13 +25,19 @@ jobs:
         shell: bash
         run: |
           version="$(python - <<'PY'
+          import re
           from pathlib import Path
+          # Only a released semantic version may become a tag; "## Unreleased" is skipped.
           for line in Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines():
-              if line.startswith("## "):
+              if re.match(r"^## \d+\.\d+\.\d+\s*$", line):
                   print(line[3:].strip())
                   break
           PY
           )"
+          if [ -z "$version" ]; then
+            echo "No released version heading in CHANGELOG.md" >&2
+            exit 1
+          fi
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Prepare release notes
@@ -59,15 +65,17 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
+          TAG_NAME="v${VERSION}"
+          # Existing tags are never moved; a published version stays where it was released.
+          if git rev-parse -q --verify "refs/tags/$TAG_NAME" >/dev/null; then
+            echo "Tag $TAG_NAME already exists, nothing to publish."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -f "$TAG_NAME" "$GITHUB_SHA"
-          git push --force origin "refs/tags/$TAG_NAME"
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            gh release edit "$TAG_NAME" --title "$TAG_NAME" --notes-file RELEASE_NOTES.md --latest
-          else
-            gh release create "$TAG_NAME" --target "$GITHUB_SHA" --title "$TAG_NAME" --notes-file RELEASE_NOTES.md --latest
-          fi
+          git tag "$TAG_NAME" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG_NAME"
+          gh release create "$TAG_NAME" --target "$GITHUB_SHA" --title "$TAG_NAME" --notes-file RELEASE_NOTES.md --latest

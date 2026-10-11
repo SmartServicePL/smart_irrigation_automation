@@ -23,6 +23,7 @@ Usa questa pagina quando configuri il blueprint polacco in Home Assistant.
 | Ustawienia ogolne | Impostazioni generali |
 | Liczba sekcji | Numero di zone |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Invia la durata calcolata al controller Rain Bird |
+| Nadzor czasu pracy sekcji | Supervisione del tempo di irrigazione della zona |
 
 ## Impostazioni zona
 
@@ -33,10 +34,10 @@ Usa questa pagina quando configuri il blueprint polacco in Home Assistant.
 | Sekcja X - rodzaj gleby | Zona X - tipo di terreno |
 | Sekcja X - co rosnie | Zona X - piante coltivate |
 | Sekcja X - zraszacze | Zona X - irrigatori |
-| Sekcja X - wlasny opad | Zona X - tasso di precipitazione personalizzato |
+| Sekcja X - wlasny opad zraszaczy | Zona X - tasso di precipitazione personalizzato |
 | Sekcja X - korekta czasu | Zona X - correzione durata |
-| Sekcja X - sensor online | Zona X - sensore connessione |
-| Sekcja X - sensor baterii | Zona X - sensore batteria |
+| Sekcja X - online | Zona X - sensore connessione |
+| Sekcja X - bateria | Zona X - sensore batteria |
 
 ## Tipi di terreno
 
@@ -63,10 +64,10 @@ Usa questa pagina quando configuri il blueprint polacco in Home Assistant.
 
 | Etichetta in polacco | Italiano |
 | --- | --- |
-| Tryb startu | Modalità di avvio |
-| Godzina startu | Ora di avvio |
-| Wschod slonca | Alba |
-| Zachod slonca | Tramonto |
+| Start podlewania | Modalità di avvio |
+| Glowna godzina podlewania | Ora di avvio |
+| Wzgledem wschodu slonca | Alba |
+| Wzgledem zachodu slonca | Tramonto |
 | Przesuniecie wzgledem slonca | Offset rispetto al sole |
 | Awaryjny start po pominietej godzinie | Avvio di recupero dopo l'orario principale mancato |
 | Miesiac startu sezonu | Mese di inizio stagione |
@@ -81,3 +82,17 @@ Usa questa pagina quando configuri il blueprint polacco in Home Assistant.
 | Helper - trwaly bilans wody | Helper - bilancio idrico persistente |
 | Wlacz logbook.log | Abilita logbook.log |
 | Tworz powiadomienie persistent_notification | Crea persistent_notification |
+
+## Blocchi meteo
+
+| Etichetta in polacco | Italiano |
+| --- | --- |
+| Blokady pogodowe | Blocchi meteo |
+| Prognozowany deszcz blokujacy | Pioggia prevista che blocca l'irrigazione |
+| Prawdopodobienstwo deszczu blokujace | Probabilità di pioggia che blocca l'irrigazione |
+| Ile deszczu odjac od dawki | Quota di pioggia misurata detratta |
+| Minimalna temperatura | Temperatura minima |
+| Temperatura upalu | Temperatura di caldo |
+| Maksymalny wiatr | Vento massimo |
+| Minimalna bateria sekcji | Batteria minima della zona |
+| Sprawnosc instalacji | Efficienza dell'impianto |

@@ -23,6 +23,7 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | Ustawienia ogolne | Paramètres généraux |
 | Liczba sekcji | Nombre de zones |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Envoyer la durée calculée au contrôleur Rain Bird |
+| Nadzor czasu pracy sekcji | Surveillance de la durée d'arrosage de la zone |
 
 ## Paramètres de zone
 
@@ -33,10 +34,10 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | Sekcja X - rodzaj gleby | Zone X - type de sol |
 | Sekcja X - co rosnie | Zone X - végétation |
 | Sekcja X - zraszacze | Zone X - arroseurs |
-| Sekcja X - wlasny opad | Zone X - taux de précipitation personnalisé |
+| Sekcja X - wlasny opad zraszaczy | Zone X - taux de précipitation personnalisé |
 | Sekcja X - korekta czasu | Zone X - correction de durée |
-| Sekcja X - sensor online | Zone X - capteur de connexion |
-| Sekcja X - sensor baterii | Zone X - capteur de batterie |
+| Sekcja X - online | Zone X - capteur de connexion |
+| Sekcja X - bateria | Zone X - capteur de batterie |
 
 ## Types de sol
 
@@ -63,10 +64,10 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 
 | Libellé polonais | Français |
 | --- | --- |
-| Tryb startu | Mode de démarrage |
-| Godzina startu | Heure de démarrage |
-| Wschod slonca | Lever du soleil |
-| Zachod slonca | Coucher du soleil |
+| Start podlewania | Mode de démarrage |
+| Glowna godzina podlewania | Heure de démarrage |
+| Wzgledem wschodu slonca | Lever du soleil |
+| Wzgledem zachodu slonca | Coucher du soleil |
 | Przesuniecie wzgledem slonca | Décalage par rapport au soleil |
 | Awaryjny start po pominietej godzinie | Demarrage de secours apres l'heure principale manquee |
 | Miesiac startu sezonu | Mois de début de saison |
@@ -81,3 +82,17 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | Helper - trwaly bilans wody | Helper - bilan hydrique persistant |
 | Wlacz logbook.log | Activer logbook.log |
 | Tworz powiadomienie persistent_notification | Créer une persistent_notification |
+
+## Blocages météo
+
+| Libellé polonais | Français |
+| --- | --- |
+| Blokady pogodowe | Blocages météo |
+| Prognozowany deszcz blokujacy | Pluie prévue qui bloque l'arrosage |
+| Prawdopodobienstwo deszczu blokujace | Probabilité de pluie qui bloque l'arrosage |
+| Ile deszczu odjac od dawki | Part de la pluie mesurée déduite |
+| Minimalna temperatura | Température minimale |
+| Temperatura upalu | Température de forte chaleur |
+| Maksymalny wiatr | Vent maximal |
+| Minimalna bateria sekcji | Batterie minimale de la zone |
+| Sprawnosc instalacji | Efficacité de l'installation |

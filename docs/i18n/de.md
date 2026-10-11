@@ -23,6 +23,7 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | Ustawienia ogolne | Allgemeine Einstellungen |
 | Liczba sekcji | Anzahl der Zonen |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Berechnete Laufzeit an den Rain-Bird-Controller senden |
+| Nadzor czasu pracy sekcji | Laufzeitüberwachung der Zonen |
 
 ## Zoneneinstellungen
 
@@ -33,10 +34,10 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | Sekcja X - rodzaj gleby | Zone X - Bodenart |
 | Sekcja X - co rosnie | Zone X - Bepflanzung |
 | Sekcja X - zraszacze | Zone X - Regner |
-| Sekcja X - wlasny opad | Zone X - eigene Niederschlagsrate |
+| Sekcja X - wlasny opad zraszaczy | Zone X - eigene Niederschlagsrate |
 | Sekcja X - korekta czasu | Zone X - Laufzeitkorrektur |
-| Sekcja X - sensor online | Zone X - Online-Sensor |
-| Sekcja X - sensor baterii | Zone X - Batteriesensor |
+| Sekcja X - online | Zone X - Online-Sensor |
+| Sekcja X - bateria | Zone X - Batteriesensor |
 
 ## Bodenarten
 
@@ -63,10 +64,10 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 
 | Polnische Beschriftung | Deutsch |
 | --- | --- |
-| Tryb startu | Startmodus |
-| Godzina startu | Startzeit |
-| Wschod slonca | Sonnenaufgang |
-| Zachod slonca | Sonnenuntergang |
+| Start podlewania | Startmodus |
+| Glowna godzina podlewania | Startzeit |
+| Wzgledem wschodu slonca | Sonnenaufgang |
+| Wzgledem zachodu slonca | Sonnenuntergang |
 | Przesuniecie wzgledem slonca | Versatz zur Sonne |
 | Awaryjny start po pominietej godzinie | Ersatzstart nach verpasster Hauptzeit |
 | Miesiac startu sezonu | Startmonat der Saison |
@@ -81,3 +82,17 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | Helper - trwaly bilans wody | Helfer - dauerhafte Wasserbilanz |
 | Wlacz logbook.log | logbook.log aktivieren |
 | Tworz powiadomienie persistent_notification | persistent_notification erstellen |
+
+## Wettersperren
+
+| Polnische Beschriftung | Deutsch |
+| --- | --- |
+| Blokady pogodowe | Wettersperren |
+| Prognozowany deszcz blokujacy | Vorhergesagter Regen, der die Bewässerung sperrt |
+| Prawdopodobienstwo deszczu blokujace | Regenwahrscheinlichkeit, die die Bewässerung sperrt |
+| Ile deszczu odjac od dawki | Angerechneter Anteil des gemessenen Regens |
+| Minimalna temperatura | Mindesttemperatur |
+| Temperatura upalu | Hitzetemperatur |
+| Maksymalny wiatr | Maximaler Wind |
+| Minimalna bateria sekcji | Minimaler Batteriestand der Zone |
+| Sprawnosc instalacji | Wirkungsgrad der Anlage |

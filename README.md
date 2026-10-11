@@ -4,7 +4,7 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.5.0**
+Current version: **1.6.0**
 
 ## Import Blueprint
 
@@ -19,6 +19,34 @@ https://github.com/SmartServicePL/smart_irrigation_automation/blob/main/blueprin
 ## Donate
 
 [![Donate via Revolut](https://img.shields.io/badge/Donate-Revolut-0666EB?style=for-the-badge)](https://revolut.me/smartserwis)
+
+## New in 1.6.0: valve safety and a working water balance
+
+Version 1.6.0 makes sure that no section stays open without a limit:
+
+- a start that is not confirmed within 60 seconds is always followed by a close
+  command, and the `opening` state of slow motorized valves counts as started;
+- every close is confirmed and repeated up to 3 times; a section that still
+  reports open creates a separate alarm notification and stops the cycle;
+- after a Home Assistant restart, or after this automation is saved, open
+  `switch`/`valve` sections are closed;
+- the new **Nadzor czasu pracy sekcji** input (on by default) closes a
+  `switch`/`valve` section left on longer than the maximum section runtime
+  plus 5 minutes.
+
+Rain Bird RC2 and Rain Bird sections are excluded from the restart check and the
+watchdog because the controller receives the runtime and stops itself.
+
+For ordinary relays also enable a hardware limit in the device, because Home
+Assistant can only close a valve while it is running: Shelly **Auto OFF**,
+Sonoff **Inching** or an ESPHome `on_turn_on` action with a `delay` followed by
+`switch.turn_off`. Professional controllers work the same way: every station
+run has a duration in the controller itself.
+
+Version 1.6.0 also fixes the persistent water balance, which in 1.5.0 was reset
+to zero on every check, and blocks watering with a readable reason when the
+balance helper is missing or too short, or when ordinary relays are used
+without the helper. See the [changelog](CHANGELOG.md) for all changes.
 
 ## New in 1.5.0: persistent per-section water balance
 
@@ -113,8 +141,9 @@ values remain compatible.
 
 For native Rain Bird RC2 switch entities, the blueprint automatically uses
 `rainbird_rc2.start_zone` and passes the calculated runtime in minutes. Other
-switch integrations use standard `switch.turn_on`, wait for confirmation, keep
-the section active for the calculated time and then call `switch.turn_off`.
+switch integrations use standard `switch.turn_on`, wait up to 60 seconds for
+confirmation, keep the section active for the calculated time and then call
+`switch.turn_off` until the entity confirms `off` (up to 3 attempts).
 Normal `valve` entities are handled with `valve.open_valve` and
 `valve.close_valve`.
 
@@ -136,7 +165,7 @@ The optional local sensors are grouped in a collapsed section and may all stay
 empty for a MeteoFusion-only setup. Ordinary `weather` entities remain fully
 supported with the MeteoFusion option disabled.
 
-The blueprint waits for the valve or switch to confirm `on/open` before reporting that watering started. A missing start confirmation or an early controller stop is reported as an irrigation failure instead of a completed section.
+The blueprint waits up to 60 seconds for the valve or switch to confirm `on/open` (or `opening`) before reporting that watering started. A missing start confirmation is followed by a close command and is reported in the final cycle result; an early controller stop is reported as an irrigation failure instead of a completed section. Every close is confirmed and repeated; a section that does not confirm closing raises a separate alarm notification.
 
 Optional logging writes the deficit, start threshold, watering decision and
 confirmed duration to Home Assistant Logbook. Persistent notifications are kept
@@ -175,12 +204,12 @@ blueprints/automation/smart_irrigation_automation/smart_irrigation.yaml
 
 ## Requirements
 
-- Home Assistant 2025.1.0 or newer.
+- Home Assistant 2025.4.0 or newer.
 - One `valve` or `switch` entity per irrigation section.
 - A `weather` entity that supports daily forecast.
 - Optional MeteoFusion HA `0.7.0` or newer for native 24-hour rain, ETo and forecast-quality data.
 - Optional local weather entity, rain sensor, rain amount sensor, temperature sensor, wind source, UV/sunlight source and soil moisture sensor.
-- One recommended `input_text` helper with maximum length `255` for persistent water balance.
+- One `input_text` helper with maximum length `255` for persistent water balance. It is required when any section is an ordinary `switch`/`valve`; only Rain Bird RC2 sections report the run history used without the helper.
 - Optional Logbook diagnostics and persistent notifications for user-visible irrigation events.
 
 ## Privacy

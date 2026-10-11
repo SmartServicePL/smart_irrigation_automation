@@ -18,7 +18,7 @@ For every active section it calculates a water dose and runtime from:
 - plant type: grass, flowers, vegetables or shrubs,
 - soil type, selected with simplified garden names,
 - sprinkler profile: detailed Rain Bird profiles, Hunter profiles or custom mm/h,
-- recent/forecast rain,
+- newly measured rain (forecast rain only delays the start and is never counted as water received),
 - daily reference evapotranspiration (ETo), or a fallback estimate from temperature, sunlight/UV and wind,
 - optional soil moisture,
 - irrigation efficiency and per-section runtime correction.
@@ -94,9 +94,18 @@ For native Rain Bird RC2 entities, the blueprint automatically calls `rainbird_r
 
 One automation may combine different controllers. A typical mixed installation can use Rain Bird RC2 for sections 1-8 and Sonoff, Shelly or ESPHome relays for drip lines in sections 9-12. Ordinary `switch` entities are turned on, monitored for start confirmation, kept active for the calculated runtime and turned off. Ordinary `valve` entities are opened and closed in the same controlled sequence. Sections always run one at a time.
 
-After sending a start command, the blueprint waits for an `on/open` state confirmation. The start notification is not created until that confirmation arrives. If the controller does not confirm the start or closes the section too early, the run is stopped and the final Logbook/persistent notification clearly reports what actually happened.
+After sending a start command, the blueprint waits up to 60 seconds for an `on/open` (or `opening`) state confirmation. The start notification is not created until that confirmation arrives. If the controller does not confirm the start, a close command is sent anyway and the cycle ends with a final report that names the section. If the controller closes the section too early, the run is stopped and the final Logbook/persistent notification clearly reports what actually happened.
 
-If rain starts while a section is running, the weather changes to a blocking condition, or weather data becomes unavailable, the automation closes the valve, reports the interruption reason and stops the remaining sections.
+Every close command is confirmed: the blueprint waits for `off/closed`, repeats the command up to 3 times every 30 seconds and, if the section still reports open, creates a separate alarm notification (`smart_irrigation_valve_alarm`) and stops the cycle.
+
+## Valve safety
+
+- After a Home Assistant start the blueprint waits up to 3 minutes for its `switch`/`valve` sections to become available and closes every section that is on or open. The same check runs after this automation is saved or reloaded.
+- **Nadzor czasu pracy sekcji** (on by default) closes a `switch`/`valve` section that stays on longer than the maximum section runtime plus 5 minutes, regardless of who turned it on. Disable it only if you deliberately water manually for longer than that limit.
+- Rain Bird RC2 and Rain Bird sections are excluded from both checks, because the controller receives the runtime and stops the station itself.
+- Home Assistant can only close a valve while it runs. For relays such as Sonoff, Shelly or ESPHome also set a hardware limit in the device: Shelly **Auto OFF**, Sonoff **Inching**, or an ESPHome `on_turn_on` action with a `delay` followed by `switch.turn_off`.
+
+If rain starts while a section is running, the weather changes to a blocking condition, or weather data stays unavailable for more than 5 minutes, the automation closes the valve, reports the interruption reason and stops the remaining sections.
 
 ## Logs and notifications
 
@@ -117,7 +126,14 @@ Optionally create an `input_datetime` helper with date and time, then select it 
 
 For the persistent calculation, create a Text helper with maximum length `255`
 and select it in **Helper - trwaly bilans wody**. Only one helper is required for
-all configured sections.
+all configured sections. The helper is required when any section is an ordinary
+`switch`/`valve`. If the helper is missing or its maximum length is too short for
+the stored balance, watering stops with a reason that names the helper.
+
+Without a rain amount sensor and without MeteoFusion HA, measured rain does not
+reduce the balance; notifications show a warning in that case. When the selected
+rain sensor is temporarily unavailable, the balance keeps the last stored rain
+total and does not credit any new rain until the sensor returns.
 
 ## Recommended setup
 

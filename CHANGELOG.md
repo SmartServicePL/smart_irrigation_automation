@@ -1,6 +1,44 @@
 # Changelog
 
-## Unreleased
+## 1.6.0
+
+Valve safety:
+
+- A section whose opening is not confirmed within 60 seconds (previously 20) is now always sent a close command before the cycle stops. The `opening` state is accepted as a started valve, so slow motorized ball valves are no longer left open after a "failed" start.
+- Every section close is confirmed: the close command is repeated up to 3 times, 30 seconds apart, until the entity reports `off`/`closed`. A section that still does not confirm creates a separate alarm notification (`smart_irrigation_valve_alarm`, always shown, independent of the notification option) and stops the cycle.
+- All open/close commands use `continue_on_error`, so a failed command no longer aborts the run before the valve is closed.
+- After a Home Assistant start the automation waits up to 3 minutes for its `switch`/`valve` sections to become available and closes any that are on/open (and sends OFF to sections in the `unknown` state). After this automation itself is saved or reloaded, the same check runs. Rain Bird RC2 and Rain Bird sections are skipped because the controller times the run itself.
+- New input **Nadzor czasu pracy sekcji** (enabled by default): a `switch`/`valve` section that stays on longer than the maximum section runtime + 5 minutes is closed, whoever turned it on.
+- The automation mode changed from `single` to `queued` (max 10), so a schedule trigger arriving during the restart check is no longer dropped.
+
+Water balance and decisions:
+
+- Fixed the persistent water balance never being read back: Home Assistant converts the stored JSON into a dictionary, which the 1.5.0 template rejected, so every check reset all sections to zero and the decision step could fail.
+- Balance values are rounded to 0.1 mm and the stored payload is at most 99 characters, so the default 100-character Text helper is enough. A helper that is missing or too short now stops watering with a clear reason instead of silently ignoring the write.
+- Without the balance helper, installations with ordinary `switch`/`valve` sections are now blocked with a clear reason. Their compatibility calculation always returned a zero deficit, so they never watered.
+- An unavailable rain amount sensor no longer overwrites the stored rain total with another source; the same rain is no longer credited twice when the sensor returns.
+- Notifications and the Logbook warn when no measured rain source is configured, because rain then does not reduce the balance.
+- An unavailable temperature sensor falls back to the current weather temperature instead of the forecast daily maximum; without any current temperature watering is stopped. An unavailable wind sensor falls back to the weather entity's wind and blocks when none is available.
+- An unavailable rain sensor now reports its own reason instead of a MeteoFusion rain message.
+- A brief (under 5 minutes) loss of the weather entity no longer interrupts a running section.
+- Weather without a daily forecast stops the run with a reason instead of an unexplained error.
+- Minimum dose larger than maximum dose is reported as a configuration error.
+- Rain sensor and MeteoFusion rain are checked live before every section.
+- Next-watering times for fixed-time schedules stay correct across daylight saving time changes.
+- A gap of more than 3 days in balance updates is written to the Logbook.
+
+Reports:
+
+- The final report is built from sections confirmed in this cycle, so `switch`/`valve` sections are reported as watered (previously only Rain Bird RC2 sections were).
+- A section that fails to start ends the cycle with the normal final report and a note instead of a lone "skipped" message.
+
+Other:
+
+- Requires Home Assistant 2025.4.0 or newer (variables updated inside the section loop).
+- The release workflow only publishes `## x.y.z` headings, tags them as `v<version>` and never moves an existing tag.
+- Removed the byte order mark from the blueprint file and synchronized the translated UI guides with the current labels.
+
+Behavior changes for existing automations: watering stops with a reason when the balance helper is missing or too short, or when ordinary relays are used without the helper; open `switch`/`valve` sections are closed after a Home Assistant restart or a save of this automation; sections left on longer than the maximum runtime + 5 minutes are closed unless the new watchdog input is disabled.
 
 ## 1.5.0
 

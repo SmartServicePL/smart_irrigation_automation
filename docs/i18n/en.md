@@ -23,6 +23,7 @@ Use this page when configuring the Polish blueprint in Home Assistant.
 | Ustawienia ogolne | General settings |
 | Liczba sekcji | Number of sections |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Send calculated runtime to Rain Bird controller |
+| Nadzor czasu pracy sekcji | Section runtime watchdog |
 
 ## Section Settings
 
@@ -33,10 +34,10 @@ Use this page when configuring the Polish blueprint in Home Assistant.
 | Sekcja X - rodzaj gleby | Section X - soil type |
 | Sekcja X - co rosnie | Section X - plant type |
 | Sekcja X - zraszacze | Section X - sprinklers |
-| Sekcja X - wlasny opad | Section X - custom precipitation rate |
+| Sekcja X - wlasny opad zraszaczy | Section X - custom precipitation rate |
 | Sekcja X - korekta czasu | Section X - runtime adjustment |
-| Sekcja X - sensor online | Section X - online sensor |
-| Sekcja X - sensor baterii | Section X - battery sensor |
+| Sekcja X - online | Section X - online sensor |
+| Sekcja X - bateria | Section X - battery sensor |
 
 ## Soil Types
 
@@ -63,10 +64,10 @@ Use this page when configuring the Polish blueprint in Home Assistant.
 
 | Polish label | English |
 | --- | --- |
-| Tryb startu | Start mode |
-| Godzina startu | Start time |
-| Wschod slonca | Sunrise |
-| Zachod slonca | Sunset |
+| Start podlewania | Start mode |
+| Glowna godzina podlewania | Start time |
+| Wzgledem wschodu slonca | Sunrise |
+| Wzgledem zachodu slonca | Sunset |
 | Przesuniecie wzgledem slonca | Sun offset |
 | Awaryjny start po pominietej godzinie | Recovery start after a missed main time |
 | Miesiac startu sezonu | Season start month |
@@ -81,3 +82,17 @@ Use this page when configuring the Polish blueprint in Home Assistant.
 | Helper - trwaly bilans wody | Helper - persistent water balance |
 | Wlacz logbook.log | Enable logbook.log |
 | Tworz powiadomienie persistent_notification | Create persistent_notification |
+
+## Weather Blocks
+
+| Polish label | English |
+| --- | --- |
+| Blokady pogodowe | Weather blocks |
+| Prognozowany deszcz blokujacy | Forecast rain that blocks irrigation |
+| Prawdopodobienstwo deszczu blokujace | Rain probability that blocks irrigation |
+| Ile deszczu odjac od dawki | Share of measured rain credited |
+| Minimalna temperatura | Minimum temperature |
+| Temperatura upalu | Hot-weather temperature |
+| Maksymalny wiatr | Maximum wind |
+| Minimalna bateria sekcji | Minimum section battery |
+| Sprawnosc instalacji | Irrigation efficiency |

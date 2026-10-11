@@ -23,6 +23,7 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Ustawienia ogolne | Algemene instellingen |
 | Liczba sekcji | Aantal zones |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Berekende looptijd naar Rain Bird-controller sturen |
+| Nadzor czasu pracy sekcji | Bewaking van de zonelooptijd |
 
 ## Zone-instellingen
 
@@ -33,10 +34,10 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Sekcja X - rodzaj gleby | Zone X - bodemtype |
 | Sekcja X - co rosnie | Zone X - beplanting |
 | Sekcja X - zraszacze | Zone X - sproeiers |
-| Sekcja X - wlasny opad | Zone X - aangepaste neerslagsnelheid |
+| Sekcja X - wlasny opad zraszaczy | Zone X - aangepaste neerslagsnelheid |
 | Sekcja X - korekta czasu | Zone X - looptijdcorrectie |
-| Sekcja X - sensor online | Zone X - online sensor |
-| Sekcja X - sensor baterii | Zone X - batterijsensor |
+| Sekcja X - online | Zone X - online sensor |
+| Sekcja X - bateria | Zone X - batterijsensor |
 
 ## Bodemtypes
 
@@ -63,10 +64,10 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 
 | Pools label | Nederlands |
 | --- | --- |
-| Tryb startu | Startmodus |
-| Godzina startu | Starttijd |
-| Wschod slonca | Zonsopkomst |
-| Zachod slonca | Zonsondergang |
+| Start podlewania | Startmodus |
+| Glowna godzina podlewania | Starttijd |
+| Wzgledem wschodu slonca | Zonsopkomst |
+| Wzgledem zachodu slonca | Zonsondergang |
 | Przesuniecie wzgledem slonca | Offset ten opzichte van de zon |
 | Awaryjny start po pominietej godzinie | Herstelstart na gemiste hoofdtijd |
 | Miesiac startu sezonu | Startmaand van het seizoen |
@@ -81,3 +82,17 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Helper - trwaly bilans wody | Helper - blijvende waterbalans |
 | Wlacz logbook.log | logbook.log inschakelen |
 | Tworz powiadomienie persistent_notification | persistent_notification maken |
+
+## Weerblokkades
+
+| Pools label | Nederlands |
+| --- | --- |
+| Blokady pogodowe | Weerblokkades |
+| Prognozowany deszcz blokujacy | Voorspelde regen die beregening blokkeert |
+| Prawdopodobienstwo deszczu blokujace | Regenkans die beregening blokkeert |
+| Ile deszczu odjac od dawki | Aandeel van gemeten regen dat wordt verrekend |
+| Minimalna temperatura | Minimumtemperatuur |
+| Temperatura upalu | Hittetemperatuur |
+| Maksymalny wiatr | Maximale wind |
+| Minimalna bateria sekcji | Minimale batterij van de zone |
+| Sprawnosc instalacji | Rendement van de installatie |

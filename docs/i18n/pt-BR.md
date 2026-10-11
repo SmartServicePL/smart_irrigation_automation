@@ -23,6 +23,7 @@ Use esta página ao configurar o blueprint polonês no Home Assistant.
 | Ustawienia ogolne | Configurações gerais |
 | Liczba sekcji | Número de zonas |
 | Przekazuj wyliczony czas do sterownika Rain Bird | Enviar tempo calculado ao controlador Rain Bird |
+| Nadzor czasu pracy sekcji | Supervisão do tempo de rega da zona |
 
 ## Configurações da zona
 
@@ -33,10 +34,10 @@ Use esta página ao configurar o blueprint polonês no Home Assistant.
 | Sekcja X - rodzaj gleby | Zona X - tipo de solo |
 | Sekcja X - co rosnie | Zona X - plantas cultivadas |
 | Sekcja X - zraszacze | Zona X - aspersores |
-| Sekcja X - wlasny opad | Zona X - taxa de precipitação personalizada |
+| Sekcja X - wlasny opad zraszaczy | Zona X - taxa de precipitação personalizada |
 | Sekcja X - korekta czasu | Zona X - ajuste de duração |
-| Sekcja X - sensor online | Zona X - sensor online |
-| Sekcja X - sensor baterii | Zona X - sensor de bateria |
+| Sekcja X - online | Zona X - sensor online |
+| Sekcja X - bateria | Zona X - sensor de bateria |
 
 ## Tipos de solo
 
@@ -63,10 +64,10 @@ Use esta página ao configurar o blueprint polonês no Home Assistant.
 
 | Rótulo em polonês | Português |
 | --- | --- |
-| Tryb startu | Modo de início |
-| Godzina startu | Hora de início |
-| Wschod slonca | Nascer do sol |
-| Zachod slonca | Pôr do sol |
+| Start podlewania | Modo de início |
+| Glowna godzina podlewania | Hora de início |
+| Wzgledem wschodu slonca | Nascer do sol |
+| Wzgledem zachodu slonca | Pôr do sol |
 | Przesuniecie wzgledem slonca | Deslocamento em relação ao sol |
 | Awaryjny start po pominietej godzinie | Inicio de recuperacao apos perder o horario principal |
 | Miesiac startu sezonu | Mês de início da temporada |
@@ -81,3 +82,17 @@ Use esta página ao configurar o blueprint polonês no Home Assistant.
 | Helper - trwaly bilans wody | Helper - balanço hídrico persistente |
 | Wlacz logbook.log | Ativar logbook.log |
 | Tworz powiadomienie persistent_notification | Criar persistent_notification |
+
+## Bloqueios climáticos
+
+| Rótulo em polonês | Português |
+| --- | --- |
+| Blokady pogodowe | Bloqueios climáticos |
+| Prognozowany deszcz blokujacy | Chuva prevista que bloqueia a rega |
+| Prawdopodobienstwo deszczu blokujace | Probabilidade de chuva que bloqueia a rega |
+| Ile deszczu odjac od dawki | Parcela da chuva medida descontada |
+| Minimalna temperatura | Temperatura mínima |
+| Temperatura upalu | Temperatura de calor |
+| Maksymalny wiatr | Vento máximo |
+| Minimalna bateria sekcji | Bateria mínima da zona |
+| Sprawnosc instalacji | Eficiência da instalação |
