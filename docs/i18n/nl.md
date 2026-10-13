@@ -16,6 +16,7 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Wiatr | Wind |
 | UV / słońce | UV / zon |
 | Dzienne ET0 / ewapotranspiracja | Dagelijkse ETo / evapotranspiratie |
+| Promieniowanie słoneczne - średnia 24 h | Zonnestraling - 24-uursgemiddelde |
 | Wilgotność gleby | Bodemvocht |
 | Wilgotność gleby blokująca podlewanie | Bodemvochtdrempel die beregening blokkeert |
 | Ustawienia ogólne | Algemene instellingen |

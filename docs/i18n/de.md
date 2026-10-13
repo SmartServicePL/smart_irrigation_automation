@@ -16,6 +16,7 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | Wiatr | Wind |
 | UV / słońce | UV / Sonne |
 | Dzienne ET0 / ewapotranspiracja | Tägliches ETo / Evapotranspiration |
+| Promieniowanie słoneczne - średnia 24 h | Sonneneinstrahlung - 24-h-Mittel |
 | Wilgotność gleby | Bodenfeuchte |
 | Wilgotność gleby blokująca podlewanie | Bodenfeuchteschwelle zum Sperren der Bewasserung |
 | Ustawienia ogólne | Allgemeine Einstellungen |

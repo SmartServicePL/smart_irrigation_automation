@@ -16,6 +16,7 @@ Usa esta página al configurar el blueprint polaco en Home Assistant.
 | Wiatr | Viento |
 | UV / słońce | UV / sol |
 | Dzienne ET0 / ewapotranspiracja | ETo diaria / evapotranspiración |
+| Promieniowanie słoneczne - średnia 24 h | Radiación solar - media de 24 h |
 | Wilgotność gleby | Humedad del suelo |
 | Wilgotność gleby blokująca podlewanie | Umbral de humedad del suelo que bloquea el riego |
 | Ustawienia ogólne | Ajustes generales |

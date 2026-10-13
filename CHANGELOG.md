@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.11.0
+
+- New optional input **Promieniowanie słoneczne - średnia 24 h** (`solar_radiation_mean_sensor`): a 24-hour mean of solar radiation in W/m² (or kW/m²), typically a Statistics helper with the time-weighted `average_linear` characteristic and max age 24 hours. When it is set, ET0 = 0.0135 × (T + 17.8) × Rs / 2.45 with Rs = mean × 0.0864 MJ/m² per day (Hargreaves radiation formula). The daily ET0 sensor keeps priority; without the input, or when it is unavailable or has another unit, the previous estimate is used unchanged.
+- The input description explains step by step how to create the Statistics helper.
+- Notifications and the Logbook show the ET0 method: ET0 sensor, radiation or fallback estimate.
+- Basis: on 93 days of GW3000A station data (12.07-12.10.2026) the radiation formula matched FAO-56 Penman-Monteith with a mean absolute error of 0.32 mm/day and no bias; the fallback estimate was +0.49 mm/day (about 21% more irrigation water in a balance simulation).
+- English and German blueprints regenerated from the catalog.
+
 ## 1.10.0
 
 - The watering need is evaluated before the weather blocks. When no section needs water, the skip reason is "Trawnik nie wymaga jeszcze podlewania" even if the temperature, wind, rain sensor, forecast or soil moisture would block; those blocks are reported only when watering would otherwise start. Season, configuration and missing weather data are still reported first. The blocks still apply before every start.

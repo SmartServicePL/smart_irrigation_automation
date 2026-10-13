@@ -4,7 +4,7 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.10.0**
+Current version: **1.11.0**
 
 ## Import Blueprint
 
@@ -34,6 +34,23 @@ behaviour are identical in all three files, so the inputs stay as they are.
 ## Donate
 
 [![Donate via Revolut](https://img.shields.io/badge/Donate-Revolut-0666EB?style=for-the-badge)](https://revolut.me/smartserwis)
+
+## New in 1.11.0: ET0 from solar radiation
+
+- New optional input **Promieniowanie słoneczne - średnia 24 h** (24-hour mean
+  solar radiation in W/m²). When it is selected, daily reference
+  evapotranspiration is calculated with the Hargreaves radiation formula
+  `ET0 = 0.0135 * (T + 17.8) * Rs / 2.45`, where `Rs = mean W/m² * 0.0864`
+  MJ/m² per day. Without it the previous estimate from temperature, UV and wind
+  is used unchanged.
+- Create the mean once in Home Assistant: Settings, Devices & services,
+  Helpers, Create helper, **Statistics**; select the station's solar radiation
+  sensor, characteristic **average_linear** (time-weighted, not the plain mean),
+  max age 24 hours.
+- On 93 days of data from a GW3000A station (July-October) the radiation formula
+  matched FAO-56 Penman-Monteith within 0.3 mm/day with no bias, while the
+  previous estimate was about 0.5 mm/day too high, mostly in autumn.
+- Notifications show which method produced ET0 (ET0 sensor, radiation or fallback estimate).
 
 ## New in 1.10.0: clearer skip reasons and a stable next-watering date
 

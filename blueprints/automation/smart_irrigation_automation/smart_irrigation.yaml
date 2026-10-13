@@ -1,7 +1,7 @@
 blueprint:
   name: Inteligentne podlewanie ogrodu - 1 do 12 sekcji
   description: >
-    Wersja 1.10.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsługuje instalacje
+    Wersja 1.11.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsługuje instalacje
     Rain Bird RC2 oraz układy mieszane z dodatkowymi zaworami lub przekaźnikami
     Sonoff, Shelly i ESPHome. Pogoda pochodzi z prognozy Home Assistant, a stacja
     pogodowa jest opcjonalna. Dla każdej sekcji osobno ustawiasz nazwę, encję sekcji, rodzaj
@@ -86,6 +86,23 @@ blueprint:
         reference_et_sensor:
           name: Dzienne ET0 / ewapotranspiracja
           description: Opcjonalny sensor dziennej referencyjnej ewapotranspiracji w mm. Puste = ET0 jest szacowane z temperatury, UV i wiatru.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+        solar_radiation_mean_sensor:
+          name: Promieniowanie słoneczne - średnia 24 h
+          description: >-
+            Opcjonalne. Średnie promieniowanie słoneczne z ostatnich 24 godzin w W/m², liczone
+            z czujnika stacji pogodowej. Gdy je wybierzesz, ET0 jest liczone metodą Hargreavesa
+            z promieniowaniem, która jest dokładniejsza niż szacowanie z temperatury, UV i wiatru.
+            Jak utworzyć - 1) Ustawienia, Urządzenia i usługi, Pomocnicy, Utwórz pomocnika,
+            Statystyka. 2) Wybierz czujnik promieniowania słonecznego stacji w W/m². 3) Cecha -
+            średnia liniowa ważona czasem (average_linear), a nie zwykła średnia, bo w nocy
+            czujnik rzadko zmienia stan. 4) Maksymalny wiek 24 godziny, liczbę próbek zostaw
+            pustą. 5) Wybierz tutaj utworzony czujnik. Czujnik dziennego ET0 powyżej ma
+            pierwszeństwo. Gdy ten czujnik jest niedostępny, używane jest szacowanie zastępcze.
           default: ""
           selector:
             entity:
@@ -2054,6 +2071,7 @@ variables:
   wind_source_entity: !input wind_source_entity
   sunlight_source_entity: !input sunlight_source_entity
   reference_et_sensor: !input reference_et_sensor
+  solar_radiation_mean_sensor: !input solar_radiation_mean_sensor
   soil_moisture_sensor: !input soil_moisture_sensor
   zone_count: !input zone_count
   send_runtime_to_switch: !input send_runtime_to_switch
@@ -2608,10 +2626,35 @@ actions:
       sun_factor: >-
         {% set u = sunlight_index | float(5) %}
         {% if u < 2 %}0.9{% elif u <= 7 %}1{% else %}1.1{% endif %}
+      solar_radiation_mean_w_m2: >-
+        {% set e = solar_radiation_mean_sensor | default('', true) %}
+        {% set unit = (state_attr(e, 'unit_of_measurement') | default('W/m²', true) | string | lower | replace(' ', '')) if e | length > 0 else '' %}
+        {% if e | length == 0 or not (states(e) | is_number) %}
+          -1
+        {% elif unit in ['w/m²', 'w/m2'] %}
+          {{ states(e) | float(0) }}
+        {% elif unit in ['kw/m²', 'kw/m2'] %}
+          {{ states(e) | float(0) * 1000 }}
+        {% else %}
+          -1
+        {% endif %}
+      reference_et_method: >-
+        {% set e = reference_et_sensor | default('', true) %}
+        {% if e | length > 0 and states(e) | is_number %}
+          czujnik ET0
+        {% elif (solar_radiation_mean_w_m2 | float(-1)) >= 0 %}
+          z promieniowania
+        {% else %}
+          szacunek zastępczy
+        {% endif %}
       reference_et_mm: >-
         {% set e = reference_et_sensor | default('', true) %}
         {% if e | length > 0 and states(e) | is_number %}
           {{ states(e) | float(0) }}
+        {% elif (solar_radiation_mean_w_m2 | float(-1)) >= 0 %}
+          {% set rs = (solar_radiation_mean_w_m2 | float(0)) * 0.0864 %}
+          {% set et0 = 0.0135 * ((temp_c | float(0)) + 17.8) * rs / 2.45 %}
+          {{ 0 if et0 < 0 else 10 if et0 > 10 else et0 | round(2) }}
         {% else %}
           {% set t = temp_c | float(0) %}
           {% set u = sunlight_index | float(5) %}
@@ -2622,7 +2665,7 @@ actions:
           {{ 0.5 if adjusted < 0.5 else 7.5 if adjusted > 7.5 else adjusted | round(2) }}
         {% endif %}
       weather_source_summary: >-
-        {{ state_attr(forecast_weather_entity, 'friendly_name') | default(forecast_weather_entity, true) }}, ET0 {{ reference_et_mm | float(0) | round(2) }} mm/d
+        {{ state_attr(forecast_weather_entity, 'friendly_name') | default(forecast_weather_entity, true) }}, ET0 {{ reference_et_mm | float(0) | round(2) }} mm/d ({{ reference_et_method | trim }})
       rain_credit_mm: >-
         {% set raw_credit = rain_credit_percent | float(80) / 100 %}
         {% set credit = 0 if raw_credit < 0 else 1 if raw_credit > 1 else raw_credit %}

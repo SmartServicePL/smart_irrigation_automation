@@ -40,7 +40,7 @@ the past day is subtracted once per day as an estimate.
 Existing automations without the helper keep a compatibility calculation, but
 they cannot remember rain beyond the sensor's own history window.
 
-If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. Without that sensor, the blueprint estimates ETo from garden temperature, UV/sunlight and wind. A measured-rain override should preferably be a rolling 24-hour or current rain-event total. A sensor that resets at midnight represents only part of the water received since the previous irrigation.
+If you already have a reliable daily ETo/evapotranspiration sensor in millimeters, select it in **Dzienne ET0 / ewapotranspiracja**. If your weather station measures solar radiation, create a Statistics helper (characteristic `average_linear`, max age 24 hours) from it and select it in **Promieniowanie słoneczne - średnia 24 h**; ETo is then calculated with the Hargreaves radiation formula `0.0135 * (T + 17.8) * Rs / 2.45` (Rs in MJ/m² per day = mean W/m² * 0.0864). Without either input, the blueprint estimates ETo from garden temperature, UV/sunlight and wind. A measured-rain override should preferably be a rolling 24-hour or current rain-event total. A sensor that resets at midnight represents only part of the water received since the previous irrigation.
 
 ## Weather forecast and optional weather station
 

@@ -609,6 +609,59 @@ class WeatherFallbackTests(unittest.TestCase):
         self.assertEqual(float(_render(hass, self.weather["wind_value"], context)), 0.0)
 
 
+@unittest.skipIf(jinja2 is None or yaml is None, "jinja2 and PyYAML are required")
+class SolarRadiationEt0Tests(unittest.TestCase):
+    """Optional ET0 from the 24-hour mean solar radiation (Hargreaves radiation formula)."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.weather = _action_variables(_load_blueprint(), "Wylicz pogodę i wspólne warunki")
+
+    def _et0(self, hass: FakeHass, **context) -> tuple[float, str]:
+        context = {
+            **dict(reference_et_sensor="", solar_radiation_mean_sensor="", temp_c=15.0,
+                   sunlight_index=3, wind_value=10, hot_temperature_c=28),
+            **context,
+        }
+        context["solar_radiation_mean_w_m2"] = _render(hass, self.weather["solar_radiation_mean_w_m2"], context)
+        method = _render(hass, self.weather["reference_et_method"], context)
+        return float(_render(hass, self.weather["reference_et_mm"], context)), method
+
+    @staticmethod
+    def _fallback(t=15.0, u=3, w=10, hot=28):
+        base = 1.2 + max(t - 8, 0) * 0.13 + u * 0.28 + w * 0.015
+        adjusted = base * (0.85 if t < 15 else 1.15 if t >= hot else 1)
+        return round(min(7.5, max(0.5, adjusted)), 2)
+
+    def test_radiation_formula(self) -> None:
+        hass = FakeHass({"sensor.rad24": "150"}, {"sensor.rad24": {"unit_of_measurement": "W/m²"}})
+        et0, method = self._et0(hass, solar_radiation_mean_sensor="sensor.rad24")
+        self.assertAlmostEqual(et0, round(0.0135 * (15.0 + 17.8) * 150 * 0.0864 / 2.45, 2), places=2)
+        self.assertEqual(method, "z promieniowania")
+
+    def test_without_the_field_the_old_estimate_is_used(self) -> None:
+        et0, method = self._et0(FakeHass())
+        self.assertEqual(et0, self._fallback())
+        self.assertEqual(method, "szacunek zastępczy")
+
+    def test_kilowatt_unit_is_converted(self) -> None:
+        watts = FakeHass({"sensor.rad24": "150"}, {"sensor.rad24": {"unit_of_measurement": "W/m²"}})
+        kilowatts = FakeHass({"sensor.rad24": "0.15"}, {"sensor.rad24": {"unit_of_measurement": "kW/m²"}})
+        self.assertEqual(self._et0(watts, solar_radiation_mean_sensor="sensor.rad24")[0],
+                         self._et0(kilowatts, solar_radiation_mean_sensor="sensor.rad24")[0])
+
+    def test_unknown_unit_and_unavailable_helper_fall_back(self) -> None:
+        lux = FakeHass({"sensor.rad24": "18000"}, {"sensor.rad24": {"unit_of_measurement": "lx"}})
+        self.assertEqual(self._et0(lux, solar_radiation_mean_sensor="sensor.rad24"), (self._fallback(), "szacunek zastępczy"))
+        missing = FakeHass({"sensor.rad24": "unavailable"}, {})
+        self.assertEqual(self._et0(missing, solar_radiation_mean_sensor="sensor.rad24"), (self._fallback(), "szacunek zastępczy"))
+
+    def test_daily_et0_sensor_keeps_priority(self) -> None:
+        hass = FakeHass({"sensor.rad24": "150", "sensor.et0": "2.5"}, {"sensor.rad24": {"unit_of_measurement": "W/m²"}})
+        self.assertEqual(self._et0(hass, solar_radiation_mean_sensor="sensor.rad24", reference_et_sensor="sensor.et0"),
+                         (2.5, "czujnik ET0"))
+
+
 class ValveSafetyStructureTests(unittest.TestCase):
     """Static checks of the valve safety sequence (no template engine needed)."""
 

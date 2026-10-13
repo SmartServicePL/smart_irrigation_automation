@@ -16,6 +16,7 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | Wiatr | Vent |
 | UV / słońce | UV / soleil |
 | Dzienne ET0 / ewapotranspiracja | ETo journalière / évapotranspiration |
+| Promieniowanie słoneczne - średnia 24 h | Rayonnement solaire - moyenne sur 24 h |
 | Wilgotność gleby | Humidité du sol |
 | Wilgotność gleby blokująca podlewanie | Seuil d'humidite du sol bloquant l'arrosage |
 | Ustawienia ogólne | Paramètres généraux |
