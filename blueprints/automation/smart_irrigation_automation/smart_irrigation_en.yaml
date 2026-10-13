@@ -1,7 +1,7 @@
 blueprint:
   name: Smart garden irrigation - 1 to 12 sections
   description: >
-    Version 1.9.0. Universal irrigation blueprint for 1 to 12 sections. Supports
+    Version 1.10.0. Universal irrigation blueprint for 1 to 12 sections. Supports
     Rain Bird RC2 installations and mixed setups with additional valves or relays
     from Sonoff, Shelly and ESPHome. The weather comes from the Home Assistant forecast, and a
     weather station is optional. For each section you set its name, section entity, soil
@@ -2029,9 +2029,6 @@ triggers:
   - trigger: homeassistant
     id: ha_start
     event: start
-  - trigger: event
-    id: automation_reloaded
-    event_type: automation_reloaded
   - trigger: template
     id: valve_watchdog
     value_template: >-
@@ -2217,7 +2214,6 @@ variables:
     - idle
   safety_trigger_ids:
     - ha_start
-    - automation_reloaded
     - valve_watchdog
   bad_weather_states:
     - rainy
@@ -2293,13 +2289,6 @@ actions:
             {{ [zone_1_valve, zone_2_valve, zone_3_valve, zone_4_valve, zone_5_valve, zone_6_valve,
                 zone_7_valve, zone_8_valve, zone_9_valve, zone_10_valve, zone_11_valve, zone_12_valve][:(zone_count | int(1))]
                | select('string') | reject('eq', '') | reject('in', controller_timed) | list }}
-          safety_reload_applies: >-
-            {% if trigger_id != 'automation_reloaded' %}
-              true
-            {% else %}
-              {% set changed = as_datetime(this.last_changed | default('', true) | string, none) if this is defined else none %}
-              {{ changed is not none and (now() - changed).total_seconds() < 120 }}
-            {% endif %}
       - alias: After an HA start wait until the sections are available
         if:
           - condition: template
@@ -2312,9 +2301,7 @@ actions:
         variables:
           safety_watchdog_limit_minutes: "{{ (max_runtime_minutes | int(45)) + 5 }}"
           safety_close_now: >-
-            {% if not (safety_reload_applies | bool) %}
-              []
-            {% elif trigger_id == 'valve_watchdog' %}
+            {% if trigger_id == 'valve_watchdog' %}
               {{ expand(safety_sections)
                  | selectattr('state', 'in', valve_active_states)
                  | selectattr('last_changed', 'lt', now() - timedelta(minutes=safety_watchdog_limit_minutes | int(50)))
@@ -2323,7 +2310,7 @@ actions:
               {{ expand(safety_sections) | selectattr('state', 'in', valve_active_states) | map(attribute='entity_id') | list }}
             {% endif %}
           safety_unknown: >-
-            {% if (safety_reload_applies | bool) and trigger_id in ['ha_start', 'automation_reloaded'] %}
+            {% if trigger_id == 'ha_start' %}
               {{ safety_sections | select('is_state', 'unknown') | list }}
             {% else %}
               []
@@ -2371,8 +2358,6 @@ actions:
               safety_event_text: >-
                 {% if trigger_id == 'ha_start' %}
                   After the Home Assistant start
-                {% elif trigger_id == 'automation_reloaded' %}
-                  After the irrigation automation was reloaded
                 {% else %}
                   Runtime watchdog: the section was on longer than {{ safety_watchdog_limit_minutes }} min (maximum section runtime + 5 min), so
                 {% endif %}
@@ -2823,111 +2808,6 @@ actions:
           Measured rain: {{ current_rain_mm | float(0) | round(1) }} mm
         {% endif %}
 
-  - alias: Determine the reason for skipping watering
-    variables:
-      zones_non_rc2: >-
-        {{ [zone_1_valve, zone_2_valve, zone_3_valve, zone_4_valve, zone_5_valve, zone_6_valve,
-            zone_7_valve, zone_8_valve, zone_9_valve, zone_10_valve, zone_11_valve, zone_12_valve][:(zone_count | int(1))]
-           | select('string') | reject('eq', '') | reject('in', integration_entities('rainbird_rc2')) | list }}
-      rain_sensor_unavailable: >-
-        {{ rain_binary_sensor | default('', true) | length > 0
-           and states(rain_binary_sensor) in ['unknown', 'unavailable'] }}
-      irrigation_skip_reason: >-
-        {% if not (season_ok | bool) %}
-          Outside the watering season. The active season is months {{ season_start_month }}-{{ season_end_month }}.
-        {% elif (min_dose_mm | float(3)) > (max_dose_mm | float(10)) %}
-          The minimum dose to start ({{ min_dose_mm }} mm) is larger than the maximum dose per watering ({{ max_dose_mm }} mm). Correct the thresholds in "Schedule, season and thresholds".
-        {% elif (water_balance_enabled | bool) and (states[water_balance_helper] is none or states(water_balance_helper) == 'unavailable') %}
-          The water balance helper {{ water_balance_helper }} does not exist or is unavailable. Create a Text helper with a maximum length of 255 characters or select an existing one.
-        {% elif (water_balance_enabled | bool) and not (water_balance_helper_ok | bool) %}
-          The water balance helper {{ water_balance_helper }} has a limit of {{ water_balance_helper_max }} characters, but the balance needs {{ water_balance_payload_length }}. Set the maximum length of the helper to 255 characters.
-        {% elif not (water_balance_enabled | bool) and zones_non_rc2 | count > 0 %}
-          Select "Helper - persistent water balance". The sections {{ zones_non_rc2 | join(', ') }} do not report a run history, so their water demand cannot be calculated without the helper.
-        {% elif not (daily_forecast_available | bool) %}
-          The entity {{ forecast_weather_entity }} did not provide a daily forecast (weather.get_forecasts, type daily). Select a weather entity with a daily forecast.
-        {% elif not (weather_data_ok | bool) %}
-          No reliable weather data. Current condition: {{ current_weather_condition_pl }}, forecast: {{ forecast_condition_pl }}.
-        {% elif not (weather_ok | bool) %}
-          The weather blocks watering. Current condition: {{ current_weather_condition_pl }}, forecast: {{ forecast_condition_pl }}.
-        {% elif rain_sensor_unavailable | bool %}
-          The rain sensor {{ rain_binary_sensor }} is unavailable (state {{ states(rain_binary_sensor) }}), watering is held for safety. Check the sensor or remove it from the configuration.
-        {% elif not (rain_sensor_ok | bool) %}
-          The rain sensor is active: {{ rain_binary_sensor }} is {{ states(rain_binary_sensor) }}.
-        {% elif not (soil_moisture_ok | bool) %}
-          The soil is moist enough: {{ soil_moisture_percent | float(0) | round(1) }}%, blocking threshold {{ soil_moisture_block_percent | float(70) | round(0) }}%.
-        {% elif not (forecast_rain_ok | bool) %}
-          The rain forecast ({{ forecast_window_label }}) blocks watering: {{ forecast_precipitation | float(0) }} mm and {{ forecast_precipitation_probability | int(0) }}% probability.
-        {% elif not (temp_available | bool) %}
-          No current temperature: {{ temperature_source_entity if temperature_source_entity | default('', true) | length > 0 else current_weather_entity }} reports no value and the entity {{ current_weather_entity }} has no temperature attribute. Watering is held to protect against frost.
-        {% elif not (temp_ok | bool) %}
-          The temperature is too low: {{ temp_c | float(0) | round(1) }} C, the minimum is {{ min_temperature_c }} C.
-        {% elif not (wind_available | bool) %}
-          No wind measurement: {{ wind_source_entity }} reports no value and the entity {{ current_weather_entity }} has no wind_speed attribute. Watering is held.
-        {% elif not (wind_ok | bool) %}
-          The wind is too strong: {{ wind_value | float(0) | round(1) }}, the limit is {{ max_wind }}.
-        {% else %}{% endif %}
-
-  - alias: Store the next check time when blocked
-    choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ irrigation_skip_reason | trim | length > 0 and next_watering_datetime | default('', true) | length > 0 }}"
-        sequence:
-          - action: input_datetime.set_datetime
-            target:
-              entity_id: "{{ next_watering_datetime }}"
-            data:
-              timestamp: "{{ next_schedule_timestamp | int }}"
-
-  - alias: Log the skipped watering
-    choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ irrigation_skip_reason | trim | length > 0 and not (trigger_is_condition_check | bool) and (enable_irrigation_logs | bool) }}"
-        sequence:
-          - action: logbook.log
-            data:
-              name: Smart irrigation
-              message: "Watering skipped. {{ irrigation_skip_reason | trim }}"
-
-  - alias: Notify about the skipped watering
-    choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ irrigation_skip_reason | trim | length > 0 and not (trigger_is_condition_check | bool) and (create_persistent_notification | bool) }}"
-        sequence:
-          - action: persistent_notification.create
-            data:
-              title: Smart irrigation
-              message: |-
-                **Status:** watering skipped
-
-                **Reason**
-                {{ irrigation_skip_reason | trim }}
-
-                **Weather**
-                - Source: {{ weather_source_summary | trim }}
-                - Now: {{ current_weather_condition_pl }}
-                - Forecast: {{ forecast_condition_pl }}
-                - {{ rain_summary_line | trim }}
-                {% if rain_measurement_warning | trim | length > 0 %}- Note: {{ rain_measurement_warning | trim }}{% endif %}
-                - Rain ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
-                - Chance of rain: {{ forecast_precipitation_probability | int(0) }}%
-                - Temperature: {{ temp_c | float(0) | round(1) }} C
-                - Wind: {{ wind_value | float(0) | round(1) }}
-
-                **Next date**
-                {{ (next_schedule_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}
-              notification_id: smart_irrigation_last_event
-
-  - alias: Stop when watering is skipped
-    choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ irrigation_skip_reason | trim | length > 0 }}"
-        sequence:
-          - stop: "Watering skipped: {{ irrigation_skip_reason | trim }}"
-
   - alias: Decide on the whole watering cycle
     variables:
       irrigation_cycle_needed: |-
@@ -3143,6 +3023,123 @@ actions:
           {%- set scheduled = as_timestamp(today_at(primary_start_time) + timedelta(days=ns_day.offset)) -%}
         {%- endif -%}
         {{ scheduled | int }}
+
+  - alias: Determine the reason for skipping watering
+    variables:
+      zones_non_rc2: >-
+        {{ [zone_1_valve, zone_2_valve, zone_3_valve, zone_4_valve, zone_5_valve, zone_6_valve,
+            zone_7_valve, zone_8_valve, zone_9_valve, zone_10_valve, zone_11_valve, zone_12_valve][:(zone_count | int(1))]
+           | select('string') | reject('eq', '') | reject('in', integration_entities('rainbird_rc2')) | list }}
+      rain_sensor_unavailable: >-
+        {{ rain_binary_sensor | default('', true) | length > 0
+           and states(rain_binary_sensor) in ['unknown', 'unavailable'] }}
+      irrigation_config_block_reason: >-
+        {% if not (season_ok | bool) %}
+          Outside the watering season. The active season is months {{ season_start_month }}-{{ season_end_month }}.
+        {% elif (min_dose_mm | float(3)) > (max_dose_mm | float(10)) %}
+          The minimum dose to start ({{ min_dose_mm }} mm) is larger than the maximum dose per watering ({{ max_dose_mm }} mm). Correct the thresholds in "Schedule, season and thresholds".
+        {% elif (water_balance_enabled | bool) and (states[water_balance_helper] is none or states(water_balance_helper) == 'unavailable') %}
+          The water balance helper {{ water_balance_helper }} does not exist or is unavailable. Create a Text helper with a maximum length of 255 characters or select an existing one.
+        {% elif (water_balance_enabled | bool) and not (water_balance_helper_ok | bool) %}
+          The water balance helper {{ water_balance_helper }} has a limit of {{ water_balance_helper_max }} characters, but the balance needs {{ water_balance_payload_length }}. Set the maximum length of the helper to 255 characters.
+        {% elif not (water_balance_enabled | bool) and zones_non_rc2 | count > 0 %}
+          Select "Helper - persistent water balance". The sections {{ zones_non_rc2 | join(', ') }} do not report a run history, so their water demand cannot be calculated without the helper.
+        {% elif not (daily_forecast_available | bool) %}
+          The entity {{ forecast_weather_entity }} did not provide a daily forecast (weather.get_forecasts, type daily). Select a weather entity with a daily forecast.
+        {% elif not (weather_data_ok | bool) %}
+          No reliable weather data. Current condition: {{ current_weather_condition_pl }}, forecast: {{ forecast_condition_pl }}.
+        {% endif %}
+      irrigation_weather_block_reason: >-
+        {% if not (weather_ok | bool) %}
+          The weather blocks watering. Current condition: {{ current_weather_condition_pl }}, forecast: {{ forecast_condition_pl }}.
+        {% elif rain_sensor_unavailable | bool %}
+          The rain sensor {{ rain_binary_sensor }} is unavailable (state {{ states(rain_binary_sensor) }}), watering is held for safety. Check the sensor or remove it from the configuration.
+        {% elif not (rain_sensor_ok | bool) %}
+          The rain sensor is active: {{ rain_binary_sensor }} is {{ states(rain_binary_sensor) }}.
+        {% elif not (soil_moisture_ok | bool) %}
+          The soil is moist enough: {{ soil_moisture_percent | float(0) | round(1) }}%, blocking threshold {{ soil_moisture_block_percent | float(70) | round(0) }}%.
+        {% elif not (forecast_rain_ok | bool) %}
+          The rain forecast ({{ forecast_window_label }}) blocks watering: {{ forecast_precipitation | float(0) }} mm and {{ forecast_precipitation_probability | int(0) }}% probability.
+        {% elif not (temp_available | bool) %}
+          No current temperature: {{ temperature_source_entity if temperature_source_entity | default('', true) | length > 0 else current_weather_entity }} reports no value and the entity {{ current_weather_entity }} has no temperature attribute. Watering is held to protect against frost.
+        {% elif not (temp_ok | bool) %}
+          The temperature is too low: {{ temp_c | float(0) | round(1) }} C, the minimum is {{ min_temperature_c }} C.
+        {% elif not (wind_available | bool) %}
+          No wind measurement: {{ wind_source_entity }} reports no value and the entity {{ current_weather_entity }} has no wind_speed attribute. Watering is held.
+        {% elif not (wind_ok | bool) %}
+          The wind is too strong: {{ wind_value | float(0) | round(1) }}, the limit is {{ max_wind }}.
+        {% endif %}
+      irrigation_skip_reason: >-
+        {% if irrigation_config_block_reason | trim | length > 0 %}
+          {{ irrigation_config_block_reason | trim }}
+        {% elif (irrigation_cycle_needed | bool) %}
+          {{ irrigation_weather_block_reason | trim }}
+        {% endif %}
+      next_watering_blocked_timestamp: >-
+        {% set estimate = next_watering_estimated_timestamp | int(0) %}
+        {% set check = next_schedule_timestamp | int(0) %}
+        {{ estimate if estimate > check else check }}
+
+  - alias: Store the next check time when blocked
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ irrigation_skip_reason | trim | length > 0 and next_watering_datetime | default('', true) | length > 0 }}"
+        sequence:
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: "{{ next_watering_datetime }}"
+            data:
+              timestamp: "{{ next_watering_blocked_timestamp | int }}"
+
+  - alias: Log the skipped watering
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ irrigation_skip_reason | trim | length > 0 and not (trigger_is_condition_check | bool) and (enable_irrigation_logs | bool) }}"
+        sequence:
+          - action: logbook.log
+            data:
+              name: Smart irrigation
+              message: "Watering skipped. {{ irrigation_skip_reason | trim }}"
+
+  - alias: Notify about the skipped watering
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ irrigation_skip_reason | trim | length > 0 and not (trigger_is_condition_check | bool) and (create_persistent_notification | bool) }}"
+        sequence:
+          - action: persistent_notification.create
+            data:
+              title: Smart irrigation
+              message: |-
+                **Status:** watering skipped
+
+                **Reason**
+                {{ irrigation_skip_reason | trim }}
+
+                **Weather**
+                - Source: {{ weather_source_summary | trim }}
+                - Now: {{ current_weather_condition_pl }}
+                - Forecast: {{ forecast_condition_pl }}
+                - {{ rain_summary_line | trim }}
+                {% if rain_measurement_warning | trim | length > 0 %}- Note: {{ rain_measurement_warning | trim }}{% endif %}
+                - Rain ({{ forecast_window_label }}): {{ forecast_precipitation | float(0) | round(1) }} mm
+                - Chance of rain: {{ forecast_precipitation_probability | int(0) }}%
+                - Temperature: {{ temp_c | float(0) | round(1) }} C
+                - Wind: {{ wind_value | float(0) | round(1) }}
+
+                **Next date**
+                {{ (next_watering_blocked_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}
+              notification_id: smart_irrigation_last_event
+
+  - alias: Stop when watering is skipped
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ irrigation_skip_reason | trim | length > 0 }}"
+        sequence:
+          - stop: "Watering skipped: {{ irrigation_skip_reason | trim }}"
 
   - alias: Store the next watering helper
     choose:

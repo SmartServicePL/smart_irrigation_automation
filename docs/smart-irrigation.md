@@ -88,7 +88,7 @@ Every close command is confirmed: the blueprint waits for `off/closed`, repeats 
 
 ## Valve safety
 
-- After a Home Assistant start the blueprint waits up to 3 minutes for its `switch`/`valve` sections to become available and closes every section that is on or open. The same check runs after this automation is saved or reloaded.
+- After a Home Assistant start the blueprint waits up to 3 minutes for its `switch`/`valve` sections to become available and closes every section that is on or open.
 - **Nadzór czasu pracy sekcji** (on by default) closes a `switch`/`valve` section that stays on longer than the maximum section runtime plus 5 minutes, regardless of who turned it on. Disable it only if you deliberately water manually for longer than that limit.
 - Rain Bird RC2 and Rain Bird sections are excluded from both checks, because the controller receives the runtime and stops the station itself.
 - Home Assistant can only close a valve while it runs. For relays such as Sonoff, Shelly or ESPHome also set a hardware limit in the device: Shelly **Auto OFF**, Sonoff **Inching**, or an ESPHome `on_turn_on` action with a `delay` followed by `switch.turn_off`.

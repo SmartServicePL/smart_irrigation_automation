@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.0
+
+- The watering need is evaluated before the weather blocks. When no section needs water, the skip reason is "Trawnik nie wymaga jeszcze podlewania" even if the temperature, wind, rain sensor, forecast or soil moisture would block; those blocks are reported only when watering would otherwise start. Season, configuration and missing weather data are still reported first. The blocks still apply before every start.
+- The next-watering helper always follows the water balance. When watering is blocked it stores the later of the balance date and the next scheduled check (previously the next check only, so a cold night showed "tomorrow" until the next recalculation). The skip notification shows the same date.
+- Removed the `automation_reloaded` trigger: every save of any automation started this automation briefly and added a Logbook entry. Valves are still closed after a Home Assistant start and by the runtime watchdog (maximum section runtime + 5 minutes).
+- English and German blueprints regenerated from the catalog.
+
 ## 1.9.0
 
 - English (`smart_irrigation_en.yaml`) and German (`smart_irrigation_de.yaml`) versions of the blueprint, with their own import buttons and `source_url`. Field names and descriptions, option labels, notifications, Logbook entries and step names are translated; input keys, option values, triggers and template logic are identical to the Polish source.

@@ -4,7 +4,7 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.9.0**
+Current version: **1.10.0**
 
 ## Import Blueprint
 
@@ -34,6 +34,19 @@ behaviour are identical in all three files, so the inputs stay as they are.
 ## Donate
 
 [![Donate via Revolut](https://img.shields.io/badge/Donate-Revolut-0666EB?style=for-the-badge)](https://revolut.me/smartserwis)
+
+## New in 1.10.0: clearer skip reasons and a stable next-watering date
+
+- When no section needs water yet, the reason is always "the garden does not
+  need watering yet"; a weather block (temperature, wind, rain, forecast, soil
+  moisture) is reported only when watering would otherwise start. The blocks
+  still apply before every start.
+- The next-watering helper always follows the water balance. When watering is
+  blocked it shows the later of the balance date and the next check, so a cold
+  night no longer turns it into "tomorrow".
+- The automation no longer reacts to every reload of any automation, which
+  filled the Logbook. Valves are still closed after a Home Assistant start and
+  by the runtime watchdog (maximum section runtime + 5 minutes).
 
 ## New in 1.9.0: English and German blueprints
 

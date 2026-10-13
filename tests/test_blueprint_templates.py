@@ -467,7 +467,26 @@ class SkipReasonTests(unittest.TestCase):
         context["zones_non_rc2"] = _render(hass, self.reason["zones_non_rc2"], context)
         context["zones_non_rc2"] = eval(context["zones_non_rc2"])  # noqa: S307 - rendered list literal
         context["rain_sensor_unavailable"] = _render(hass, self.reason["rain_sensor_unavailable"], context) == "True"
+        context.setdefault("irrigation_cycle_needed", True)
+        context["irrigation_config_block_reason"] = _render(hass, self.reason["irrigation_config_block_reason"], context)
+        context["irrigation_weather_block_reason"] = _render(hass, self.reason["irrigation_weather_block_reason"], context)
         return _render(hass, self.reason["irrigation_skip_reason"], context)
+
+    def test_weather_block_is_not_the_reason_when_no_water_is_needed(self) -> None:
+        hass = FakeHass({"input_text.balance": "{}"})
+        self.assertIn("Temperatura jest za niska", self._reason(hass, temp_ok=False, temp_c=7.5, min_temperature_c=8))
+        self.assertEqual(self._reason(hass, temp_ok=False, temp_c=7.5, min_temperature_c=8, irrigation_cycle_needed=False), "")
+        self.assertEqual(self._reason(hass, weather_ok=False, irrigation_cycle_needed=False), "")
+
+    def test_configuration_and_season_are_reported_even_without_need(self) -> None:
+        hass = FakeHass({"input_text.balance": "{}"})
+        self.assertIn("Poza sezonem", self._reason(hass, season_ok=False, irrigation_cycle_needed=False))
+        self.assertIn("Minimalna dawka", self._reason(hass, min_dose_mm=12, max_dose_mm=10, irrigation_cycle_needed=False))
+
+    def test_blocked_next_date_is_the_later_of_balance_and_next_check(self) -> None:
+        text = self.reason["next_watering_blocked_timestamp"]
+        self.assertEqual(_render(FakeHass(), text, dict(next_watering_estimated_timestamp=2000, next_schedule_timestamp=1000)), "2000")
+        self.assertEqual(_render(FakeHass(), text, dict(next_watering_estimated_timestamp=1000, next_schedule_timestamp=1500)), "1500")
 
     def test_ready_configuration_has_no_skip_reason(self) -> None:
         hass = FakeHass({"input_text.balance": "{}"})
@@ -603,9 +622,9 @@ class ValveSafetyStructureTests(unittest.TestCase):
     def test_minimum_home_assistant_supports_outer_scope_variables(self) -> None:
         self.assertIn("min_version: 2025.4.0", self.text)
 
-    def test_restart_reload_and_runtime_watchdog_triggers_exist(self) -> None:
+    def test_restart_and_runtime_watchdog_triggers_exist_without_reload_trigger(self) -> None:
         self.assertIn("trigger: homeassistant\n    id: ha_start\n    event: start", self.text)
-        self.assertIn("event_type: automation_reloaded", self.text)
+        self.assertNotIn("automation_reloaded", self.text)
         self.assertIn("id: valve_watchdog", self.text)
         self.assertIn("mode: queued", self.text)
 
