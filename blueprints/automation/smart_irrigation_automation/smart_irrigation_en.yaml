@@ -1,7 +1,7 @@
 blueprint:
   name: Smart garden irrigation - 1 to 12 sections
   description: >
-    Version 1.11.0. Universal irrigation blueprint for 1 to 12 sections. Supports
+    Version 1.12.0. Universal irrigation blueprint for 1 to 12 sections. Supports
     Rain Bird RC2 installations and mixed setups with additional valves or relays
     from Sonoff, Shelly and ESPHome. The weather comes from the Home Assistant forecast, and a
     weather station is optional. For each section you set its name, section entity, soil
@@ -48,9 +48,17 @@ blueprint:
             entity:
               filter:
                 - domain: binary_sensor
+        pogoda_opad_24h_wstecz:
+          name: Rain from the last 24 hours - main source
+          description: Optional rain sensor in mm for the last 24 hours (rolling). The Smart Service panel fills it with sensor.migiels_pogoda_opad_24h_wstecz. When it is selected and reports a number, it takes priority over the "Measured rain" field below. When it is unavailable, "Measured rain" is used as the fallback, and if that does not work either, the rain is treated as unknown. Every switch to the fallback or to unknown rain is written to the reason helper.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
         rain_amount_sensor:
-          name: Measured rain - preferably the last 24 h
-          description: Rain sensor in mm. A rolling 24-hour total or the total of the current rain event is best; a daily-only sensor may miss rain after midnight. The value is subtracted from the balance. Without this sensor the rain for the balance is estimated from the daily forecast of the weather entity (once per day, marked in notifications as an estimate from the forecast). When the sensor is temporarily unavailable, the balance keeps the stored rain.
+          name: Measured rain - preferably the last 24 h (fallback)
+          description: Your own rain sensor in mm; the fallback when the main source (rain from the last 24 hours) is not selected or does not report a number. A rolling 24-hour total or the total of the current rain event is best; a daily-only sensor may miss rain after midnight. The value is subtracted from the balance. Without any rain sensor the rain for the balance is estimated from the daily forecast of the weather entity (once per day, marked in notifications as an estimate from the forecast). When the sensor is temporarily unavailable, the balance keeps the stored rain.
           default: ""
           selector:
             entity:
@@ -1843,6 +1851,28 @@ blueprint:
               unit_of_measurement: s
               mode: slider
 
+    cooperation_section:
+      name: Quiet night and lawn mower (optional)
+      icon: mdi:robot-mower
+      collapsed: true
+      input:
+        cisza_nocna:
+          name: Quiet night
+          description: Optional switch (input_boolean) that is on during the quiet night. A watering start before sunrise does NOT wait for the end of the quiet night, because valves are silent and the time before sunrise is the best time. When the quiet night is on and a start falls at another time (for example in the evening), watering is postponed to the next scheduled time. Empty = no restriction.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_boolean
+        kosiarka:
+          name: Together with the lawn mower
+          description: Optional lawn mower entity (lawn_mower). While the mower is mowing (state mowing), watering does not start and does not open further sections but is postponed to the next scheduled time. A section that is already running finishes normally. The mower waits before leaving after watering on its own; that is handled by its own automation. Empty = no cooperation.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: lawn_mower
+
     safety_section:
       name: Weather blocks
       icon: mdi:shield-check
@@ -1981,6 +2011,14 @@ blueprint:
             entity:
               filter:
                 - domain: input_text
+        pomocnik_powod:
+          name: Helper - reason for the last decision
+          description: Optional input_text (max. 255 characters). The automation writes the last decision or reason in it, briefly and in Polish, e.g. "Podlewam jutro o 5:40 - gleba potrzebuje wody". It also always writes when the rain comes from the fallback ("Measured rain") or the weather is unknown.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_text
 
 mode: queued
 max: 10
@@ -2066,7 +2104,26 @@ variables:
   forecast_weather_entity: !input forecast_weather_entity
   current_weather_entity_input: !input current_weather_entity
   rain_binary_sensor: !input rain_binary_sensor
-  rain_amount_sensor: !input rain_amount_sensor
+  pogoda_opad_24h_wstecz: !input pogoda_opad_24h_wstecz
+  rain_amount_sensor_fallback: !input rain_amount_sensor
+  cisza_nocna: !input cisza_nocna
+  kosiarka: !input kosiarka
+  pomocnik_powod: !input pomocnik_powod
+  # Rain source: main (pogoda_opad_24h_wstecz) -> fallback (rain_amount_sensor) -> unknown.
+  rain_source_mode: >-
+    {% set main = pogoda_opad_24h_wstecz | default('', true) %}
+    {% set own = rain_amount_sensor_fallback | default('', true) %}
+    {% if main | length > 0 and states(main) | is_number %}glowne
+    {% elif own | length > 0 and states(own) | is_number %}{{ 'rezerwa' if main | length > 0 else 'wlasny' }}
+    {% elif main | length > 0 %}nieznane
+    {% elif own | length > 0 %}wlasny
+    {% else %}prognoza
+    {% endif %}
+  # Effective rain source used by the water balance; the name is kept for the remaining templates.
+  rain_amount_sensor: >-
+    {% set main = pogoda_opad_24h_wstecz | default('', true) %}
+    {% set own = rain_amount_sensor_fallback | default('', true) %}
+    {{ main if rain_source_mode in ['glowne', 'nieznane'] else own if rain_source_mode in ['rezerwa', 'wlasny'] else '' }}
   temperature_source_entity: !input temperature_source_entity
   wind_source_entity: !input wind_source_entity
   sunlight_source_entity: !input sunlight_source_entity
@@ -2420,6 +2477,21 @@ actions:
 
                     If a running cycle was interrupted, the water balance of that section was not reduced; watering resumes with the next planned cycle.
                   notification_id: smart_irrigation_valve_alarm
+              - if:
+                  - condition: template
+                    value_template: >-
+                      {{ pomocnik_powod | default('', true) | length > 0 and states[pomocnik_powod] is not none }}
+                then:
+                  - action: input_text.set_value
+                    continue_on_error: true
+                    target:
+                      entity_id: "{{ pomocnik_powod }}"
+                    data:
+                      value: >-
+                        {{ ('ALARM - valves did not confirm closing: ' ~ (safety_not_closed | join(', '))
+                            if safety_not_closed | count > 0
+                            else 'Open valves closed (' ~ (safety_closed | join(', ')) ~ ') - '
+                                 ~ ('Home Assistant start' if trigger_id == 'ha_start' else 'runtime watchdog'))[:255] }}
           - alias: Log the valve check
             if:
               - condition: template
@@ -2732,6 +2804,12 @@ actions:
         {% else %}
           0
         {% endif %}
+      water_balance_source_tag: >-
+        {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
+        {% if rain_source_mode == 'glowne' %}1
+        {% elif rain_source_mode in ['rezerwa', 'wlasny'] %}0
+        {% else %}{{ saved.get('s', 0) | int(0) if (water_balance_saved_valid | bool) else 0 }}
+        {% endif %}
       water_balance_rain_source_ok: >-
         {% set e = rain_amount_sensor | default('', true) %}
         {% if e | length > 0 %}
@@ -2755,8 +2833,9 @@ actions:
         {% else %}
           {% set current = water_balance_rain_total_mm | float(0) %}
           {% set previous = saved.get('r', current) | float(current) if (water_balance_saved_valid | bool) else current %}
+          {% set same_source = (saved.get('s', 0) | int(0) if (water_balance_saved_valid | bool) else water_balance_source_tag | default(0, true) | int(0)) == (water_balance_source_tag | default(0, true) | int(0)) %}
           {% set delta = current - previous %}
-          {{ delta | round(2) if delta > 0 and (water_balance_rain_source_ok | bool) else 0 }}
+          {{ delta | round(2) if delta > 0 and (water_balance_rain_source_ok | bool) and same_source else 0 }}
         {% endif %}
       effective_rain_increment_mm: >-
         {% set raw_credit = rain_credit_percent | float(80) / 100 %}
@@ -2796,7 +2875,7 @@ actions:
       water_balance_deficits: >-
         {{ water_balance_deficits_json if water_balance_deficits_json is list else water_balance_deficits_json | from_json([]) }}
       water_balance_payload: >-
-        {"v":1,"t":{{ as_timestamp(now()) | int }},{% if water_balance_rain_from_forecast | bool %}"p":{{ water_balance_forecast_today_mm | float(0) | round(1) }}{% else %}"r":{{ water_balance_rain_total_mm | float(0) | round(1) }}{% endif %},"z":{{ water_balance_deficits_json }}{{ "}" }}
+        {"v":1,"t":{{ as_timestamp(now()) | int }},{% if water_balance_rain_from_forecast | bool %}"p":{{ water_balance_forecast_today_mm | float(0) | round(1) }}{% else %}"r":{{ water_balance_rain_total_mm | float(0) | round(1) }}{% if water_balance_source_tag | default(0, true) | int(0) == 1 %},"s":1{% endif %}{% endif %},"z":{{ water_balance_deficits_json }}{{ "}" }}
       water_balance_payload_length: "{{ water_balance_payload | string | trim | length }}"
       water_balance_helper_max: >-
         {{ state_attr(water_balance_helper, 'max') | int(0) if (water_balance_enabled | bool) else 0 }}
@@ -2842,7 +2921,11 @@ actions:
       rain_measurement_warning: >-
         {% if rain_amount_sensor | default('', true) | length > 0 and (water_balance_enabled | bool)
               and not (water_balance_rain_source_ok | bool) %}
-          The rain source is currently unavailable - the balance kept the previous rain total and did not subtract new rain.
+          {% if rain_source_mode == 'nieznane' %}
+            Rain is unknown: the main source {{ pogoda_opad_24h_wstecz }} and the fallback are unavailable - the balance kept the previous rain total and did not subtract new rain.
+          {% else %}
+            The rain source is currently unavailable - the balance kept the previous rain total and did not subtract new rain.
+          {% endif %}
         {% endif %}
       rain_summary_line: >-
         {% if (water_balance_rain_from_forecast | bool) %}
@@ -3076,6 +3159,15 @@ actions:
       rain_sensor_unavailable: >-
         {{ rain_binary_sensor | default('', true) | length > 0
            and states(rain_binary_sensor) in ['unknown', 'unavailable'] }}
+      quiet_night_blocks: >-
+        {{ (irrigation_start_trigger_ok | bool)
+           and cisza_nocna | default('', true) | length > 0
+           and is_state(cisza_nocna, 'on')
+           and not (is_state('sun.sun', 'below_horizon') and now().hour < 12) }}
+      mower_blocks: >-
+        {{ (irrigation_start_trigger_ok | bool)
+           and kosiarka | default('', true) | length > 0
+           and is_state(kosiarka, 'mowing') }}
       irrigation_config_block_reason: >-
         {% if not (season_ok | bool) %}
           Outside the watering season. The active season is months {{ season_start_month }}-{{ season_end_month }}.
@@ -3111,6 +3203,10 @@ actions:
           No wind measurement: {{ wind_source_entity }} reports no value and the entity {{ current_weather_entity }} has no wind_speed attribute. Watering is held.
         {% elif not (wind_ok | bool) %}
           The wind is too strong: {{ wind_value | float(0) | round(1) }}, the limit is {{ max_wind }}.
+        {% elif quiet_night_blocks | bool %}
+          Quiet night is on and the start is not before sunrise. Watering postponed to the next scheduled time.
+        {% elif mower_blocks | bool %}
+          The lawn mower {{ kosiarka }} is mowing. Watering postponed to the next scheduled time.
         {% endif %}
       irrigation_skip_reason: >-
         {% if irrigation_config_block_reason | trim | length > 0 %}
@@ -3122,6 +3218,56 @@ actions:
         {% set estimate = next_watering_estimated_timestamp | int(0) %}
         {% set check = next_schedule_timestamp | int(0) %}
         {{ estimate if estimate > check else check }}
+
+  - alias: Build the decision reason text
+    variables:
+      decision_when_ts: >-
+        {{ next_watering_blocked_timestamp if irrigation_skip_reason | trim | length > 0 else next_watering_estimated_timestamp }}
+      decision_when: >-
+        {% set ts = decision_when_ts | int(0) %}
+        {% set day = ts | timestamp_custom('%Y-%m-%d', true) %}
+        {% set hm = (ts | timestamp_custom('%H:%M', true)).split(':') %}
+        {% if day == now().strftime('%Y-%m-%d') %}
+          today at {{ hm[0] | int(0) }}:{{ hm[1] }}
+        {% elif day == (now() + timedelta(days=1)).strftime('%Y-%m-%d') %}
+          tomorrow at {{ hm[0] | int(0) }}:{{ hm[1] }}
+        {% else %}
+          {{ ts | timestamp_custom('%d.%m', true) }} at {{ hm[0] | int(0) }}:{{ hm[1] }}
+        {% endif %}
+      decision_source_note: >-
+        {% if rain_source_mode == 'rezerwa' %} (fallback weather: rain from the backup sensor)
+        {% elif rain_source_mode == 'nieznane' %} (weather unknown: no rain reading)
+        {% endif %}
+      decision_base: >-
+        {% if irrigation_skip_reason | trim | length > 0 %}
+          Not watering - {{ ((irrigation_skip_reason | trim).split('. ')[0]).rstrip('.')[:170] }}, next time {{ decision_when }}
+        {% elif not (irrigation_cycle_needed | bool) %}
+          Not watering - the lawn does not need water yet, next time {{ decision_when }}
+        {% elif irrigation_start_trigger_ok | bool %}
+          Watering now - the soil needs water (dose up to {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm)
+        {% else %}
+          Watering {{ decision_when }} - the soil needs water (dose up to {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm)
+        {% endif %}
+      decision_text: >-
+        {% set note = decision_source_note | trim %}
+        {% set base = decision_base | trim %}
+        {{ (base[:(254 - (note | length))] ~ ((' ' ~ note) if note | length > 0 else ''))[:255] }}
+
+  - alias: Write the decision reason to the helper
+    choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ pomocnik_powod | default('', true) | length > 0
+                 and states[pomocnik_powod] is not none
+                 and states(pomocnik_powod) != decision_text | trim }}
+        sequence:
+          - action: input_text.set_value
+            continue_on_error: true
+            target:
+              entity_id: "{{ pomocnik_powod }}"
+            data:
+              value: "{{ decision_text | trim }}"
 
   - alias: Store the next check time when blocked
     choose:
@@ -3559,6 +3705,7 @@ actions:
                  and states(current_weather_entity) not in bad_weather_states
                  and states(current_weather_entity) not in ['unknown', 'unavailable']
                  and states(section_valve) in ['closed', 'off', 'idle']
+                 and not (kosiarka | default('', true) | length > 0 and is_state(kosiarka, 'mowing'))
                  and (repeat.item.online_sensor | default('', true) | length == 0 or is_state(repeat.item.online_sensor, 'on'))
                  and (repeat.item.battery_sensor | default('', true) | length == 0 or (states(repeat.item.battery_sensor) | float(0)) >= (min_battery_percent | float(20))) }}
             section_skip_reason: >-
@@ -3580,6 +3727,8 @@ actions:
                 Weather data is unavailable. Current state: {{ states(current_weather_entity) }}.
               {% elif states(section_valve) not in ['closed', 'off', 'idle'] %}
                 The section is not ready to start. Current state: {{ states(section_valve) }}.
+              {% elif kosiarka | default('', true) | length > 0 and is_state(kosiarka, 'mowing') %}
+                The lawn mower {{ kosiarka }} is mowing, the section waits for the next scheduled time.
               {% elif repeat.item.online_sensor | default('', true) | length > 0 and not is_state(repeat.item.online_sensor, 'on') %}
                 The online sensor of the section is not active: {{ states(repeat.item.online_sensor) }}.
               {% elif repeat.item.battery_sensor | default('', true) | length > 0 and (states(repeat.item.battery_sensor) | float(0)) < (min_battery_percent | float(20)) %}
@@ -3859,7 +4008,7 @@ actions:
                                     {%- set updated = (value | float(0)) - applied if loop.index == (section_number | int) else value | float(0) -%}
                                     {%- set ns.values = ns.values + [0 if updated < 0 else updated | round(1)] -%}
                                   {%- endfor -%}
-                                  {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(1) }},"z":{{ ns.values | to_json }}{{ '}' }}
+                                  {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(1) }}{% if saved.get('s', 0) | int(0) == 1 %},"s":1{% endif %},"z":{{ ns.values | to_json }}{{ '}' }}
                             - action: input_text.set_value
                               target:
                                 entity_id: "{{ water_balance_helper }}"
@@ -3923,7 +4072,7 @@ actions:
                                     {%- set updated = (value | float(0)) - (section_applied_depth_mm | float(0)) if loop.index == (section_number | int) else value | float(0) -%}
                                     {%- set ns.values = ns.values + [0 if updated < 0 else updated | round(1)] -%}
                                   {%- endfor -%}
-                                  {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(1) }},"z":{{ ns.values | to_json }}{{ '}' }}
+                                  {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(1) }}{% if saved.get('s', 0) | int(0) == 1 %},"s":1{% endif %},"z":{{ ns.values | to_json }}{{ '}' }}
                             - action: input_text.set_value
                               target:
                                 entity_id: "{{ water_balance_helper }}"

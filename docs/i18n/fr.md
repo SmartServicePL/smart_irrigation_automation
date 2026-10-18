@@ -11,7 +11,8 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | Stacja pogodowa i czujniki (opcjonalnie) | Station météo et capteurs (facultatif) |
 | Lokalna encja pogody | Entité météo locale |
 | Czujnik deszczu | Capteur de pluie |
-| Opad zmierzony - najlepiej ostatnie 24 h | Pluie mesuree - de preference sur les dernieres 24 h |
+| Opad z ostatnich 24 godzin - źródło główne | Pluie des dernieres 24 heures - source principale |
+| Opad zmierzony - najlepiej ostatnie 24 h (rezerwa) | Pluie mesuree - de preference sur les dernieres 24 h (secours) |
 | Temperatura ogrodu | Température du jardin |
 | Wiatr | Vent |
 | UV / słońce | UV / soleil |
@@ -79,6 +80,10 @@ Utilisez cette page lors de la configuration du blueprint polonais dans Home Ass
 | Włącz dodatkowe przeliczenia | Activer les recalculs supplémentaires |
 | Helper - następne podlewanie | Helper - prochain arrosage |
 | Helper - trwały bilans wody | Helper - bilan hydrique persistant |
+| Helper - powód ostatniej decyzji | Helper - motif de la derniere decision |
+| Cisza nocna i kosiarka (opcjonalnie) | Nuit calme et tondeuse (optionnel) |
+| Cisza nocna | Nuit calme |
+| Razem z kosiarką | Avec la tondeuse |
 | Włącz logbook.log | Activer logbook.log |
 | Twórz powiadomienie persistent_notification | Créer une persistent_notification |
 

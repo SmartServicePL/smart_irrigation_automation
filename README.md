@@ -4,7 +4,7 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.11.0**
+Current version: **1.12.0**
 
 ## Import Blueprint
 
@@ -34,6 +34,25 @@ behaviour are identical in all three files, so the inputs stay as they are.
 ## Donate
 
 [![Donate via Revolut](https://img.shields.io/badge/Donate-Revolut-0666EB?style=for-the-badge)](https://revolut.me/smartserwis)
+
+## New in 1.12.0: rain source priority, reason helper, quiet night and lawn mower
+
+- New optional input **Opad z ostatnich 24 godzin - źródło główne**: a rolling
+  24-hour rain sensor (the Smart Service panel fills it with
+  `sensor.migiels_pogoda_opad_24h_wstecz`). It has priority; **Opad zmierzony**
+  stays as the fallback. If neither reports a number, the rain is unknown and
+  the balance credits no new rain. Switching between the sources is never
+  booked as new rain.
+- New optional input **Helper - powód ostatniej decyzji** (Text helper, 255
+  characters): the last decision or reason in one short sentence, always
+  including a note when the fallback sensor is used or the rain is unknown.
+- New optional input **Cisza nocna**: a start before sunrise does not wait for
+  the end of the quiet night; starts at other times wait while it is on.
+- New optional input **Razem z kosiarką**: no watering start and no further
+  section while the lawn mower is mowing.
+- Valve safety is unchanged: at Home Assistant start and every minute by the
+  watchdog, sections open longer than the maximum section runtime + 5 minutes
+  are closed with a notification (also written to the reason helper).
 
 ## New in 1.11.0: ET0 from solar radiation
 

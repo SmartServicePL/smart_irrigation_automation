@@ -11,7 +11,8 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | Stacja pogodowa i czujniki (opcjonalnie) | Wetterstation und Sensoren (optional) |
 | Lokalna encja pogody | Lokale Wetter-Entität |
 | Czujnik deszczu | Regensensor |
-| Opad zmierzony - najlepiej ostatnie 24 h | Gemessener Niederschlag - vorzugsweise letzte 24 Stunden |
+| Opad z ostatnich 24 godzin - źródło główne | Niederschlag der letzten 24 Stunden - Hauptquelle |
+| Opad zmierzony - najlepiej ostatnie 24 h (rezerwa) | Gemessener Niederschlag - vorzugsweise letzte 24 Stunden (Rückfallebene) |
 | Temperatura ogrodu | Gartentemperatur |
 | Wiatr | Wind |
 | UV / słońce | UV / Sonne |
@@ -79,6 +80,10 @@ Diese Seite hilft beim Einrichten des polnischen Blueprints in Home Assistant.
 | Włącz dodatkowe przeliczenia | Zusätzliche Neuberechnungen aktivieren |
 | Helper - następne podlewanie | Helfer - nächste Bewässerung |
 | Helper - trwały bilans wody | Helfer - dauerhafte Wasserbilanz |
+| Helper - powód ostatniej decyzji | Helfer - Grund der letzten Entscheidung |
+| Cisza nocna i kosiarka (opcjonalnie) | Nachtruhe und Mähroboter (optional) |
+| Cisza nocna | Nachtruhe |
+| Razem z kosiarką | Zusammen mit dem Mähroboter |
 | Włącz logbook.log | logbook.log aktivieren |
 | Twórz powiadomienie persistent_notification | persistent_notification erstellen |
 

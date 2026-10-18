@@ -11,7 +11,8 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Stacja pogodowa i czujniki (opcjonalnie) | Weerstation en sensoren (optioneel) |
 | Lokalna encja pogody | Lokale weer-entiteit |
 | Czujnik deszczu | Regensensor |
-| Opad zmierzony - najlepiej ostatnie 24 h | Gemeten regen - bij voorkeur de laatste 24 uur |
+| Opad z ostatnich 24 godzin - źródło główne | Regen van de laatste 24 uur - hoofdbron |
+| Opad zmierzony - najlepiej ostatnie 24 h (rezerwa) | Gemeten regen - bij voorkeur de laatste 24 uur (reserve) |
 | Temperatura ogrodu | Tuin temperatuur |
 | Wiatr | Wind |
 | UV / słońce | UV / zon |
@@ -79,6 +80,10 @@ Gebruik deze pagina bij het configureren van de Poolse blueprint in Home Assista
 | Włącz dodatkowe przeliczenia | Extra herberekeningen inschakelen |
 | Helper - następne podlewanie | Helper - volgende besproeiing |
 | Helper - trwały bilans wody | Helper - blijvende waterbalans |
+| Helper - powód ostatniej decyzji | Helper - reden van de laatste beslissing |
+| Cisza nocna i kosiarka (opcjonalnie) | Nachtrust en maaier (optioneel) |
+| Cisza nocna | Nachtrust |
+| Razem z kosiarką | Samen met de maaier |
 | Włącz logbook.log | logbook.log inschakelen |
 | Twórz powiadomienie persistent_notification | persistent_notification maken |
 

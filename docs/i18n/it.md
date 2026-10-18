@@ -11,7 +11,8 @@ Usa questa pagina quando configuri il blueprint polacco in Home Assistant.
 | Stacja pogodowa i czujniki (opcjonalnie) | Stazione meteo e sensori (opzionale) |
 | Lokalna encja pogody | Entità meteo locale |
 | Czujnik deszczu | Sensore pioggia |
-| Opad zmierzony - najlepiej ostatnie 24 h | Pioggia misurata - preferibilmente ultime 24 ore |
+| Opad z ostatnich 24 godzin - źródło główne | Pioggia delle ultime 24 ore - fonte principale |
+| Opad zmierzony - najlepiej ostatnie 24 h (rezerwa) | Pioggia misurata - preferibilmente ultime 24 ore (riserva) |
 | Temperatura ogrodu | Temperatura del giardino |
 | Wiatr | Vento |
 | UV / słońce | UV / sole |
@@ -79,6 +80,10 @@ Usa questa pagina quando configuri il blueprint polacco in Home Assistant.
 | Włącz dodatkowe przeliczenia | Abilita ricalcoli aggiuntivi |
 | Helper - następne podlewanie | Helper - prossima irrigazione |
 | Helper - trwały bilans wody | Helper - bilancio idrico persistente |
+| Helper - powód ostatniej decyzji | Helper - motivo dell'ultima decisione |
+| Cisza nocna i kosiarka (opcjonalnie) | Notte silenziosa e tagliaerba (opzionale) |
+| Cisza nocna | Notte silenziosa |
+| Razem z kosiarką | Insieme al tagliaerba |
 | Włącz logbook.log | Abilita logbook.log |
 | Twórz powiadomienie persistent_notification | Crea persistent_notification |
 

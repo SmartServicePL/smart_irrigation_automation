@@ -1,7 +1,7 @@
 blueprint:
   name: Inteligentne podlewanie ogrodu - 1 do 12 sekcji
   description: >
-    Wersja 1.11.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsługuje instalacje
+    Wersja 1.12.0. Uniwersalny blueprint podlewania od 1 do 12 sekcji. Obsługuje instalacje
     Rain Bird RC2 oraz układy mieszane z dodatkowymi zaworami lub przekaźnikami
     Sonoff, Shelly i ESPHome. Pogoda pochodzi z prognozy Home Assistant, a stacja
     pogodowa jest opcjonalna. Dla każdej sekcji osobno ustawiasz nazwę, encję sekcji, rodzaj
@@ -48,9 +48,17 @@ blueprint:
             entity:
               filter:
                 - domain: binary_sensor
+        pogoda_opad_24h_wstecz:
+          name: Opad z ostatnich 24 godzin - źródło główne
+          description: Opcjonalny sensor opadu w mm z ostatnich 24 godzin wstecz (kroczący). Panel Smart Service wypełnia go czujnikiem sensor.migiels_pogoda_opad_24h_wstecz. Gdy jest wybrany i podaje liczbę, ma pierwszeństwo przed polem "Opad zmierzony" poniżej. Gdy jest niedostępny, używany jest "Opad zmierzony" jako rezerwa, a jeśli i on nie działa, opad jest uznany za nieznany. Każde przejście na rezerwę albo na opad nieznany jest zapisywane w pomocniku powodu.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: sensor
         rain_amount_sensor:
-          name: Opad zmierzony - najlepiej ostatnie 24 h
-          description: Sensor opadu w mm. Najlepszy jest opad kroczący z ostatnich 24 h albo suma trwającego zdarzenia deszczowego; sensor tylko dzienny może pominąć deszcz po północy. Wartość jest odejmowana od bilansu. Bez tego sensora opad do bilansu jest szacowany z prognozy dziennej encji pogody (raz na dobę, oznaczony w powiadomieniach jako szacunek z prognozy). Gdy sensor jest chwilowo niedostępny, bilans nie zmienia zapamiętanego opadu.
+          name: Opad zmierzony - najlepiej ostatnie 24 h (rezerwa)
+          description: Własny sensor opadu w mm; rezerwa, gdy źródło główne (opad z ostatnich 24 godzin wstecz) nie jest wybrane albo nie podaje liczby. Najlepszy jest opad kroczący z ostatnich 24 h albo suma trwającego zdarzenia deszczowego; sensor tylko dzienny może pominąć deszcz po północy. Wartość jest odejmowana od bilansu. Bez tego sensora opad do bilansu jest szacowany z prognozy dziennej encji pogody (raz na dobę, oznaczony w powiadomieniach jako szacunek z prognozy). Gdy sensor jest chwilowo niedostępny, bilans nie zmienia zapamiętanego opadu.
           default: ""
           selector:
             entity:
@@ -1843,6 +1851,28 @@ blueprint:
               unit_of_measurement: s
               mode: slider
 
+    cooperation_section:
+      name: Cisza nocna i kosiarka (opcjonalnie)
+      icon: mdi:robot-mower
+      collapsed: true
+      input:
+        cisza_nocna:
+          name: Cisza nocna
+          description: Opcjonalny przełącznik (input_boolean) włączony w ciszy nocnej. Start podlewania przed wschodem słońca NIE czeka na koniec ciszy nocnej, bo zawory są ciche, a poranek przed wschodem jest najlepszą porą. Gdy cisza nocna jest włączona, a start wypada w innej porze (np. wieczorem), podlewanie jest przesunięte do następnego terminu. Puste = bez ograniczenia.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_boolean
+        kosiarka:
+          name: Razem z kosiarką
+          description: Opcjonalna encja kosiarki (lawn_mower). Gdy kosiarka kosi (stan mowing), podlewanie nie startuje i nie otwiera kolejnych sekcji, tylko jest przesunięte do następnego terminu. Sekcja, która już działa, kończy się normalnie. Kosiarka sama czeka z wyjazdem po podlewaniu; odpowiada za to jej własna automatyzacja. Puste = bez współpracy.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: lawn_mower
+
     safety_section:
       name: Blokady pogodowe
       icon: mdi:shield-check
@@ -1981,6 +2011,14 @@ blueprint:
             entity:
               filter:
                 - domain: input_text
+        pomocnik_powod:
+          name: Helper - powód ostatniej decyzji
+          description: Opcjonalny input_text (maks. 255 znaków). Automatyzacja zapisuje w nim krótko po polsku ostatnią decyzję albo powód, np. "Podlewam jutro o 5:40 - gleba potrzebuje wody". Zawsze zapisuje też, gdy opad pochodzi z rezerwy ("Opad zmierzony") albo pogoda jest nieznana.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_text
 
 mode: queued
 max: 10
@@ -2066,7 +2104,26 @@ variables:
   forecast_weather_entity: !input forecast_weather_entity
   current_weather_entity_input: !input current_weather_entity
   rain_binary_sensor: !input rain_binary_sensor
-  rain_amount_sensor: !input rain_amount_sensor
+  pogoda_opad_24h_wstecz: !input pogoda_opad_24h_wstecz
+  rain_amount_sensor_fallback: !input rain_amount_sensor
+  cisza_nocna: !input cisza_nocna
+  kosiarka: !input kosiarka
+  pomocnik_powod: !input pomocnik_powod
+  # Źródło opadu: główne (pogoda_opad_24h_wstecz) -> rezerwa (rain_amount_sensor) -> nieznane.
+  rain_source_mode: >-
+    {% set main = pogoda_opad_24h_wstecz | default('', true) %}
+    {% set own = rain_amount_sensor_fallback | default('', true) %}
+    {% if main | length > 0 and states(main) | is_number %}glowne
+    {% elif own | length > 0 and states(own) | is_number %}{{ 'rezerwa' if main | length > 0 else 'wlasny' }}
+    {% elif main | length > 0 %}nieznane
+    {% elif own | length > 0 %}wlasny
+    {% else %}prognoza
+    {% endif %}
+  # Efektywne źródło opadu używane przez bilans wody; nazwa zachowana dla reszty szablonów.
+  rain_amount_sensor: >-
+    {% set main = pogoda_opad_24h_wstecz | default('', true) %}
+    {% set own = rain_amount_sensor_fallback | default('', true) %}
+    {{ main if rain_source_mode in ['glowne', 'nieznane'] else own if rain_source_mode in ['rezerwa', 'wlasny'] else '' }}
   temperature_source_entity: !input temperature_source_entity
   wind_source_entity: !input wind_source_entity
   sunlight_source_entity: !input sunlight_source_entity
@@ -2420,6 +2477,21 @@ actions:
 
                     Jeśli przerwano trwający przebieg, bilans wody tej sekcji nie został pomniejszony; podlewanie wróci przy następnym zaplanowanym cyklu.
                   notification_id: smart_irrigation_valve_alarm
+              - if:
+                  - condition: template
+                    value_template: >-
+                      {{ pomocnik_powod | default('', true) | length > 0 and states[pomocnik_powod] is not none }}
+                then:
+                  - action: input_text.set_value
+                    continue_on_error: true
+                    target:
+                      entity_id: "{{ pomocnik_powod }}"
+                    data:
+                      value: >-
+                        {{ ('ALARM - zawory nie potwierdziły zamknięcia: ' ~ (safety_not_closed | join(', '))
+                            if safety_not_closed | count > 0
+                            else 'Zamknięto otwarte zawory (' ~ (safety_closed | join(', ')) ~ ') - '
+                                 ~ ('start Home Assistanta' if trigger_id == 'ha_start' else 'nadzór czasu pracy'))[:255] }}
           - alias: Zaloguj kontrolę zaworów
             if:
               - condition: template
@@ -2732,6 +2804,12 @@ actions:
         {% else %}
           0
         {% endif %}
+      water_balance_source_tag: >-
+        {% set saved = (water_balance_saved if water_balance_saved is mapping else water_balance_saved | from_json({})) %}
+        {% if rain_source_mode == 'glowne' %}1
+        {% elif rain_source_mode in ['rezerwa', 'wlasny'] %}0
+        {% else %}{{ saved.get('s', 0) | int(0) if (water_balance_saved_valid | bool) else 0 }}
+        {% endif %}
       water_balance_rain_source_ok: >-
         {% set e = rain_amount_sensor | default('', true) %}
         {% if e | length > 0 %}
@@ -2755,8 +2833,9 @@ actions:
         {% else %}
           {% set current = water_balance_rain_total_mm | float(0) %}
           {% set previous = saved.get('r', current) | float(current) if (water_balance_saved_valid | bool) else current %}
+          {% set same_source = (saved.get('s', 0) | int(0) if (water_balance_saved_valid | bool) else water_balance_source_tag | default(0, true) | int(0)) == (water_balance_source_tag | default(0, true) | int(0)) %}
           {% set delta = current - previous %}
-          {{ delta | round(2) if delta > 0 and (water_balance_rain_source_ok | bool) else 0 }}
+          {{ delta | round(2) if delta > 0 and (water_balance_rain_source_ok | bool) and same_source else 0 }}
         {% endif %}
       effective_rain_increment_mm: >-
         {% set raw_credit = rain_credit_percent | float(80) / 100 %}
@@ -2796,7 +2875,7 @@ actions:
       water_balance_deficits: >-
         {{ water_balance_deficits_json if water_balance_deficits_json is list else water_balance_deficits_json | from_json([]) }}
       water_balance_payload: >-
-        {"v":1,"t":{{ as_timestamp(now()) | int }},{% if water_balance_rain_from_forecast | bool %}"p":{{ water_balance_forecast_today_mm | float(0) | round(1) }}{% else %}"r":{{ water_balance_rain_total_mm | float(0) | round(1) }}{% endif %},"z":{{ water_balance_deficits_json }}{{ "}" }}
+        {"v":1,"t":{{ as_timestamp(now()) | int }},{% if water_balance_rain_from_forecast | bool %}"p":{{ water_balance_forecast_today_mm | float(0) | round(1) }}{% else %}"r":{{ water_balance_rain_total_mm | float(0) | round(1) }}{% if water_balance_source_tag | default(0, true) | int(0) == 1 %},"s":1{% endif %}{% endif %},"z":{{ water_balance_deficits_json }}{{ "}" }}
       water_balance_payload_length: "{{ water_balance_payload | string | trim | length }}"
       water_balance_helper_max: >-
         {{ state_attr(water_balance_helper, 'max') | int(0) if (water_balance_enabled | bool) else 0 }}
@@ -2842,7 +2921,11 @@ actions:
       rain_measurement_warning: >-
         {% if rain_amount_sensor | default('', true) | length > 0 and (water_balance_enabled | bool)
               and not (water_balance_rain_source_ok | bool) %}
-          Źródło opadu jest teraz niedostępne - bilans zachował poprzedni stan opadu i nie odjął nowego deszczu.
+          {% if rain_source_mode == 'nieznane' %}
+            Opad jest nieznany: źródło główne {{ pogoda_opad_24h_wstecz }} i rezerwa są niedostępne - bilans zachował poprzedni stan opadu i nie odjął nowego deszczu.
+          {% else %}
+            Źródło opadu jest teraz niedostępne - bilans zachował poprzedni stan opadu i nie odjął nowego deszczu.
+          {% endif %}
         {% endif %}
       rain_summary_line: >-
         {% if (water_balance_rain_from_forecast | bool) %}
@@ -3076,6 +3159,15 @@ actions:
       rain_sensor_unavailable: >-
         {{ rain_binary_sensor | default('', true) | length > 0
            and states(rain_binary_sensor) in ['unknown', 'unavailable'] }}
+      quiet_night_blocks: >-
+        {{ (irrigation_start_trigger_ok | bool)
+           and cisza_nocna | default('', true) | length > 0
+           and is_state(cisza_nocna, 'on')
+           and not (is_state('sun.sun', 'below_horizon') and now().hour < 12) }}
+      mower_blocks: >-
+        {{ (irrigation_start_trigger_ok | bool)
+           and kosiarka | default('', true) | length > 0
+           and is_state(kosiarka, 'mowing') }}
       irrigation_config_block_reason: >-
         {% if not (season_ok | bool) %}
           Poza sezonem podlewania. Aktywny sezon to miesiące {{ season_start_month }}-{{ season_end_month }}.
@@ -3111,6 +3203,10 @@ actions:
           Brak pomiaru wiatru: {{ wind_source_entity }} nie podaje wartości, a encja {{ current_weather_entity }} nie ma atrybutu wind_speed. Podlewanie wstrzymane.
         {% elif not (wind_ok | bool) %}
           Wiatr jest za mocny: {{ wind_value | float(0) | round(1) }}, limit to {{ max_wind }}.
+        {% elif quiet_night_blocks | bool %}
+          Cisza nocna jest włączona, a start nie jest przed wschodem słońca. Podlewanie przesunięte do następnego terminu.
+        {% elif mower_blocks | bool %}
+          Kosiarka {{ kosiarka }} kosi. Podlewanie przesunięte do następnego terminu.
         {% endif %}
       irrigation_skip_reason: >-
         {% if irrigation_config_block_reason | trim | length > 0 %}
@@ -3122,6 +3218,56 @@ actions:
         {% set estimate = next_watering_estimated_timestamp | int(0) %}
         {% set check = next_schedule_timestamp | int(0) %}
         {{ estimate if estimate > check else check }}
+
+  - alias: Wylicz tekst powodu decyzji
+    variables:
+      decision_when_ts: >-
+        {{ next_watering_blocked_timestamp if irrigation_skip_reason | trim | length > 0 else next_watering_estimated_timestamp }}
+      decision_when: >-
+        {% set ts = decision_when_ts | int(0) %}
+        {% set day = ts | timestamp_custom('%Y-%m-%d', true) %}
+        {% set hm = (ts | timestamp_custom('%H:%M', true)).split(':') %}
+        {% if day == now().strftime('%Y-%m-%d') %}
+          dziś o {{ hm[0] | int(0) }}:{{ hm[1] }}
+        {% elif day == (now() + timedelta(days=1)).strftime('%Y-%m-%d') %}
+          jutro o {{ hm[0] | int(0) }}:{{ hm[1] }}
+        {% else %}
+          {{ ts | timestamp_custom('%d.%m', true) }} o {{ hm[0] | int(0) }}:{{ hm[1] }}
+        {% endif %}
+      decision_source_note: >-
+        {% if rain_source_mode == 'rezerwa' %} (pogoda zapasowa: opad z rezerwowego czujnika)
+        {% elif rain_source_mode == 'nieznane' %} (pogoda nieznana: brak odczytu opadu)
+        {% endif %}
+      decision_base: >-
+        {% if irrigation_skip_reason | trim | length > 0 %}
+          Nie podlewam - {{ ((irrigation_skip_reason | trim).split('. ')[0]).rstrip('.')[:170] }}, następny termin {{ decision_when }}
+        {% elif not (irrigation_cycle_needed | bool) %}
+          Nie podlewam - trawnik nie wymaga jeszcze podlewania, następny termin {{ decision_when }}
+        {% elif irrigation_start_trigger_ok | bool %}
+          Podlewam teraz - gleba potrzebuje wody (dawka do {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm)
+        {% else %}
+          Podlewam {{ decision_when }} - gleba potrzebuje wody (dawka do {{ irrigation_cycle_depth_mm | float(0) | round(1) }} mm)
+        {% endif %}
+      decision_text: >-
+        {% set note = decision_source_note | trim %}
+        {% set base = decision_base | trim %}
+        {{ (base[:(254 - (note | length))] ~ ((' ' ~ note) if note | length > 0 else ''))[:255] }}
+
+  - alias: Zapisz powód decyzji w pomocniku
+    choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ pomocnik_powod | default('', true) | length > 0
+                 and states[pomocnik_powod] is not none
+                 and states(pomocnik_powod) != decision_text | trim }}
+        sequence:
+          - action: input_text.set_value
+            continue_on_error: true
+            target:
+              entity_id: "{{ pomocnik_powod }}"
+            data:
+              value: "{{ decision_text | trim }}"
 
   - alias: Zapisz termin kolejnego sprawdzenia przy blokadzie
     choose:
@@ -3559,6 +3705,7 @@ actions:
                  and states(current_weather_entity) not in bad_weather_states
                  and states(current_weather_entity) not in ['unknown', 'unavailable']
                  and states(section_valve) in ['closed', 'off', 'idle']
+                 and not (kosiarka | default('', true) | length > 0 and is_state(kosiarka, 'mowing'))
                  and (repeat.item.online_sensor | default('', true) | length == 0 or is_state(repeat.item.online_sensor, 'on'))
                  and (repeat.item.battery_sensor | default('', true) | length == 0 or (states(repeat.item.battery_sensor) | float(0)) >= (min_battery_percent | float(20))) }}
             section_skip_reason: >-
@@ -3580,6 +3727,8 @@ actions:
                 Dane pogodowe są niedostępne. Aktualny stan: {{ states(current_weather_entity) }}.
               {% elif states(section_valve) not in ['closed', 'off', 'idle'] %}
                 Sekcja nie jest gotowa do startu. Aktualny stan: {{ states(section_valve) }}.
+              {% elif kosiarka | default('', true) | length > 0 and is_state(kosiarka, 'mowing') %}
+                Kosiarka {{ kosiarka }} kosi, sekcja czeka do następnego terminu.
               {% elif repeat.item.online_sensor | default('', true) | length > 0 and not is_state(repeat.item.online_sensor, 'on') %}
                 Sensor online sekcji nie jest aktywny: {{ states(repeat.item.online_sensor) }}.
               {% elif repeat.item.battery_sensor | default('', true) | length > 0 and (states(repeat.item.battery_sensor) | float(0)) < (min_battery_percent | float(20)) %}
@@ -3859,7 +4008,7 @@ actions:
                                     {%- set updated = (value | float(0)) - applied if loop.index == (section_number | int) else value | float(0) -%}
                                     {%- set ns.values = ns.values + [0 if updated < 0 else updated | round(1)] -%}
                                   {%- endfor -%}
-                                  {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(1) }},"z":{{ ns.values | to_json }}{{ '}' }}
+                                  {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(1) }}{% if saved.get('s', 0) | int(0) == 1 %},"s":1{% endif %},"z":{{ ns.values | to_json }}{{ '}' }}
                             - action: input_text.set_value
                               target:
                                 entity_id: "{{ water_balance_helper }}"
@@ -3923,7 +4072,7 @@ actions:
                                     {%- set updated = (value | float(0)) - (section_applied_depth_mm | float(0)) if loop.index == (section_number | int) else value | float(0) -%}
                                     {%- set ns.values = ns.values + [0 if updated < 0 else updated | round(1)] -%}
                                   {%- endfor -%}
-                                  {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(1) }},"z":{{ ns.values | to_json }}{{ '}' }}
+                                  {"v":1,"t":{{ saved.get('t', as_timestamp(now())) | int }},"r":{{ saved.get('r', water_balance_rain_total_mm) | float(0) | round(1) }}{% if saved.get('s', 0) | int(0) == 1 %},"s":1{% endif %},"z":{{ ns.values | to_json }}{{ '}' }}
                             - action: input_text.set_value
                               target:
                                 entity_id: "{{ water_balance_helper }}"

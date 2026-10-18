@@ -86,6 +86,13 @@ After sending a start command, the blueprint waits up to 60 seconds for an `on/o
 
 Every close command is confirmed: the blueprint waits for `off/closed`, repeats the command up to 3 times every 30 seconds and, if the section still reports open, creates a separate alarm notification (`smart_irrigation_valve_alarm`) and stops the cycle.
 
+## Rain source priority, reason helper, quiet night and lawn mower (1.12.0)
+
+- **Opad z ostatnich 24 godzin - źródło główne** is the main rain source (a rolling 24-hour sensor in mm). **Opad zmierzony** is the fallback. When neither reports a number, the rain is unknown and no new rain is credited. Every switch to the fallback or to unknown rain is written to the reason helper.
+- **Helper - powód ostatniej decyzji** is an optional Text helper (255 characters). The blueprint writes the last decision or reason there, for example "Podlewam jutro o 5:40 - gleba potrzebuje wody (dawka do 6.0 mm)", with a note "pogoda zapasowa" or "pogoda nieznana" when the fallback is used or the rain is unknown. An emergency valve close is written there too.
+- **Cisza nocna** (input_boolean): a start before sunrise does not wait for the end of the quiet night; a start at another time waits while it is on.
+- **Razem z kosiarką** (lawn_mower): while the mower is mowing, no watering starts and no further section opens. A running section finishes normally.
+
 ## Valve safety
 
 - After a Home Assistant start the blueprint waits up to 3 minutes for its `switch`/`valve` sections to become available and closes every section that is on or open.

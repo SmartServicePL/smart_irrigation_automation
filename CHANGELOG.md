@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.12.0
+
+New optional inputs (all empty by default, so existing automations keep working unchanged; no existing input was renamed or removed):
+
+- **Opad z ostatnich 24 godzin - źródło główne** (`pogoda_opad_24h_wstecz`): a rolling 24-hour rain sensor in mm. The Smart Service panel fills it with `sensor.migiels_pogoda_opad_24h_wstecz`. When it reports a number it has priority; the existing **Opad zmierzony** (`rain_amount_sensor`) becomes the fallback. When neither reports a number the rain is unknown: the balance keeps the stored rain total and credits no new rain (as before with an unavailable sensor).
+- The stored balance remembers which source the rain total came from (`"s":1` for the main source). Switching between the main source and the fallback never books the difference as new rain. Balances saved by 1.11.0 keep working (no `"s"` = own sensor).
+- **Helper - powód ostatniej decyzji** (`pomocnik_powod`, `input_text`, up to 255 characters): the last decision or reason in short Polish (English and German in the translated blueprints), e.g. "Podlewam jutro o 5:40 - gleba potrzebuje wody (dawka do 6.0 mm)" or "Nie podlewam - trawnik nie wymaga jeszcze podlewania, następny termin jutro o 5:40". It is written after every decision, always with a note when the rain comes from the fallback ("pogoda zapasowa") or is unknown ("pogoda nieznana"), and after an emergency valve close.
+- **Cisza nocna** (`cisza_nocna`, `input_boolean`): a start before sunrise does not wait for the end of the quiet night. While the quiet night is on, a start at any other time (for example in the evening) is postponed to the next scheduled time.
+- **Razem z kosiarką** (`kosiarka`, `lawn_mower`): while the mower is mowing, watering does not start and does not open further sections; it is postponed to the next scheduled time. A section that is already running finishes normally.
+- Safety (requirement "Bezpieczne zawory"): unchanged and already covered. Open switch/valve sections are closed at Home Assistant start and by the runtime watchdog (maximum section runtime + 5 minutes, checked every minute) with a persistent notification; the notice is now also written to the reason helper.
+- English and German blueprints regenerated from the catalog.
+
 ## 1.11.0
 
 - New optional input **Promieniowanie słoneczne - średnia 24 h** (`solar_radiation_mean_sensor`): a 24-hour mean of solar radiation in W/m² (or kW/m²), typically a Statistics helper with the time-weighted `average_linear` characteristic and max age 24 hours. When it is set, ET0 = 0.0135 × (T + 17.8) × Rs / 2.45 with Rs = mean × 0.0864 MJ/m² per day (Hargreaves radiation formula). The daily ET0 sensor keeps priority; without the input, or when it is unavailable or has another unit, the previous estimate is used unchanged.
