@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.1
+
+- A next-watering date that falls outside the season (for example 13.12 with season 4-10) or after the start of the next season is no longer shown. The next-watering helper then holds the first day of the next season, and the reason helper, the Logbook and the notifications say "poza sezonem" with what to change: "Miesiąc końca sezonu" to water longer, or "Miesiąc startu sezonu" to start earlier.
+- English and German blueprints regenerated from the catalog.
+
 ## 1.12.0
 
 New optional inputs (all empty by default, so existing automations keep working unchanged; no existing input was renamed or removed):

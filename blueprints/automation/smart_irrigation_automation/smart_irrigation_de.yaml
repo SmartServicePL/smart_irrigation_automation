@@ -1,7 +1,7 @@
 blueprint:
   name: Intelligente Gartenbewässerung - 1 bis 12 Zonen
   description: >
-    Version 1.12.0. Universeller Bewässerungs-Blueprint für 1 bis 12 Zonen. Unterstützt
+    Version 1.12.1. Universeller Bewässerungs-Blueprint für 1 bis 12 Zonen. Unterstützt
     Rain Bird RC2 sowie gemischte Anlagen mit zusätzlichen Ventilen oder Relais
     von Sonoff, Shelly und ESPHome. Das Wetter stammt aus der Home-Assistant-Vorhersage, eine
     Wetterstation ist optional. Für jede Zone legst du Namen, Zonen-Entität, Bodenart,
@@ -2664,6 +2664,12 @@ actions:
       soil_moisture_ok: >-
         {% set m = soil_moisture_percent | float(-1) %}
         {{ m < 0 or m < (soil_moisture_block_percent | float(70)) }}
+      season_resume_ts: >-
+        {% set start = season_start_month | int(4) %}
+        {% set n = now() %}
+        {% set first = n.replace(month=start, day=1, hour=0, minute=0, second=0, microsecond=0) %}
+        {% set first = first if first > n else first.replace(year=n.year + 1) %}
+        {{ as_timestamp(first) | int }}
       season_ok: >-
         {% set start = season_start_month | int(4) %}
         {% set end = season_end_month | int(10) %}
@@ -3148,7 +3154,11 @@ actions:
         {%- if schedule_mode == 'fixed_time' -%}
           {%- set scheduled = as_timestamp(today_at(primary_start_time) + timedelta(days=ns_day.offset)) -%}
         {%- endif -%}
-        {{ scheduled | int }}
+        {%- set m = (scheduled | int | timestamp_custom('%m', true)) | int -%}
+        {%- set s_start = season_start_month | int(4) -%}
+        {%- set s_end = season_end_month | int(10) -%}
+        {%- set in_season = (m >= s_start and m <= s_end) if s_start <= s_end else (m >= s_start or m <= s_end) -%}
+        {{ (scheduled if in_season and scheduled < (season_resume_ts | int(0)) else season_resume_ts) | int }}
 
   - alias: Grund für das Überspringen der Bewässerung ermitteln
     variables:
@@ -3215,14 +3225,27 @@ actions:
           {{ irrigation_weather_block_reason | trim }}
         {% endif %}
       next_watering_blocked_timestamp: >-
-        {% set estimate = next_watering_estimated_timestamp | int(0) %}
-        {% set check = next_schedule_timestamp | int(0) %}
-        {{ estimate if estimate > check else check }}
+        {%- set estimate = next_watering_estimated_timestamp | int(0) -%}
+        {%- set check = next_schedule_timestamp | int(0) -%}
+        {%- set scheduled = estimate if estimate > check else check -%}
+        {%- set m = (scheduled | int | timestamp_custom('%m', true)) | int -%}
+        {%- set s_start = season_start_month | int(4) -%}
+        {%- set s_end = season_end_month | int(10) -%}
+        {%- set in_season = (m >= s_start and m <= s_end) if s_start <= s_end else (m >= s_start or m <= s_end) -%}
+        {{ (scheduled if in_season and scheduled < (season_resume_ts | int(0)) else season_resume_ts) | int }}
 
   - alias: Text des Entscheidungsgrundes berechnen
     variables:
       decision_when_ts: >-
         {{ next_watering_blocked_timestamp if irrigation_skip_reason | trim | length > 0 else next_watering_estimated_timestamp }}
+      next_watering_out_of_season: "{{ (decision_when_ts | int(0)) == (season_resume_ts | int(-1)) }}"
+      season_resume_text: "{{ (season_resume_ts | int(0)) | timestamp_custom('%d.%m.%Y', true) }}"
+      next_watering_label: >-
+        {% if next_watering_out_of_season | bool %}
+          außerhalb der Saison - die Bewässerung beginnt wieder am {{ season_resume_text }}
+        {% else %}
+          {{ (decision_when_ts | int(0)) | timestamp_custom('%Y-%m-%d %H:%M', true) }}
+        {% endif %}
       decision_when: >-
         {% set ts = decision_when_ts | int(0) %}
         {% set day = ts | timestamp_custom('%Y-%m-%d', true) %}
@@ -3239,7 +3262,11 @@ actions:
         {% elif rain_source_mode == 'nieznane' %} (Wetter unbekannt: kein Niederschlagswert)
         {% endif %}
       decision_base: >-
-        {% if irrigation_skip_reason | trim | length > 0 %}
+        {% if (next_watering_out_of_season | bool) and not (season_ok | bool) %}
+          Außerhalb der Saison - die Bewässerung beginnt wieder am {{ season_resume_text }}. Für einen früheren Start ändere "Startmonat der Saison".
+        {% elif (next_watering_out_of_season | bool) and not (irrigation_cycle_needed | bool) %}
+          Außerhalb der Saison - bis zum Saisonende ist keine Bewässerung mehr nötig, sie beginnt wieder am {{ season_resume_text }}. Für eine längere Saison ändere "Endmonat der Saison".
+        {% elif irrigation_skip_reason | trim | length > 0 %}
           Keine Bewässerung - {{ ((irrigation_skip_reason | trim).split('. ')[0]).rstrip('.')[:170] }}, nächster Termin {{ decision_when }}
         {% elif not (irrigation_cycle_needed | bool) %}
           Keine Bewässerung - der Rasen braucht noch kein Wasser, nächster Termin {{ decision_when }}
@@ -3319,7 +3346,7 @@ actions:
                 - Wind: {{ wind_value | float(0) | round(1) }}
 
                 **Nächster Termin**
-                {{ (next_watering_blocked_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}
+                {{ next_watering_label | trim }}
               notification_id: smart_irrigation_last_event
 
   - alias: Anhalten, wenn die Bewässerung übersprungen wird
@@ -3359,7 +3386,7 @@ actions:
                 {% else %}
                   Bewässerung ist noch nicht nötig. {{ reason }}
                 {% endif %}
-                Nächster voraussichtlicher Termin: {{ (next_watering_estimated_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}.
+                Nächster voraussichtlicher Termin: {{ next_watering_label | trim }}.
 
   - alias: Nach der Kontrollberechnung anhalten
     choose:
@@ -3407,7 +3434,7 @@ actions:
                 - Wind: {{ wind_value | float(0) | round(1) }}
 
                 **Nächster Termin**
-                {{ (next_watering_estimated_timestamp | int) | timestamp_custom('%Y-%m-%d %H:%M', true) }}
+                {{ next_watering_label | trim }}
               notification_id: smart_irrigation_last_event
 
   - alias: Anhalten, wenn kein Bewässerungszyklus nötig ist
@@ -4155,7 +4182,11 @@ actions:
         {%- if schedule_mode == 'fixed_time' -%}
           {%- set scheduled = as_timestamp(today_at(primary_start_time) + timedelta(days=ns_day.offset)) -%}
         {%- endif -%}
-        {{ scheduled | int }}
+        {%- set m = (scheduled | int | timestamp_custom('%m', true)) | int -%}
+        {%- set s_start = season_start_month | int(4) -%}
+        {%- set s_end = season_end_month | int(10) -%}
+        {%- set in_season = (m >= s_start and m <= s_end) if s_start <= s_end else (m >= s_start or m <= s_end) -%}
+        {{ (scheduled if in_season and scheduled < (season_resume_ts | int(0)) else season_resume_ts) | int }}
 
   - alias: Termin nach dem beendeten Zyklus speichern
     choose:

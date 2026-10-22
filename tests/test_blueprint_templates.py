@@ -485,8 +485,21 @@ class SkipReasonTests(unittest.TestCase):
 
     def test_blocked_next_date_is_the_later_of_balance_and_next_check(self) -> None:
         text = self.reason["next_watering_blocked_timestamp"]
-        self.assertEqual(_render(FakeHass(), text, dict(next_watering_estimated_timestamp=2000, next_schedule_timestamp=1000)), "2000")
-        self.assertEqual(_render(FakeHass(), text, dict(next_watering_estimated_timestamp=1000, next_schedule_timestamp=1500)), "1500")
+        june = datetime(2026, 6, 10, 5, 0).timestamp()
+        common = dict(season_start_month=4, season_end_month=10, season_resume_ts=int(datetime(2027, 4, 1).timestamp()))
+        self.assertEqual(_render(FakeHass(), text, dict(common, next_watering_estimated_timestamp=int(june + 7200), next_schedule_timestamp=int(june))), str(int(june + 7200)))
+        self.assertEqual(_render(FakeHass(), text, dict(common, next_watering_estimated_timestamp=int(june), next_schedule_timestamp=int(june + 3600))), str(int(june + 3600)))
+
+    def test_blocked_date_outside_the_season_becomes_the_next_season_start(self) -> None:
+        text = self.reason["next_watering_blocked_timestamp"]
+        resume = int(datetime(2027, 4, 1).timestamp())
+        december = int(datetime(2026, 12, 13, 5, 54).timestamp())
+        common = dict(season_start_month=4, season_end_month=10, season_resume_ts=resume)
+        self.assertEqual(_render(FakeHass(), text, dict(common, next_watering_estimated_timestamp=december, next_schedule_timestamp=december - 86400)), str(resume))
+        # A date in the next season (after the off-season) also shows the season start.
+        may = int(datetime(2027, 5, 2, 5, 0).timestamp())
+        self.assertEqual(_render(FakeHass(), text, dict(common, next_watering_estimated_timestamp=may, next_schedule_timestamp=may)), str(resume))
+
 
     def test_ready_configuration_has_no_skip_reason(self) -> None:
         hass = FakeHass({"input_text.balance": "{}"})
@@ -529,6 +542,33 @@ class SkipReasonTests(unittest.TestCase):
         hass = FakeHass({"input_text.balance": "{}"})
         reason = self._reason(hass, temp_available=False, temp_ok=False)
         self.assertIn("Brak aktualnej temperatury", reason)
+
+
+@unittest.skipIf(jinja2 is None or yaml is None, "jinja2 and PyYAML are required")
+class OutOfSeasonTextTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.doc = _load_blueprint()
+        cls.text = _action_variables(cls.doc, "Wylicz tekst powodu decyzji")
+        cls.weather = _action_variables(cls.doc, "Wylicz pogodę i wspólne warunki")
+
+    def test_season_resume_is_the_next_first_day_of_the_start_month(self) -> None:
+        now = datetime.fromtimestamp(NOW)
+        start = (now.month % 12) + 1
+        expected = now.replace(month=start, day=1, hour=0, minute=0, second=0, microsecond=0)
+        if expected <= now:
+            expected = expected.replace(year=now.year + 1)
+        rendered = _render(FakeHass(), self.weather["season_resume_ts"], dict(season_start_month=start))
+        self.assertEqual(int(rendered), int(expected.timestamp()))
+
+    def test_reason_text_explains_what_to_change(self) -> None:
+        common = dict(next_watering_out_of_season=True, season_resume_text="01.04.2027", irrigation_skip_reason="")
+        after_end = _render(FakeHass(), self.text["decision_base"], dict(common, season_ok=True, irrigation_cycle_needed=False))
+        self.assertIn("Poza sezonem", after_end)
+        self.assertIn("Miesiąc końca sezonu", after_end)
+        off = _render(FakeHass(), self.text["decision_base"], dict(common, season_ok=False, irrigation_cycle_needed=False))
+        self.assertIn("01.04.2027", off)
+        self.assertIn("Miesiąc startu sezonu", off)
 
 
 @unittest.skipIf(jinja2 is None or yaml is None, "jinja2 and PyYAML are required")

@@ -108,10 +108,10 @@ class InputStabilityTests(unittest.TestCase):
             self.assertEqual(variables[name], f"INPUT:{name}")
         self.assertEqual(variables["rain_amount_sensor_fallback"], "INPUT:rain_amount_sensor")
 
-    def test_version_is_1_12_0_in_all_files(self) -> None:
+    def test_version_is_1_12_1_in_all_files(self) -> None:
         for suffix in ("", "_en", "_de"):
             text = BLUEPRINT.with_name(f"smart_irrigation{suffix}.yaml").read_text(encoding="utf-8")
-            self.assertRegex(text, r"(Wersja|Version) 1\.12\.0\.")
+            self.assertRegex(text, r"(Wersja|Version) 1\.12\.1\.")
 
 
 @unittest.skipIf(jinja2 is None or yaml is None, "jinja2 and PyYAML are required")

@@ -4,7 +4,7 @@ Home Assistant automation blueprint for intelligent garden irrigation from 1 to 
 
 Prepared by **Smart Service**.
 
-Current version: **1.12.0**
+Current version: **1.12.1**
 
 ## Import Blueprint
 
